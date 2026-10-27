@@ -1,14 +1,14 @@
-COUCOU FOR ANDROID: LICENCES AND NOTICES
+ABITO FOR ANDROID: LICENCES AND NOTICES
 
-Coucou for Android, by Rhytam Biswas, is part of Coucou by Louis Raillé (https://github.com/Louis-CFM/coucou). It is free, has no ads and no analytics.
+Abito for Android (https://github.com/Alvarogds04/abito) is free, has no ads and no analytics.
 
-1. The code of Coucou
+1. The code
 
-The source code of Coucou is Copyright (c) 2026 Louis Raillé and is released under the MIT License. The full text is below ("MIT License").
+Part of the code of this app comes from Coucou for Android (https://github.com/Louis-CFM/coucou), Copyright (c) 2026 Rhytam Biswas, released under the MIT License. The full text is below ("MIT License").
 
-2. The name, the character, the icon and the sounds
+2. What is not taken from Coucou
 
-The names "Coucou" and "Mochi", the Mochi character (its design, look, expressions and animations), the app icon and the sounds are Copyright (c) 2026 Louis Raillé. All rights reserved. They are NOT covered by the MIT License (see LICENSE-ASSETS.md in https://github.com/Louis-CFM/coucou). They are used in this app with the written permission of Louis Raillé, for this Android app only, and may not be reused elsewhere without his permission.
+The names "Coucou" and "Mochi", the Mochi character (its design, look, expressions and animations), Coucou's app icon and its sounds are Copyright (c) 2026 Louis Raillé and are NOT covered by the MIT License (see LICENSE-ASSETS.md in https://github.com/Louis-CFM/coucou). Abito does not use them: it has its own name, character, icon and sounds.
 
 3. ZXing
 

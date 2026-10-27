@@ -12,7 +12,7 @@ Historia: HU-049 (vault Abito). Decisión: `🏗️ Architecture/📜 Decisions/
 - [x] T1 (S1,S3) Importar código MIT sin assets reservados · inline · 065ff5f
 - [x] T2 (S2) Toolchain JDK 17 + Gradle 8.10.2 · inline · openjdk-17 instalado (L4)
 - [x] T3 (S1,S3) Compilar: stub neutro del personaje + icono/sonidos placeholder Abito · inline (worker no disponible) · ver commit T3
-- [ ] T4 (S3) Renombrar paquete/applicationId/strings a Abito (`com.abito.android`) · inline
+- [x] T4 (S3) Renombrar paquete/applicationId/strings a Abito (`com.abito.android`) · inline · ver commit T4
 - [ ] T5 (S4) Protocolo Abito (esquema, mDNS, CN) + interop con `phone_link` del escritorio; reapuntar ReferenceFiles/DevDesktopInteropTest al escritorio Abito; quitar relay (RelayCryptoTest saltado) · inline
 - [ ] T6 (S1) Personaje Abito (clay-engine del escritorio portado) · por decidir
 - [ ] T7 (S1) APK debug en emulador y móvil real; demo sin PC · inline
@@ -23,3 +23,4 @@ Historia: HU-049 (vault Abito). Decisión: `🏗️ Architecture/📜 Decisions/
 - L3: Solo hay JDK 25 instalado; AGP 8.7.3/Gradle 8.10.2 necesitan JDK 17. SDK en ~/Android/Sdk (platform 35, build-tools 35/36).
 - L4: Humano eligió opción 1 («1»): instalar openjdk-17 al lado del 25. Instalado (/usr/lib/jvm/java-17-openjdk-amd64); el Java por defecto sigue en 25. Gradle se corre con JAVA_HOME=…java-17….
 - L5: T3 verde: `./gradlew testDebugUnitTest assembleDebug` → 803 tests, 0 fallos, 64 saltados (47 de paridad contra fuentes del escritorio Coucou vía ReferenceFiles + 17 RelayCryptoTest sin vectores). Quitado el armario (outfits de Mochi, cap `prefs`). Tests borrados: UserSettingsTest.theOutfitChoice*, anOutfitChoice*; RustDesktopInteropTest.theOutfitReachesAnApp…; AssetsTest.everyBundledSoundIsTheDesktopsOwnFile…; WidgetPreviewTest.theBadgesAreTheOnesOfTheStates; ProtocolPrefsTest reescrito (prefs se ignora). Debilitados: ScanScreenTest sin chequeo de .github/phone-link.yml; WidgetSurfacesTest sin docs/android.html ni README. APK sin .wav, PNG ni código Mochi.
+- L6: «si cambialo» (T4). Hecho: paquete y applicationId `com.abito.android`, label «Abito», Coucou→Abito y Mochi→Abito/Character en código, recursos y textos; esquema `abito` y mDNS `_abito._tcp` quedan alineados con `phone_link/ids.rs` del escritorio (adelanta parte de T5). Atribución reescrita: código MIT de Coucou for Android © Rhytam Biswas; se declara que NO se usan nombre/Mochi/icono/sonidos de Louis Raillé. MIT.txt = LICENSE del repo (test reactivado). Etiquetas de widgets sin «Abito» (el selector ya muestra la app): «At a glance», «Big status», «Agents' mood». Armario: cadenas borradas. Tests: 803, 0 fallos, 63 saltados. Variables de firma ahora ABITO_*.
