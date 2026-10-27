@@ -22,57 +22,16 @@ class RelayLinkTest {
         assertEquals("192.168.1.20", p.host)
     }
 
-    @Test fun aLinkWithTheRelayFieldsCarriesThemAll() {
-        val p = PairingPayload.parse(withRelay)!!
-        val r = p.relay!!
-        assertEquals("wss://relay.example.workers.dev", r.url)
-        assertEquals(room, r.room)
-        assertEquals(key, r.key)
-        assertEquals(access, r.access)
-        assertNotNull(r.pairingKey())
-        assertEquals("wss://relay.example.workers.dev", r.relayUrl()!!.display)
-        assertEquals(443, r.relayUrl()!!.port)
-    }
-
-    @Test fun thePortInTheAddressIsKept() {
-        val p = PairingPayload.parse(withRelay.replace("workers.dev", "workers.dev:8443"))!!
-        assertEquals(8443, p.relay!!.relayUrl()!!.port)
-    }
-
-    @Test fun someOfTheFieldsButNotAllIsADamagedLink() {
-        for (missing in listOf("relay", "room", "key", "access")) {
-            val link = withRelay.split("&").filterNot { it.startsWith("$missing=") }.joinToString("&")
-            assertNull("without $missing", PairingPayload.parse(link))
-        }
-    }
-
-    @Test fun aMalformedFieldMakesTheWholeLinkInvalid() {
-        val bad = mapOf(
-            "room too short" to withRelay.replace(room, room.dropLast(1)),
-            "room not base64url" to withRelay.replace(room, "!".repeat(22)),
-            "key too short" to withRelay.replace(key, key.dropLast(1)),
-            "key too long" to withRelay.replace(key, key + "A"),
-            "access too short" to withRelay.replace(access, access.dropLast(2)),
-            "access with padding" to withRelay.replace(access, access.dropLast(1) + "="),
-            "plain http" to withRelay.replace("wss:%2F%2F", "https:%2F%2F"),
-            "ws to another host" to withRelay.replace("wss:%2F%2Frelay.example.workers.dev", "ws:%2F%2Frelay.example.workers.dev"),
-            "credentials in the address" to withRelay.replace("wss:%2F%2F", "wss:%2F%2Fuser:pw%40"),
-            "a path in the address" to withRelay.replace("workers.dev", "workers.dev%2Fx"),
-        )
-        for ((name, link) in bad) assertNull(name, PairingPayload.parse(link))
+    @Test fun relayFieldsAreIgnored_AbitoIsLanOnly() {
+        assertNull(PairingPayload.parse(withRelay)!!.relay)
+        // Even damaged relay fields do not matter: the LAN part decides.
+        assertNull(PairingPayload.parse(withRelay.replace(key, "x"))!!.relay)
     }
 
     @Test fun theLanPartIsUnchangedByTheRelayFields() {
         val a = PairingPayload.parse(lan)!!
         val b = PairingPayload.parse(withRelay)!!
         assertEquals(a.copy(relay = null), b.copy(relay = null))
-    }
-
-    @Test fun aPairingNeverPrintsItsRelaySecrets() {
-        val p = PairingPayload.parse(withRelay)!!
-        val shown = p.relay.toString() + p.relay!!.pairingKey().toString()
-        for (secret in listOf(key, access, room)) assertFalse(shown.contains(secret))
-        assertFalse(p.toString().contains(key) || p.toString().contains(access) || p.toString().contains(room))
     }
 
     @Test fun theLongestRealisticLinkIsStillAccepted() {
@@ -82,7 +41,7 @@ class RelayLinkTest {
             "&relay=wss:%2F%2F$host:8443&room=$room&key=$key&access=$access"
         assertTrue("${link.length} characters", link.length < com.abito.android.core.PairingScan.MAX_LINK)
         assertTrue(com.abito.android.core.PairingScan.decide(link) is com.abito.android.core.ScanDecision.Pairing)
-        assertEquals(host, PairingPayload.parse(link)!!.relay!!.relayUrl()!!.host)
+        assertNull(PairingPayload.parse(link)!!.relay)
     }
 
     @Test fun theConfirmationShowsTheRelayHostBeforeAnythingIsStored() {
@@ -119,12 +78,11 @@ class PairingCodecTest {
         assertEquals(lanOnly, PairingCodec.decode(text))
     }
 
-    @Test fun aPairingWithARelayRoundTripsWithAllFourFields() {
+    @Test fun aStoredRelayIsDropped_AbitoIsLanOnly() {
         val p = lanOnly.copy(relay = RelayPairing("wss://relay.example.workers.dev", room, key, access))
         val back = PairingCodec.decode(PairingCodec.encode(p))!!
-        assertEquals(p, back)
-        assertEquals(key, back.relay!!.key)
-        assertEquals(access, back.relay!!.access)
+        assertEquals(lanOnly, back)
+        assertNull(back.relay)
     }
 
     @Test fun aPairingSavedByAnOlderAppStillLoadsAsLanOnly() {

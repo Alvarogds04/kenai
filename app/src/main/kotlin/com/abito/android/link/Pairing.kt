@@ -37,13 +37,8 @@ data class PairingPayload(
             val fp = q["fp"]?.lowercase()?.takeIf(Wire::isFingerprint) ?: return null
             val token = q["token"]?.takeIf { it.length in 16..128 && it.all { c -> c.isLetterOrDigit() || c == '-' || c == '_' } }
                 ?: return null
-            // The relay fields are all there and well formed, or all absent; anything in between is a damaged link.
-            val relay = when (val r = RelayPairing.fromQuery(q)) {
-                RelayPairing.Companion.Parsed.Absent -> null
-                RelayPairing.Companion.Parsed.Invalid -> return null
-                is RelayPairing.Companion.Parsed.Ok -> r.relay
-            }
-            return PairingPayload(host, port, fp, token, q["name"].orEmpty().take(64), relay)
+            // Abito is LAN only (no cloud relay): relay fields in a link are ignored, so the link never leaves the network.
+            return PairingPayload(host, port, fp, token, q["name"].orEmpty().take(64), relay = null)
         }
     }
 }
@@ -82,7 +77,7 @@ object PairingCodec {
         val parts = text.split("\n")
         if (parts.size < 4) return null
         val port = parts[1].toIntOrNull() ?: return null
-        val relay = if (parts.size >= 9) RelayPairing(parts[5], parts[6], parts[7], parts[8]) else null
-        return PairingPayload(parts[0], port, parts[2], parts[3], parts.getOrElse(4) { "" }, relay)
+        // LAN only: a stored relay (from an older build) is dropped.
+        return PairingPayload(parts[0], port, parts[2], parts[3], parts.getOrElse(4) { "" }, relay = null)
     }
 }

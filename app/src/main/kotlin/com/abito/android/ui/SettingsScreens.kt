@@ -168,7 +168,7 @@ fun SettingsScreen(model: AppModel, onHistory: () -> Unit, onGallery: () -> Unit
 
         if (model.mode == Mode.PAIRED) {
             item { SectionHeading(stringResource(R.string.settings_section_away)) }
-            item { RelayCard(model) }
+            // No relay card: Abito is LAN only.
         }
 
         if (model.batteryHintVisible) item { BatteryCard(model) }
