@@ -10,7 +10,7 @@ import javax.net.ssl.X509TrustManager
 
 /**
  * What the desktop shows as a QR code: abito://pair?v=1&host=...&port=...&fp=...&token=...&name=...
- * (and, when its relay is on, &relay=...&room=...&key=...&access=..., see docs/RELAY_LINK.md).
+ * Abito is LAN only: any extra fields in the link (such as an old cloud relay's) are ignored.
  * `fp` is the SHA-256 (hex) of the desktop's TLS certificate; `token` is the shared pairing secret.
  */
 data class PairingPayload(
@@ -19,8 +19,6 @@ data class PairingPayload(
     val certSha256: String,
     val token: String,
     val desktopName: String,
-    /** The relay fields of the link (all four or none); null for a link that only works on the local network. */
-    val relay: RelayPairing? = null,
 ) {
     companion object {
         /** Returns null for anything that is not a well-formed v1 pairing link. */
@@ -37,8 +35,7 @@ data class PairingPayload(
             val fp = q["fp"]?.lowercase()?.takeIf(Wire::isFingerprint) ?: return null
             val token = q["token"]?.takeIf { it.length in 16..128 && it.all { c -> c.isLetterOrDigit() || c == '-' || c == '_' } }
                 ?: return null
-            // Abito is LAN only (no cloud relay): relay fields in a link are ignored, so the link never leaves the network.
-            return PairingPayload(host, port, fp, token, q["name"].orEmpty().take(64), relay = null)
+            return PairingPayload(host, port, fp, token, q["name"].orEmpty().take(64))
         }
     }
 }
@@ -62,14 +59,12 @@ class PinnedTrustManager(private val pinnedSha256Hex: String) : X509TrustManager
 }
 
 /**
- * How a pairing is kept (encrypted by SecureStore): one field per line, the relay's four after the five LAN ones. An older
- * file with five lines reads as a LAN-only pairing, so an app update never loses a pairing.
+ * How a pairing is kept (encrypted by SecureStore): one field per line. A file written by an older build with four more
+ * lines (a cloud relay's) reads as the same LAN pairing, so an app update never loses a pairing.
  */
 object PairingCodec {
     fun encode(p: PairingPayload): String {
-        val base = listOf(p.host, p.port.toString(), p.certSha256, p.token, p.desktopName)
-        val r = p.relay ?: return base.joinToString("\n")
-        return (base + listOf(r.url, r.room, r.key, r.access)).joinToString("\n")
+        return listOf(p.host, p.port.toString(), p.certSha256, p.token, p.desktopName).joinToString("\n")
     }
 
     /** Null when the text is not a pairing this build can use. */
@@ -77,7 +72,6 @@ object PairingCodec {
         val parts = text.split("\n")
         if (parts.size < 4) return null
         val port = parts[1].toIntOrNull() ?: return null
-        // LAN only: a stored relay (from an older build) is dropped.
-        return PairingPayload(parts[0], port, parts[2], parts[3], parts.getOrElse(4) { "" }, relay = null)
+        return PairingPayload(parts[0], port, parts[2], parts[3], parts.getOrElse(4) { "" })
     }
 }

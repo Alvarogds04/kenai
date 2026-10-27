@@ -27,10 +27,6 @@ class NetworkWatch(
         return c.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || c.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
     }
 
-    fun isCellular(): Boolean {
-        val n = cm.activeNetwork ?: return false
-        return cm.getNetworkCapabilities(n)?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
-    }
 
     @Synchronized
     fun start() {

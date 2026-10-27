@@ -5,8 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ReconnectPolicyTest {
-    private fun d(e: Wake, paired: Boolean = true, connected: Boolean = false, wifi: Boolean = true, relay: Boolean = false) =
-        ReconnectPolicy.decide(e, paired, connected, wifi, relay)
+    private fun d(e: Wake, paired: Boolean = true, connected: Boolean = false, wifi: Boolean = true) =
+        ReconnectPolicy.decide(e, paired, connected, wifi)
 
     @Test fun nothingHappensWithoutAPairing() {
         for (e in Wake.values()) assertEquals(Action.NONE, d(e, paired = false))
@@ -23,7 +23,6 @@ class ReconnectPolicyTest {
     @Test fun withoutAUsableNetworkTheNetworkAndAlarmWakeUpsDoNotBurnBatteryButTheScreenStillTries() {
         assertEquals(Action.NONE, d(Wake.NEW_NETWORK, wifi = false))
         assertEquals(Action.NONE, d(Wake.ALARM, wifi = false))
-        assertEquals("a relay works over mobile data", Action.RETRY_NOW, d(Wake.NEW_NETWORK, wifi = false, relay = true))
         assertEquals("the user just woke the phone: try", Action.RETRY_NOW, d(Wake.SCREEN_ON, wifi = false))
     }
 

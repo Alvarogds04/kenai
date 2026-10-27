@@ -18,9 +18,8 @@ class DiagnosticsTest {
         PairingPayload(host, d.port, fp, tok, "My private PC name")
 
     private fun env(
-        p: PairingPayload, wifi: Boolean = true, cellular: Boolean = false, found: List<Found> = emptyList(),
-        relay: (() -> DiagResult)? = null,
-    ) = LanDiagnostics(p, { wifi }, { cellular }, { found }, PinnedTls.connector(p), relay, timeoutMs = 1_500)
+        p: PairingPayload, wifi: Boolean = true, found: List<Found> = emptyList(),
+    ) = LanDiagnostics(p, { wifi }, { found }, PinnedTls.connector(p), timeoutMs = 1_500)
 
     private fun results(e: DiagEnv) = Diagnostics.run(e).toMap()
 
@@ -30,7 +29,7 @@ class DiagnosticsTest {
         val found = listOf(Found("PC", "127.0.0.1", d.port, Discovery.fingerprintId(d.certSha256), Discovery.TXT_VERSION))
         val r = results(env(p, found = found))
         for (step in listOf(DiagStep.NETWORK, DiagStep.ADDRESS, DiagStep.DISCOVERY, DiagStep.SECURE, DiagStep.TOKEN)) assertTrue("$step: ${r[step]}", r[step] is DiagResult.Ok)
-        assertFalse(r.containsKey(DiagStep.RELAY))
+        assertEquals(DiagStep.entries.toSet(), r.keys)
     }
 
     @Test fun noWifiMeansTheLaterLocalStepsAreSkippedNotGuessed() {
@@ -43,13 +42,11 @@ class DiagnosticsTest {
         assertTrue(r[DiagStep.TOKEN] is DiagResult.Skipped)
     }
 
-    @Test fun mobileDataIsFineWhenThePairingHasARelay() {
+    @Test fun withoutWifiTheHintIsTheSameWifi_neverARelay() {
         val d = FakeDesktop(tls = true).track()
-        val relay = RelayPairing("wss://relay.example.com", RelayCrypto.base64UrlEncode(ByteArray(16)), RelayCrypto.base64UrlEncode(ByteArray(32)), RelayCrypto.base64UrlEncode(ByteArray(32)))
-        val e = env(pairing(d).copy(relay = relay), wifi = false, cellular = true, relay = { DiagResult.Ok("The relay answers") })
-        val r = results(e)
-        assertTrue(r[DiagStep.NETWORK] is DiagResult.Ok)
-        assertEquals(DiagResult.Ok("The relay answers"), r[DiagStep.RELAY])
+        val n = results(env(pairing(d), wifi = false))[DiagStep.NETWORK] as DiagResult.Problem
+        assertEquals("Join the same Wi-Fi as your computer.", n.hint)
+        assertFalse(n.problem.contains("relay", ignoreCase = true) || n.hint.contains("relay", ignoreCase = true))
     }
 
     @Test fun aClosedPortIsAnAddressProblemAndStopsTheSecureSteps() {
@@ -104,7 +101,6 @@ class DiagnosticsTest {
             override fun discovery() = DiagResult.Ok("ok")
             override fun secure() = DiagResult.Ok("ok")
             override fun token() = DiagResult.Ok("ok")
-            override fun relay(): DiagResult? = null
         }
         val r = Diagnostics.run(broken).toMap()
         assertTrue((r[DiagStep.ADDRESS] as DiagResult.Problem).problem.contains("IllegalStateException"))
@@ -118,10 +114,10 @@ class DiagnosticsTest {
         assertEquals("192.168.x.x", fakeAddress)
         assertEquals("a name (hidden)", Diagnostics.maskHost("my-pc.local"))
         val results = Diagnostics.run(env(p.copy(host = "127.0.0.1")).also { }, { _, _ -> })
-        val text = Diagnostics.report("0.1.0", "13", "SM-A127F", results, fakeAddress, "relay")
+        val text = Diagnostics.report("0.1.0", "13", "SM-A127F", results, fakeAddress, "the direct link")
         for (secret in listOf(token, p.certSha256, p.desktopName, "192.168.1.20", "127.0.0.1")) assertFalse("report mentions $secret", text.contains(secret))
         assertTrue(text.startsWith("Abito for Android 0.1.0 · Android 13 · SM-A127F"))
-        assertTrue(text.contains("Computer: 192.168.x.x · connected via: relay"))
+        assertTrue(text.contains("Computer: 192.168.x.x · connected via: the direct link"))
         assertTrue(text.lines().drop(2).all { it.startsWith("OK ") || it.startsWith("PROBLEM ") || it.startsWith("SKIPPED ") })
     }
 

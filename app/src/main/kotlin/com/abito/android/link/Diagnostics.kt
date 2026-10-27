@@ -1,11 +1,9 @@
 package com.abito.android.link
 
 import java.io.IOException
-import java.net.HttpURLConnection
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
-import java.net.URL
 import javax.net.ssl.SSLException
 
 /** The questions "Can't connect?" asks, in the order that makes each answer meaningful. */
@@ -15,7 +13,6 @@ enum class DiagStep(val title: String) {
     DISCOVERY("Computer announces itself"),
     SECURE("Secure connection (pinned certificate)"),
     TOKEN("Pairing code and version"),
-    RELAY("Relay"),
 }
 
 sealed class DiagResult {
@@ -34,8 +31,6 @@ interface DiagEnv {
     fun discovery(): DiagResult
     fun secure(): DiagResult
     fun token(): DiagResult
-    /** Null when the pairing has no relay. */
-    fun relay(): DiagResult?
 }
 
 object Diagnostics {
@@ -50,7 +45,6 @@ object Diagnostics {
         put(DiagStep.DISCOVERY, if (failed(DiagStep.NETWORK)) DiagResult.Skipped("Needs the Wi-Fi") else safe { env.discovery() })
         put(DiagStep.SECURE, if (failed(DiagStep.ADDRESS)) DiagResult.Skipped("Needs the address to answer") else safe { env.secure() })
         put(DiagStep.TOKEN, if (failed(DiagStep.ADDRESS) || failed(DiagStep.SECURE)) DiagResult.Skipped("Needs the secure connection") else safe { env.token() })
-        try { env.relay() } catch (e: Exception) { broken(e) }?.let { put(DiagStep.RELAY, it) }
         return out
     }
 
@@ -91,16 +85,13 @@ object Diagnostics {
 class LanDiagnostics(
     private val p: PairingPayload,
     private val wifiUp: () -> Boolean,
-    private val onCellular: () -> Boolean,
     private val discover: () -> List<Found>,
     private val connector: Connector = PinnedTls.connector(p),
-    private val relayCheck: (() -> DiagResult)? = null,
     private val timeoutMs: Int = 3_000,
 ) : DiagEnv {
     override fun network(): DiagResult = when {
         wifiUp() -> DiagResult.Ok("Wi-Fi is connected")
-        p.relay != null && onCellular() -> DiagResult.Ok("Mobile data (the relay can be used; the direct link needs the home Wi-Fi)")
-        else -> DiagResult.Problem("The phone is not on a Wi-Fi network", "Join the same Wi-Fi as your computer, or turn on Away from home Wi-Fi to use the relay.")
+        else -> DiagResult.Problem("The phone is not on a Wi-Fi network", "Join the same Wi-Fi as your computer.")
     }
 
     override fun address(): DiagResult {
@@ -175,8 +166,6 @@ class LanDiagnostics(
         }
     }
 
-    override fun relay(): DiagResult? = relayCheck?.invoke()
-
     private fun readLine(s: Socket): String? {
         val b = java.io.ByteArrayOutputStream()
         while (b.size() < Protocol.MAX_LINE_BYTES) {
@@ -186,26 +175,5 @@ class LanDiagnostics(
             b.write(x)
         }
         return null
-    }
-
-    companion object {
-        /**
-         * The relay answers `GET /` with "Abito link relay" without a key and without touching any room, so this check can never
-         * replace the phone's live connection (joining a room as the phone would).
-         */
-        fun relayReachable(relay: RelayPairing, timeoutMs: Int = 5_000): DiagResult {
-            val url = relay.relayUrl() ?: return DiagResult.Problem("The relay address in the pairing is not valid", "Pair again.")
-            return try {
-                val conn = URL("${if (url.tls) "https" else "http"}://${url.host}:${url.port}/").openConnection() as HttpURLConnection
-                conn.connectTimeout = timeoutMs
-                conn.readTimeout = timeoutMs
-                conn.instanceFollowRedirects = false
-                val body = try { conn.inputStream.bufferedReader().readText().take(64) } finally { conn.disconnect() }
-                if (conn.responseCode == 200 && body.startsWith("Abito link relay")) DiagResult.Ok("The relay at ${url.host} answers")
-                else DiagResult.Problem("${url.host} answers but is not a Abito relay", "Check the address on the computer (Away from home Wi-Fi).")
-            } catch (_: IOException) {
-                DiagResult.Problem("Cannot reach the relay at ${url.host}", "Check your internet connection and the relay's address.")
-            }
-        }
     }
 }

@@ -22,7 +22,7 @@ object PairingScan {
         return if (PairingPayload.parse(t) != null) ScanDecision.Pairing(t) else ScanDecision.NotPairing
     }
 
-    /** A real pairing link is a few hundred characters (up to about 900 with the relay fields and a long, accented name); anything far longer is not one. */
+    /** A real pairing link is a few hundred characters (up to about 900 with a long, accented name); anything far longer is not one. */
     const val MAX_LINK = 2_048
 }
 

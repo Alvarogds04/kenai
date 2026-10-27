@@ -34,7 +34,7 @@ class SecureStore(context: Context) {
     }
 
     fun savePairing(p: PairingPayload) {
-        // K and the relay's access key are inside the same Keystore-encrypted blob as the token: never in clear on the disk.
+        // The pairing is one Keystore-encrypted blob with the token inside: never in clear on the disk.
         val plain = PairingCodec.encode(p)
         val c = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val ct = c.doFinal(plain.toByteArray(Charsets.UTF_8))

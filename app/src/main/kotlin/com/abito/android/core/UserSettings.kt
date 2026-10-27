@@ -34,8 +34,6 @@ data class UserSettings(
     val volume: Float = com.abito.android.sound.SoundVolume.DEFAULT,
     val notifyDone: Boolean = true,
     val quiet: QuietHours = QuietHours(false, 22 * 60, 8 * 60),
-    /** Use the relay when the computer is not reachable on this network (only matters when the pairing includes one). */
-    val useRelay: Boolean = true,
 ) {
     companion object {
         private const val SOUND = "sound_on"
@@ -44,7 +42,6 @@ data class UserSettings(
         private const val Q_ON = "quiet_on"
         private const val Q_FROM = "quiet_from"
         private const val Q_TO = "quiet_to"
-        private const val RELAY = "use_relay"
 
         fun load(store: KeyValueStore): UserSettings {
             val d = UserSettings()
@@ -57,7 +54,6 @@ data class UserSettings(
                     QuietHours.wrap(store.getInt(Q_FROM, d.quiet.fromMin)),
                     QuietHours.wrap(store.getInt(Q_TO, d.quiet.toMin)),
                 ),
-                useRelay = store.getBoolean(RELAY, d.useRelay),
             )
         }
 
@@ -68,7 +64,6 @@ data class UserSettings(
             store.put(Q_ON, s.quiet.enabled)
             store.put(Q_FROM, QuietHours.wrap(s.quiet.fromMin))
             store.put(Q_TO, QuietHours.wrap(s.quiet.toMin))
-            store.put(RELAY, s.useRelay)
         }
     }
 }

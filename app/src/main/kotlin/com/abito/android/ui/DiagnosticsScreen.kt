@@ -31,7 +31,7 @@ import com.abito.android.link.DiagStep
 
 /**
  * Settings > Computer > "Can't connect?": runs the checks one after another (Wi-Fi, the saved address, discovery, the pinned
- * certificate, the pairing code and version, the relay) and says which one fails and what to try. The report it copies hides the
+ * certificate, the pairing code and version) and says which one fails and what to try. The report it copies hides the
  * pairing code, the certificate fingerprint, the computer's name and the full address.
  */
 @Composable

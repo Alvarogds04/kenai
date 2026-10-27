@@ -90,16 +90,7 @@ class AppModel(private val context: Context) : LinkListener {
     /** The pairing the running link uses (with the address in force); the token stays in memory only as long as the link does. */
     @Volatile private var currentPairing: PairingPayload? = null
     private val probeExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "abito-probe").apply { isDaemon = true } }
-    /** Which way the link reaches the computer now (null until connected), and why the relay failed, if it did. */
-    var route by mutableStateOf<com.abito.android.link.Route?>(null); private set
-    var relayIssue by mutableStateOf(com.abito.android.link.RelayIssue.NONE); private set
-    private val transport = com.abito.android.link.TransportPolicy({ currentPairing?.relay != null && settings.useRelay })
-    @Volatile private var fallback: com.abito.android.link.FallbackConnector? = null
-    @Volatile private var relayConnector: com.abito.android.link.RelayConnector? = null
 
-    /** Whether the pairing in force includes a relay (shown in Settings > Away from home Wi-Fi). */
-    val hasRelay: Boolean get() = currentPairing?.relay != null
-    val relayHost: String? get() = currentPairing?.relay?.relayUrl()?.host
 
     private val netWatch = NetworkWatch(context, { up -> main.post { onNetworkChanged(up) } }, { main.post { onWake(Wake.NEW_NETWORK) } })
     private val finder = AddressFinder(
@@ -137,12 +128,9 @@ class AppModel(private val context: Context) : LinkListener {
     var settings by mutableStateOf(UserSettings.load(kv)); private set
 
     fun updateSettings(next: UserSettings) {
-        val relayChanged = next.useRelay != settings.useRelay
         settings = next
         UserSettings.save(kv, next)
         applySound()
-        // Switching the relay on or off rebuilds the connection with the right routes.
-        if (relayChanged) currentPairing?.let { restartLink(it) }
     }
 
     private fun applySound() {
@@ -417,21 +405,9 @@ class AppModel(private val context: Context) : LinkListener {
         restartLink(q)
     }
 
-    /** A link for this pairing: the direct connection, and the relay behind it when the pairing has one and the user allows it. */
+    /** A link for this pairing: the direct connection on the local network (Abito is LAN only). */
     private fun newLink(p: PairingPayload): LinkClient {
-        val lan = PinnedTls.connector(p)
-        val relay = p.relay
-        fallback?.stop()
-        val connector: Connector = if (relay != null && settings.useRelay) {
-            val rc = com.abito.android.link.RelayConnector(relay)
-            relayConnector = rc
-            com.abito.android.link.FallbackConnector(lan, rc, transport, onRoute = { r -> main.post { route = r } }).also { fallback = it }
-        } else {
-            relayConnector = null
-            fallback = null
-            route = null
-            lan
-        }
+        val connector: Connector = PinnedTls.connector(p)
         return LinkClient(p, Build.MODEL ?: "Android", this, connector = connector)
     }
 
@@ -460,8 +436,7 @@ class AppModel(private val context: Context) : LinkListener {
 
     /** The screen turned on, a network appeared, or the alarm fired: look at the link now (rules in [ReconnectPolicy]). */
     private fun onWake(event: Wake) {
-        val relay = currentPairing?.relay != null && settings.useRelay
-        when (ReconnectPolicy.decide(event, mode == Mode.PAIRED, linkState == LinkState.CONNECTED, netWatch.wifiUp, relay)) {
+        when (ReconnectPolicy.decide(event, mode == Mode.PAIRED, linkState == LinkState.CONNECTED, netWatch.wifiUp)) {
             ReconnectPolicy.Action.RETRY_NOW -> link?.retryNow()
             ReconnectPolicy.Action.CHECK_NOW -> link?.checkNow()
             ReconnectPolicy.Action.NONE -> {}
@@ -501,8 +476,7 @@ class AppModel(private val context: Context) : LinkListener {
         diagResults = emptyList()
         probeExecutor.execute {
             val env = LanDiagnostics(
-                p, wifiUp = { netWatch.isWifiUp() }, onCellular = { netWatch.isCellular() }, discover = { browse(4_000) },
-                relayCheck = p.relay?.let { r -> { LanDiagnostics.relayReachable(r) } },
+                p, wifiUp = { netWatch.isWifiUp() }, discover = { browse(4_000) },
             )
             Diagnostics.run(env) { step, result -> main.post { diagResults = diagResults + (step to result) } }
             main.post { diagRunning = false }
@@ -524,7 +498,6 @@ class AppModel(private val context: Context) : LinkListener {
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "?"
         val via = when {
             linkState != LinkState.CONNECTED -> "not connected"
-            route == com.abito.android.link.Route.RELAY -> "the relay"
             else -> "the direct link"
         }
         return Diagnostics.report(version, Build.VERSION.RELEASE, "${Build.MANUFACTURER} ${Build.MODEL}", diagResults, p?.let { Diagnostics.maskHost(it.host) } ?: "none", via)
@@ -533,7 +506,6 @@ class AppModel(private val context: Context) : LinkListener {
     private fun onNetworkChanged(wifiUp: Boolean) {
         if (mode != Mode.PAIRED) return
         if (!wifiUp) { finder.stop(); return } // no Wi-Fi: nothing to scan
-        fallback?.networkChanged() // on the relay: is the computer on this network? Then move back to the direct link
         link?.retryNow() // do not wait out the backoff on a new network
         if (mayDiscover()) finder.networkChanged()
     }
@@ -568,11 +540,6 @@ class AppModel(private val context: Context) : LinkListener {
         closeDiff()
         usage = null
         services = emptyList()
-        fallback?.stop()
-        fallback = null
-        relayConnector = null
-        route = null
-        relayIssue = com.abito.android.link.RelayIssue.NONE
         finder.stop()
         netWatch.stop()
         screenWatch.stop()
@@ -636,7 +603,6 @@ class AppModel(private val context: Context) : LinkListener {
     override fun onState(state: LinkState) {
         main.post {
             linkState = state
-            relayIssue = relayConnector?.issue ?: com.abito.android.link.RelayIssue.NONE
             if (state == LinkState.CONNECTED) {
                 health = health.recovered()
                 screenWasOff = power?.isInteractive == false // the screen is off right now: this link starts its life asleep
@@ -800,19 +766,6 @@ class AppModel(private val context: Context) : LinkListener {
             removeQuestion(fingerprint)
             removeApproval(fingerprint)
             if (wantAllow == fingerprint) wantAllow = null
-        }
-    }
-
-    /** The computer replaced the relay's access key: this phone follows it (kept encrypted) and reconnects with it. */
-    override fun onRelayAccess(access: String) {
-        main.post {
-            val p = currentPairing ?: return@post
-            val r = p.relay ?: return@post
-            if (r.access == access) return@post
-            val q = p.copy(relay = r.copy(access = access))
-            store.savePairing(q)
-            currentPairing = q
-            restartLink(q)
         }
     }
 
