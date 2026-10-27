@@ -1,6 +1,6 @@
 # abito-movil-base
 App base de Abito para Android a partir del código MIT de Coucou for Android, sin assets reservados.
-Historia: HU-049 (vault Abito). Decisión: `🏗️ Architecture/📜 Decisions/2026-10-27-Abito-movil-base-Coucou-Android`.
+Historia: HU-053 (vault Abito; antes HU-049, número reutilizado por otra sesión). Decisión: `🏗️ Architecture/📜 Decisions/2026-10-27-Abito-movil-base-Coucou-Android`.
 
 ## Specs
 - S1: «quiero empezar con la version de abito que estamos montando ahora pero para movil, podemos usar como base el coucou de movil y de ahi trabajar en el nuestro»
