@@ -5,9 +5,9 @@ import com.coucou.android.link.PlanUsage
 import com.coucou.android.link.PlanWindow
 import com.coucou.android.link.SessionInfo
 import com.coucou.android.link.UsageSnapshot
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiConst
-import com.coucou.android.mochi.Rgb
+import com.coucou.android.character.BotState
+import com.coucou.android.character.StateColors
+import com.coucou.android.character.Rgb
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -27,15 +27,15 @@ import kotlin.math.roundToInt
  * - [MUTED] muted grey, with the "not connected" icon: the computer is not there.
  * - [TROUBLE] red: an agent stopped on an error or a limit.
  *
- * Taken from the app's own state colours ([MochiConst]), so a Widget and Mochi on Home always agree.
+ * Taken from the app's own state colours ([StateColors]), so a Widget and Mochi on Home always agree.
  */
 enum class WidgetTone(val rgb: Rgb) {
-    MUTED(MochiConst.C_SLEEPING),
+    MUTED(StateColors.C_SLEEPING),
     IDLE(Rgb(0.722, 0.741, 0.780)),
-    WORKING(MochiConst.C_WORKING),
-    ATTENTION(MochiConst.C_APPROVAL),
-    DONE(MochiConst.C_FINISHED),
-    TROUBLE(MochiConst.C_ERROR),
+    WORKING(StateColors.C_WORKING),
+    ATTENTION(StateColors.C_APPROVAL),
+    DONE(StateColors.C_FINISHED),
+    TROUBLE(StateColors.C_ERROR),
     ;
 
     /** Opaque ARGB. */

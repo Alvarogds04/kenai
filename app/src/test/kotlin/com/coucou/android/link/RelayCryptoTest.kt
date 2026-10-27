@@ -16,7 +16,11 @@ import org.junit.Test
 
 /** The same checks as the Rust twin, against the same android/relay/test-vectors.json. */
 class RelayCryptoTest {
-    private val v = JSONObject(File("../relay/test-vectors.json").readText())
+    // The cloud relay was left out of Abito (LAN only): without its vectors these tests are skipped (HU-049 T5).
+    private val vectors = File("../relay/test-vectors.json")
+    private val v by lazy { JSONObject(vectors.readText()) }
+
+    @org.junit.Before fun needVectors() = org.junit.Assume.assumeTrue("relay/test-vectors.json is not in this repository", vectors.exists())
     private fun hex(s: String) = ByteArray(s.length / 2) { s.substring(2 * it, 2 * it + 2).toInt(16).toByte() }
     private fun ByteArray.hex() = joinToString("") { "%02x".format(it) }
     private fun text(vararg path: String): String {
@@ -24,10 +28,10 @@ class RelayCryptoTest {
         for (p in path.dropLast(1)) o = o.getJSONObject(p)
         return o.getString(path.last())
     }
-    private val k = RelayCrypto.PairingKey(hex(text("inputs", "key")))
-    private val room = text("inputs", "room")
-    private val nPhone = hex(text("inputs", "nPhone"))
-    private val nPc = hex(text("inputs", "nPc"))
+    private val k by lazy { RelayCrypto.PairingKey(hex(text("inputs", "key"))) }
+    private val room by lazy { text("inputs", "room") }
+    private val nPhone by lazy { hex(text("inputs", "nPhone")) }
+    private val nPc by lazy { hex(text("inputs", "nPc")) }
     private fun dir(s: String) = if (s == "p2h") Dir.PHONE_TO_HOST else Dir.HOST_TO_PHONE
     private fun failure(block: () -> Unit): Failure? = try { block(); null } catch (e: ChannelException) { e.failure }
 

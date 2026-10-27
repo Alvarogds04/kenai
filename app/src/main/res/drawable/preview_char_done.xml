@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The placeholder Abito character in the "done" state with its glow behind it, as the Widget picker shows it (vectors only). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/preview_glow_done" />
+    <item android:drawable="@drawable/preview_face_done" />
+</layer-list>

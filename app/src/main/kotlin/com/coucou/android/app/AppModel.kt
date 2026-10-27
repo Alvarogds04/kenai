@@ -58,7 +58,7 @@ import com.coucou.android.link.ReconnectPolicy
 import com.coucou.android.link.Wake
 import com.coucou.android.link.SessionInfo
 import com.coucou.android.sound.SoundPlayer
-import com.coucou.android.mochi.BotState
+import com.coucou.android.character.BotState
 
 enum class Mode { NONE, DEMO, PAIRED }
 
@@ -151,18 +151,6 @@ class AppModel(private val context: Context) : LinkListener {
     }
 
     init { applySound() }
-
-    /** What the computer says Mochi wears ("auto" or an outfit); the last one it told, kept for when it is away. */
-    var computerOutfit by mutableStateOf(com.coucou.android.mochi.outfit.Wardrobe.parse(kv.getString("computer_outfit", "")))
-        private set
-
-    /** The selection in force: the phone's own choice, or the computer's when the phone follows it. */
-    val outfitSelection: String
-        get() = com.coucou.android.mochi.outfit.Wardrobe.choose(settings.outfit, computerOutfit)
-
-    /** What Mochi wears today ("auto" resolved with the phone's calendar). */
-    fun dress(today: java.time.LocalDate = java.time.LocalDate.now()): com.coucou.android.mochi.outfit.Outfit =
-        com.coucou.android.mochi.outfit.Wardrobe.resolve(outfitSelection, today)
 
     /** The phone's own list of decisions. Never sent anywhere. */
     private val decisionLog = DecisionLog(kv)
@@ -687,16 +675,6 @@ class AppModel(private val context: Context) : LinkListener {
         main.post { services = cards }
     }
 
-    override fun onPrefs(outfit: String) {
-        main.post { applyComputerOutfit(outfit) }
-    }
-
-    fun applyComputerOutfit(outfit: String) {
-        val v = com.coucou.android.mochi.outfit.Wardrobe.parse(outfit)
-        computerOutfit = v
-        kv.put("computer_outfit", v)
-    }
-
     override fun onChatModels(models: List<ChatModel>) {
         main.post {
             chatModels = models
@@ -725,7 +703,7 @@ class AppModel(private val context: Context) : LinkListener {
                 // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
                 if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
                 val name = agentName(s.pillId)
-                val sound = com.coucou.android.mochi.MochiConst.STATE_SOUND[s.state]
+                val sound = com.coucou.android.character.StateColors.STATE_SOUND[s.state]
                 if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
                 val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
                 if (a.sound && sound != null) sounds.play(sound)

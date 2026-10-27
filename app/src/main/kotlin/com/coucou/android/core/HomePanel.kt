@@ -1,8 +1,8 @@
 package com.coucou.android.core
 
 import com.coucou.android.link.SessionInfo
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.Rgb
+import com.coucou.android.character.BotState
+import com.coucou.android.character.Rgb
 
 /**
  * What the Home screen shows, like the PC's Home panel: one agent card for the agent that matters

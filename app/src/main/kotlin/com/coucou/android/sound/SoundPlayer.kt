@@ -3,8 +3,7 @@ package com.coucou.android.sound
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.SoundPool
-import com.coucou.android.R
-import com.coucou.android.mochi.SoundSink
+import com.coucou.android.character.SoundSink
 
 /**
  * Plays Mochi's sounds (the .wav files in res/raw, (c) Louis Raillé, used with permission) through a
@@ -46,21 +45,6 @@ class SoundPlayer(private val context: Context) : SoundSink {
 
     private companion object {
         /** Every bundled sound, by file name (an explicit table: no resource reflection). */
-        val RAW: Map<String, Int> = mapOf(
-            "annoyed" to R.raw.annoyed,
-            "approval" to R.raw.approval,
-            "dizzy" to R.raw.dizzy,
-            "error" to R.raw.error,
-            "finish" to R.raw.finish,
-            "greet" to R.raw.greet,
-            "love" to R.raw.love,
-            "question" to R.raw.question,
-            "rate" to R.raw.rate,
-            "search" to R.raw.search,
-            "slap" to R.raw.slap,
-            "sleep" to R.raw.sleep,
-            "think" to R.raw.think,
-            "work" to R.raw.work,
-        )
+        val RAW: Map<String, Int> = emptyMap()
     }
 }

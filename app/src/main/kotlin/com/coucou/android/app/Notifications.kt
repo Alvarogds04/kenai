@@ -20,7 +20,7 @@ import com.coucou.android.core.OverlayPolicy
 import com.coucou.android.core.SafeText
 import com.coucou.android.core.ToolLabels
 import com.coucou.android.link.ApprovalRequest
-import com.coucou.android.mochi.BotState
+import com.coucou.android.character.BotState
 
 /**
  * Notifications: one quiet ongoing notification for the link, and a loud one per approval.
@@ -60,11 +60,7 @@ class Notifications(private val context: Context) {
                 // later, which is why this one has a new id).
                 enableVibration(true)
                 vibrationPattern = longArrayOf(0, 500, 150, 500)
-                // Mochi's own approval sound, bundled in res/raw.
-                setSound(
-                    Uri.parse("${ContentResolver.SCHEME_ANDROID_RESOURCE}://${context.packageName}/${R.raw.approval}"),
-                    AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_NOTIFICATION).build(),
-                )
+                // No bundled sound yet (HU-049 T3): the channel keeps the system's default notification sound.
             },
         )
     }
@@ -88,7 +84,7 @@ class Notifications(private val context: Context) {
         val title = g?.headline ?: context.getString(R.string.status_connecting)
         val detail = g?.detail.orEmpty()
         val b = Notification.Builder(context, CH_LINK)
-            .setSmallIcon(R.drawable.ic_stat_mochi)
+            .setSmallIcon(R.drawable.ic_stat_abito)
             .setContentTitle(title)
             .setContentText(detail)
             .setColor(g?.tone?.argb ?: GlanceTone.CALM.argb)
@@ -97,7 +93,7 @@ class Notifications(private val context: Context) {
             .setShowWhen(false)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(
-                Notification.Builder(context, CH_LINK).setSmallIcon(R.drawable.ic_stat_mochi)
+                Notification.Builder(context, CH_LINK).setSmallIcon(R.drawable.ic_stat_abito)
                     .setContentTitle(context.getString(R.string.app_name))
                     .setContentText(if (g?.connected == true) context.getString(R.string.status_connected) else context.getString(R.string.status_not_connected))
                     .build(),
@@ -122,9 +118,9 @@ class Notifications(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val publicVersion = Notification.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_mochi).setContentTitle(context.getString(R.string.approval_title)).setContentText(context.getString(R.string.notif_unlock)).build()
+            .setSmallIcon(R.drawable.ic_stat_abito).setContentTitle(context.getString(R.string.approval_title)).setContentText(context.getString(R.string.notif_unlock)).build()
         val n = Notification.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_stat_mochi)
+            .setSmallIcon(R.drawable.ic_stat_abito)
             .setContentTitle(agentName)
             .setSubText(context.getString(R.string.approval_title))
             // A label and at most the program's name: the exact command is on the approval sheet, behind a tap.
@@ -170,14 +166,14 @@ class Notifications(private val context: Context) {
             },
         )
         val n = Notification.Builder(context, CH_UPDATES)
-            .setSmallIcon(R.drawable.ic_stat_mochi)
+            .setSmallIcon(R.drawable.ic_stat_abito)
             .setContentTitle(agentName)
             .setContentText(what)
             .setSubText(ToolLabels.label(statusText).takeIf { it.isNotBlank() })
             .setCategory(Notification.CATEGORY_STATUS)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(
-                Notification.Builder(context, CH_UPDATES).setSmallIcon(R.drawable.ic_stat_mochi)
+                Notification.Builder(context, CH_UPDATES).setSmallIcon(R.drawable.ic_stat_abito)
                     .setContentTitle(context.getString(R.string.app_name)).setContentText(what).build(),
             )
             .setAutoCancel(true)

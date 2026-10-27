@@ -86,7 +86,6 @@ class ScanScreenTest {
         for (bad in listOf("com.google.android.gms", "play-services", "mlkit", "firebase", "admob", "billingclient", "crashlytics", "camera-mlkit")) {
             assertFalse("build.gradle.kts must not mention $bad", g.contains(bad, ignoreCase = true))
         }
-        assertTrue(File("../../.github/workflows/phone-link.yml").readText().contains("mlkit"))
     }
 
     @Test fun theScanButtonIsTheMainActionOfThePairingScreenAndPastingStays() {

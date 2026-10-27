@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Placeholder Abito launcher foreground (HU-049 T3): a green disc with two eyes, replaced with Abito's own icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#4ADE80" android:pathData="M54,28 C70,28 80,39 80,55 C80,71 69,80 54,80 C39,80 28,71 28,55 C28,39 38,28 54,28 Z" />
+    <path android:fillColor="#1B1D22" android:pathData="M45,50 a3,4.5 0 1,0 0.1,0 Z M63,50 a3,4.5 0 1,0 0.1,0 Z" />
+</vector>

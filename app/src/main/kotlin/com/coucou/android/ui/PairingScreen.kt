@@ -44,9 +44,9 @@ import com.coucou.android.core.Spacing
 import com.coucou.android.core.Tokens
 import com.coucou.android.core.TypeScale
 import com.coucou.android.link.PairingPayload
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
 
 /**
  * The first thing a new user sees: one clear action. A sleeping Mochi, a sentence, "Scan QR code" as the main
@@ -56,14 +56,14 @@ import com.coucou.android.mochi.MochiView
 fun PairingScreen(model: AppModel, onScan: () -> Unit, onAbout: () -> Unit) {
     val t = tokens()
     var pasteOpen by remember { mutableStateOf(false) }
-    val engine = remember { MochiEngine({ SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
+    val engine = remember { CharacterEngine({ SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).verticalScroll(rememberScrollState())
             .padding(start = Gutter + 8.dp, end = Gutter + 8.dp, bottom = BarClearance),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.size(48.dp))
-        MochiView(engine, Modifier.size(132.dp))
+        CharacterView(engine, Modifier.size(132.dp))
         Spacer(Modifier.size(24.dp))
         Text(stringResource(R.string.pairing_headline), style = TypeScale.DISPLAY.style(t.text.c()).copy(textAlign = TextAlign.Center))
         Text(

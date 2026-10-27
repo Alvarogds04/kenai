@@ -12,9 +12,9 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import com.coucou.android.core.WidgetTone
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiPainter.drawMochi
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterPainter.drawCharacter
 import kotlin.random.Random
 
 /**
@@ -51,7 +51,7 @@ object MochiBitmap {
 
     private fun draw(state: BotState, sizePx: Int, glow: Boolean, tone: WidgetTone): Bitmap {
         var ms = 0.0
-        val engine = MochiEngine({ ms }, Random(SEED)).apply { setState(state, force = true) }
+        val engine = CharacterEngine({ ms }, Random(SEED)).apply { setState(state, force = true) }
         repeat(SETTLE_FRAMES) {
             ms += FRAME_SEC * 1000
             engine.update(FRAME_SEC)
@@ -63,7 +63,7 @@ object MochiBitmap {
                 val light = Color(tone.argb).copy(alpha = if (tone == WidgetTone.MUTED || tone == WidgetTone.IDLE) GLOW_ALPHA_MUTED else GLOW_ALPHA)
                 drawCircle(Brush.radialGradient(listOf(light, Color.Transparent), centre, sizePx / 2f), sizePx / 2f, centre)
             }
-            drawMochi(engine, ms / 1000)
+            drawCharacter(engine, ms / 1000)
         }
         return image.asAndroidBitmap()
     }

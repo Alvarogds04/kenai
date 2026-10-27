@@ -61,10 +61,10 @@ import com.coucou.android.core.Radii
 import com.coucou.android.core.Spacing
 import com.coucou.android.core.TypeScale
 import com.coucou.android.link.ApprovalRequest
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiConst
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
+import com.coucou.android.character.BotState
+import com.coucou.android.character.StateColors
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
 import kotlinx.coroutines.delay
 
 /**
@@ -107,10 +107,10 @@ private fun agentColour(model: AppModel, pillId: String) =
     (model.sessions.firstOrNull { it.pillId == pillId }?.let { HomePanel.colorHex(it) } ?: Pills.byId(pillId)?.colorHex)?.let { HomePanel.rgb(it) }
 
 @Composable
-private fun SheetMochi(state: BotState, colour: com.coucou.android.mochi.Rgb?) {
-    val engine = remember { MochiEngine({ SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(state, force = true) } }
+private fun SheetMochi(state: BotState, colour: com.coucou.android.character.Rgb?) {
+    val engine = remember { CharacterEngine({ SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(state, force = true) } }
     engine.bodyColor = colour
-    MochiView(engine, Modifier.size(84.dp))
+    CharacterView(engine, Modifier.size(84.dp))
 }
 
 /**
@@ -125,7 +125,7 @@ fun ApprovalSheet(model: AppModel, r: ApprovalRequest, onAllow: (ApprovalRequest
     var showCommand by remember(r.fingerprint) { mutableStateOf(false) }
     val white = Color(IslandSurface.TEXT)
     val dim = Color(IslandSurface.TEXT_DIM)
-    val wash = MochiConst.STATES[BotState.APPROVAL]?.color?.let(::rgbColor)
+    val wash = StateColors.STATES[BotState.APPROVAL]?.color?.let(::rgbColor)
     val name = model.agentName(r.pillId)
     val kind = Pills.byId(r.pillId)?.name.orEmpty()
     BottomSheetHost(onDismiss, wash) {
@@ -188,7 +188,7 @@ fun ApprovalSheet(model: AppModel, r: ApprovalRequest, onAllow: (ApprovalRequest
 fun QuestionSheet(model: AppModel, pillId: String, onDismiss: () -> Unit, onSend: (QuestionRequest, List<List<String>>) -> Unit) {
     val white = Color(IslandSurface.TEXT)
     val dim = Color(IslandSurface.TEXT_DIM)
-    val wash = MochiConst.STATES[BotState.QUESTION]?.color?.let(::rgbColor)
+    val wash = StateColors.STATES[BotState.QUESTION]?.color?.let(::rgbColor)
     val request = model.questionFor(pillId)
     BottomSheetHost(onDismiss, wash) {
         if (request == null) {

@@ -84,10 +84,10 @@ import com.coucou.android.link.ApprovalRequest
 import com.coucou.android.link.QuestionRequest
 import com.coucou.android.link.LinkState
 import com.coucou.android.link.PairingPayload
-import com.coucou.android.mochi.BotEmote
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
+import com.coucou.android.character.BotEmote
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
 import com.coucou.android.ui.Panel
 import com.coucou.android.ui.c
 import com.coucou.android.ui.style
@@ -113,7 +113,6 @@ import com.coucou.android.ui.DiffSheet
 import com.coucou.android.ui.QuestionSheet
 import com.coucou.android.ui.ServicesPanel
 import com.coucou.android.ui.UsagePanel
-import com.coucou.android.ui.WardrobeScreen
 import com.coucou.android.ui.HeroCard
 import com.coucou.android.ui.RecentPanel
 import com.coucou.android.ui.BarClearance
@@ -172,11 +171,10 @@ class MainActivity : ComponentActivity() {
                             Screen.GALLERY -> Gallery(onBack = { screen = Screen.SETTINGS })
                             Screen.SETTINGS -> SettingsScreen(
                                 model, onHistory = { screen = Screen.HISTORY },
-                                onGallery = { screen = Screen.GALLERY }, onWardrobe = { screen = Screen.WARDROBE }, onOverlay = ::setOverlay,
+                                onGallery = { screen = Screen.GALLERY }, onOverlay = ::setOverlay,
                                 onDiagnostics = { screen = Screen.DIAGNOSTICS }, onLicences = { screen = Screen.LICENCES },
                             )
                             Screen.LICENCES -> LicencesScreen(onBack = { screen = Screen.SETTINGS })
-                            Screen.WARDROBE -> WardrobeScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.DIAGNOSTICS -> DiagnosticsScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HISTORY -> HistoryScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HOME -> if (model.mode == Mode.NONE) PairingScreen(model, onScan = { screen = Screen.SCAN }, onAbout = { screen = Screen.SETTINGS }) else Home(
@@ -314,8 +312,8 @@ private fun Home(
     model: AppModel, onApprove: (ApprovalRequest) -> Unit, onOverlay: (Boolean) -> Unit, onSession: (String) -> Unit,
     onScan: () -> Unit, onHistory: () -> Unit, onReview: () -> Unit, onQuestion: (String) -> Unit, onDiagnostics: () -> Unit,
 ) {
-    val engines = remember { HashMap<String, MochiEngine>() }
-    val miniEngines = remember { HashMap<String, MochiEngine>() }
+    val engines = remember { HashMap<String, CharacterEngine>() }
+    val miniEngines = remember { HashMap<String, CharacterEngine>() }
     val touches = remember { HashMap<String, MochiTouch>() }
     val clock = remember { { SystemClock.elapsedRealtimeNanos() / 1e6 } }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
@@ -334,14 +332,10 @@ private fun Home(
     // The PC's Home panel: the agent that matters in a big card, the others as pills.
     val focus = HomePanel.focus(model.sessions, selected)
     val key = focus?.pillId ?: HOME_KEY
-    val engine = engines.getOrPut(key) { MochiEngine(clock, sound = model.sounds) }
+    val engine = engines.getOrPut(key) { CharacterEngine(clock, sound = model.sounds) }
     val touch = touches.getOrPut(key) { MochiTouch(engine, model.sounds) { model.sessions.firstOrNull { it.pillId == key }?.state ?: BotState.IDLE } }
     val state = focus?.state ?: BotState.SLEEPING // no agent: a sleeping Mochi
     if (engine.state != state && !touch.dizzy) engine.setState(state)
-
-    // The hero wears what the computer says, or what the user picked here (a new engine starts dressed, a change animates).
-    val dressed = remember { HashSet<MochiEngine>() }
-    model.dress().let { outfit -> if (dressed.add(engine)) engine.setOutfit(outfit, animated = false) else engine.setOutfit(outfit) }
 
     // The hero's Mochi wears its agent's colour, like the small ones (never white by default).
     engine.bodyColor = focus?.let { HomePanel.colorHex(it) }?.let { HomePanel.rgb(it) }
@@ -392,7 +386,7 @@ private fun Home(
                         others,
                         engineFor = { s ->
                             miniEngines.getOrPut(s.pillId) {
-                                MochiEngine(clock).apply {
+                                CharacterEngine(clock).apply {
                                     isMini = true
                                     bodyColor = HomePanel.colorHex(s)?.let { HomePanel.rgb(it) }
                                 }
@@ -439,8 +433,8 @@ private fun OverlayHint(onOverlay: (Boolean) -> Unit) {
 @Composable
 private fun Gallery(onBack: () -> Unit) {
     val clock = remember { { SystemClock.elapsedRealtimeNanos() / 1e6 } }
-    val states = remember { BotState.entries.map { s -> s to MochiEngine(clock).apply { setState(s, force = true) } } }
-    val emotes = remember { BotEmote.entries.map { e -> e to MochiEngine(clock).apply { setPermanentEmote(e) } } }
+    val states = remember { BotState.entries.map { s -> s to CharacterEngine(clock).apply { setState(s, force = true) } } }
+    val emotes = remember { BotEmote.entries.map { e -> e to CharacterEngine(clock).apply { setPermanentEmote(e) } } }
     Column(Modifier.padding(horizontal = Gutter)) {
         ScreenTitle(stringResource(R.string.gallery), onBack)
         Spacer(Modifier.height(Gap))
@@ -452,10 +446,10 @@ private fun Gallery(onBack: () -> Unit) {
 }
 
 @Composable
-private fun GalleryCell(label: String, engine: MochiEngine) {
+private fun GalleryCell(label: String, engine: CharacterEngine) {
     Box(Modifier.fillMaxWidth()) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            MochiView(engine, Modifier.fillMaxWidth().aspectRatio(1f))
+            CharacterView(engine, Modifier.fillMaxWidth().aspectRatio(1f))
             Text(label, style = MaterialTheme.typography.labelSmall)
         }
     }

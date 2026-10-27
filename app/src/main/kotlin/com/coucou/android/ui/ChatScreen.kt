@@ -69,9 +69,9 @@ import com.coucou.android.core.ChatReasons
 import com.coucou.android.core.ChatTab
 import com.coucou.android.core.ChatTabState
 import com.coucou.android.core.Screen
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
 import com.coucou.android.core.ChatRole
 import com.coucou.android.core.ChatSession
 import com.coucou.android.core.ChatStatus
@@ -120,14 +120,14 @@ internal fun chatStateBody(state: ChatTabState): Int = when (state) {
 @Composable
 private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () -> Unit) {
     val t = tokens()
-    val engine = remember { MochiEngine({ android.os.SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
+    val engine = remember { CharacterEngine({ android.os.SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
     Column(Modifier.fillMaxSize().padding(horizontal = Gutter)) {
         ScreenTitle(stringResource(R.string.chat_title), null)
         Column(
             Modifier.weight(1f).fillMaxWidth().padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
         ) {
-            MochiView(engine, Modifier.size(120.dp))
+            CharacterView(engine, Modifier.size(120.dp))
             Text(
                 stringResource(chatStateTitle(state)), Modifier.padding(top = 16.dp),
                 style = TypeScale.TITLE.style(t.text.c()).copy(textAlign = TextAlign.Center),

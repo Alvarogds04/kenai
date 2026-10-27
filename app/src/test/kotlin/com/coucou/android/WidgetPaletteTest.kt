@@ -6,7 +6,7 @@ import com.coucou.android.core.WidgetData
 import com.coucou.android.core.WidgetTone
 import com.coucou.android.link.LinkState
 import com.coucou.android.link.SessionInfo
-import com.coucou.android.mochi.BotState
+import com.coucou.android.character.BotState
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

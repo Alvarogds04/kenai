@@ -148,15 +148,15 @@ class WidgetPreviewTest {
         assertTrue(text("today").containsAll(listOf("5", "done today")))
         assertTrue("the Mood preview shows only a face", text("mood").isEmpty())
         // The tones of the samples: waiting orange, working blue, finished green.
-        assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_mochi_waiting"))
+        assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_char_waiting"))
         assertTrue(preview("pill").contains("widget_tone_working"))
         assertTrue(preview("alert").contains("widget_card_attention"))
-        assertTrue(preview("big").contains("preview_mochi_working") && preview("big").contains("widget_tint_working"))
+        assertTrue(preview("big").contains("preview_char_working") && preview("big").contains("widget_tint_working"))
         assertEquals("six tiles", 6, Regex("""@drawable/widget_tile_bg"""").findAll(preview("big")).count())
         assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_calm"""").findAll(preview("big")).count())
         assertFalse("no speech bubble", preview("big").contains("bubble", ignoreCase = true))
-        assertTrue(preview("glance").contains("preview_mochi_working") && preview("glance").contains("widget_tint_working"))
-        assertTrue(preview("mood").contains("preview_mochi_done") && preview("today").contains("preview_mochi_done"))
+        assertTrue(preview("glance").contains("preview_char_working") && preview("glance").contains("widget_tint_working"))
+        assertTrue(preview("mood").contains("preview_char_done") && preview("today").contains("preview_char_done"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
         assertTrue(preview("ring").contains("preview_ring_68"))
     }
@@ -173,31 +173,22 @@ class WidgetPreviewTest {
     private val states = mapOf("working" to WidgetTone.WORKING, "waiting" to WidgetTone.ATTENTION, "done" to WidgetTone.DONE, "idle" to WidgetTone.MUTED)
     private fun hex(t: WidgetTone) = t.argb.toUInt().toString(16).uppercase().padStart(8, '0').substring(2)
 
-    @Test fun everyStateHasAVectorFaceAGlowAndTheLayeredMochi() {
+    @Test fun everyStateHasAVectorFaceAGlowAndTheLayeredCharacter() {
         for ((state, tone) in states) {
             val face = read("${res}drawable/preview_face_$state.xml")
             val glow = read("${res}drawable/preview_glow_$state.xml")
-            val mochi = read("${res}drawable/preview_mochi_$state.xml")
+            val character = read("${res}drawable/preview_char_$state.xml")
             assertTrue(state, face.contains("<vector") && glow.contains("<vector"))
             // The glow is in the state's colour and fades to nothing, and sits behind the face.
             assertTrue("$state glow colour", glow.contains(hex(tone)))
             assertTrue("$state glow fades out", glow.contains("""android:type="radial"""") && Regex("""android:color="#00${hex(tone)}"""").containsMatchIn(glow))
-            assertTrue(mochi.indexOf("preview_glow_$state") in 0 until mochi.indexOf("preview_face_$state"))
-            // The body, its light gradient, the pink cheeks and two dark eyes.
-            assertTrue(face.contains("#EDEDEF") && face.contains("#C4C5CA"))
-            assertTrue(face.contains("#59FF7896"))
-            assertTrue(state, Regex("""#1A1412""").findAll(face).count() >= 2)
+            assertTrue(character.indexOf("preview_glow_$state") in 0 until character.indexOf("preview_face_$state"))
+            // The placeholder character is in its state's colour, so the picker and the widget agree.
+            assertTrue("$state face colour", face.contains("#" + hex(tone)))
             for (d in listOf(face, glow)) {
                 assertTrue(d.contains("""android:viewportWidth="120"""") && d.contains("""android:viewportHeight="120""""))
             }
         }
-    }
-
-    @Test fun theBadgesAreTheOnesOfTheStates() {
-        assertTrue("blue dots bubble", read(res + "drawable/preview_face_working.xml").let { it.contains("#3B9EFF") && Regex("""#FFFFFF" android:pathData="M25.5""").containsMatchIn(it) })
-        assertTrue("orange bang", read(res + "drawable/preview_face_waiting.xml").let { it.contains("#F5A524\" android:pathData=\"M25.7") && it.contains("#FFFFFF") })
-        assertTrue("green check", read(res + "drawable/preview_face_done.xml").let { it.contains("#34D499") && it.contains("""android:strokeColor="#FFFFFF"""") })
-        assertFalse("calm: no badge", read(res + "drawable/preview_face_idle.xml").contains("""android:fillColor="#000000""""))
     }
 
     @Test fun theRingIsANormalTealArcAtSixtyEightPercent() {
@@ -243,7 +234,7 @@ class WidgetPreviewTest {
         val real = mapOf("solo" to "solo", "list" to "list", "big" to "big", "pill" to "pill", "alert" to "alert", "ring" to "ring", "today" to "today", "mood" to "mood", "glance" to "glance")
         for ((n, layout) in real) {
             val xml = read("${res}layout/widget_$layout.xml")
-            assertTrue("$n has no starting face", xml.contains("@drawable/preview_mochi_idle") || xml.contains("@drawable/preview_face_idle") || n == "pill")
+            assertTrue("$n has no starting face", xml.contains("@drawable/preview_char_idle") || xml.contains("@drawable/preview_face_idle") || n == "pill")
             if (n != "mood") assertTrue("$n has no starting line", xml.contains("@string/widget_initial_"))
         }
         assertEquals("Coucou", strings["widget_initial_title"])

@@ -39,7 +39,7 @@
                     android:layout_weight="1"
                     android:importantForAccessibility="no"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/preview_mochi_working" />
+                    android:src="@drawable/preview_char_working" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"

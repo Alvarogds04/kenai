@@ -34,8 +34,6 @@ interface LinkListener {
     fun onApprovalResolved(fingerprint: String) {}
     /** A question to answer (only with the `answers` capability). It is removed by [onApprovalResolved] with the same fingerprint. */
     fun onQuestion(request: QuestionRequest) {}
-    /** What Mochi wears on the computer: "auto" or an outfit (only with the `prefs` capability). */
-    fun onPrefs(outfit: String) {}
     /** A part of a file's diff the phone asked for (only with the `diffs` capability). */
     fun onDiff(part: ServerMsg.Diff) {}
     /** The plan usage (only with the `usage` capability); both plans null: nothing to show any more. */
@@ -132,8 +130,6 @@ class LinkClient(
     @Volatile private var fatal = false
     /** The computer's welcome offered `answers` on this connection. */
     @Volatile private var answersOffered = false
-    /** The computer's welcome offered `prefs` on this connection. */
-    @Volatile private var prefsOffered = false
     /** The computer's welcome offered `diffs` on this connection. */
     @Volatile private var diffsOffered = false
     /** The computer's welcome offered `usage` on this connection. */
@@ -287,7 +283,6 @@ class LinkClient(
             } finally {
                 out = null
                 answersOffered = false
-                prefsOffered = false
                 diffsOffered = false
                 usageOffered = false
                 servicesOffered = false
@@ -333,7 +328,6 @@ class LinkClient(
                     if (msg.version != Protocol.VERSION) { listener.onError("version", "desktop speaks v${msg.version}"); fatal = true; return }
                     // Stored before anyone is told, so a listener that reacts to the welcome can already use what was offered.
                     answersOffered = Protocol.CAP_ANSWERS in msg.caps
-                    prefsOffered = Protocol.CAP_PREFS in msg.caps
                     diffsOffered = Protocol.CAP_DIFFS in msg.caps
                     usageOffered = Protocol.CAP_USAGE in msg.caps
                     servicesOffered = Protocol.CAP_SERVICES in msg.caps
@@ -355,7 +349,6 @@ class LinkClient(
                 is ServerMsg.Usage -> if (usageOffered && Protocol.CAP_USAGE in caps) listener.onUsage(msg.usage)
                 // Only on a connection that was offered `relay`, and only a well-formed key.
                 is ServerMsg.RelayAccess -> if (relayOffered && Protocol.CAP_RELAY in caps) listener.onRelayAccess(msg.access)
-                is ServerMsg.Prefs -> if (prefsOffered && Protocol.CAP_PREFS in caps) listener.onPrefs(msg.outfit)
                 ServerMsg.Pong -> {}
                 is ServerMsg.ChatModels -> listener.onChatModels(msg.models)
                 is ServerMsg.ChatDelta -> listener.onChatDelta(msg.id, msg.text)

@@ -1,6 +1,6 @@
 package com.coucou.android.link
 
-import com.coucou.android.mochi.BotState
+import com.coucou.android.character.BotState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

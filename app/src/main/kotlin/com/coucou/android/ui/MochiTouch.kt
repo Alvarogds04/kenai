@@ -5,10 +5,10 @@ import android.os.Looper
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import com.coucou.android.mochi.BotEmote
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.SoundSink
+import com.coucou.android.character.BotEmote
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.SoundSink
 
 /**
  * What a finger does to Mochi, as on the computer: a tap is a slap (three quick ones make him dizzy
@@ -16,7 +16,7 @@ import com.coucou.android.mochi.SoundSink
  * switch in Settings silences them too.
  */
 class MochiTouch(
-    private val engine: MochiEngine,
+    private val engine: CharacterEngine,
     private val sound: SoundSink,
     private val stateNow: () -> BotState,
 ) {

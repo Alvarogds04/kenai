@@ -37,11 +37,11 @@ import com.coucou.android.core.Pills
 import com.coucou.android.core.Spacing
 import com.coucou.android.core.TypeScale
 import com.coucou.android.link.SessionInfo
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiConst
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
-import com.coucou.android.mochi.Rgb
+import com.coucou.android.character.BotState
+import com.coucou.android.character.StateColors
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
+import com.coucou.android.character.Rgb
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -66,7 +66,7 @@ internal fun rgbColor(c: Rgb) = Color(c.r.toFloat(), c.g.toFloat(), c.b.toFloat(
 
 /** The colour of an agent's state (Louis's state colours), for dots and glows. */
 internal fun stateColor(state: BotState): Color =
-    if (state == BotState.IDLE) StatusColors.online else MochiConst.STATES[state]?.color?.let(::rgbColor) ?: StatusColors.offline
+    if (state == BotState.IDLE) StatusColors.online else StateColors.STATES[state]?.color?.let(::rgbColor) ?: StatusColors.offline
 
 /**
  * The hero of Home: Louis's island grown to full width and hanging from the top edge of the screen. It
@@ -76,7 +76,7 @@ internal fun stateColor(state: BotState): Color =
  */
 @Composable
 fun HeroCard(
-    focus: SessionInfo?, engine: MochiEngine, touch: Modifier, link: HomePanel.Link, running: Int,
+    focus: SessionInfo?, engine: CharacterEngine, touch: Modifier, link: HomePanel.Link, running: Int,
     linkDot: Color, linkText: String, onLink: () -> Unit, onDetails: (() -> Unit)?,
     /** Opens the question sheet; non-null only while the agent has a question. */
     onQuestion: (() -> Unit)? = null,
@@ -84,7 +84,7 @@ fun HeroCard(
     canAnswer: Boolean = false,
 ) {
     val state = focus?.state ?: BotState.SLEEPING
-    val wash = MochiConst.STATES[state]?.color?.let(::rgbColor)
+    val wash = StateColors.STATES[state]?.color?.let(::rgbColor)
     val dim = Color(IslandSurface.TEXT_DIM)
     val white = Color(IslandSurface.TEXT)
     HeroPanel(wash = wash) {
@@ -100,13 +100,13 @@ fun HeroCard(
             }
             if (focus == null) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    MochiView(engine, Modifier.size(112.dp).then(touch))
+                    CharacterView(engine, Modifier.size(112.dp).then(touch))
                     Text(stringResource(R.string.home_empty_title), style = TypeScale.TITLE.style(white))
                     Text(stringResource(R.string.home_empty_hint), style = TypeScale.SECONDARY.style(dim), maxLines = 3)
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    MochiView(engine, Modifier.size(108.dp).then(touch))
+                    CharacterView(engine, Modifier.size(108.dp).then(touch))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val pillName = Pills.byId(focus.pillId)?.name.orEmpty()
                         val name = focus.agent.ifBlank { pillName }.ifBlank { stringResource(R.string.app_name) }
@@ -145,7 +145,7 @@ fun HeroCard(
 
 /** The other agents, one full-width row each: its small Mochi in its colour, its name and one plain line. Tap to make it the main one. */
 @Composable
-fun AgentRows(others: List<SessionInfo>, engineFor: (SessionInfo) -> MochiEngine, onPick: (SessionInfo) -> Unit) {
+fun AgentRows(others: List<SessionInfo>, engineFor: (SessionInfo) -> CharacterEngine, onPick: (SessionInfo) -> Unit) {
     val t = tokens()
     Panel {
         others.forEachIndexed { i, s ->
@@ -157,7 +157,7 @@ fun AgentRows(others: List<SessionInfo>, engineFor: (SessionInfo) -> MochiEngine
                     .padding(horizontal = Spacing.INSIDE.dp, vertical = 12.dp).semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(Spacing.GAP.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
-                MochiView(engineFor(s), Modifier.size(40.dp))
+                CharacterView(engineFor(s), Modifier.size(40.dp))
                 Column(Modifier.weight(1f)) {
                     Text(name, style = TypeScale.BODY.style(t.text.c()).copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(HomeText.line(s) ?: state, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)

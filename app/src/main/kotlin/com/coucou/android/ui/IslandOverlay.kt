@@ -82,9 +82,9 @@ import com.coucou.android.core.IslandTimeline
 import com.coucou.android.core.OverlayPolicy
 import com.coucou.android.core.PxRect
 import com.coucou.android.core.Tracked
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiEngine
-import com.coucou.android.mochi.MochiView
+import com.coucou.android.character.BotState
+import com.coucou.android.character.CharacterEngine
+import com.coucou.android.character.CharacterView
 
 /**
  * The notch of the desktop, for the phone: a black island hanging from the top of the screen,
@@ -350,12 +350,12 @@ class IslandOverlay(
 
     @Composable
     private fun WorkingStrip(s: IslandSpec) {
-        val engine = remember(s.state) { MochiEngine(clock).apply { setState(s.state, force = true) } }
+        val engine = remember(s.state) { CharacterEngine(clock).apply { setState(s.state, force = true) } }
         Row(
             Modifier.fillMaxWidth().clickable { tap("the working strip") { onOpen() } }.padding(horizontal = 18.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MochiView(engine, Modifier.size(34.dp))
+            CharacterView(engine, Modifier.size(34.dp))
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(s.agent, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -366,7 +366,7 @@ class IslandOverlay(
 
     @Composable
     private fun ResultCard(s: IslandSpec) {
-        val engine = remember(s.state) { MochiEngine(clock).apply { setState(s.state, force = true) } }
+        val engine = remember(s.state) { CharacterEngine(clock).apply { setState(s.state, force = true) } }
         val label = when (s.kind) {
             IslandSpec.Kind.ERROR -> R.string.notif_error
             IslandSpec.Kind.RATELIMIT -> R.string.notif_ratelimit
@@ -377,7 +377,7 @@ class IslandOverlay(
             Modifier.fillMaxWidth().clickable { tap("the result card") { onOpen() } }.padding(horizontal = 18.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MochiView(engine, Modifier.size(52.dp))
+            CharacterView(engine, Modifier.size(52.dp))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -393,11 +393,11 @@ class IslandOverlay(
 
     @Composable
     private fun RequestCard(s: IslandSpec) {
-        val engine = remember { MochiEngine(clock).apply { setState(BotState.APPROVAL, force = true) } }
+        val engine = remember { CharacterEngine(clock).apply { setState(BotState.APPROVAL, force = true) } }
         val fingerprint = s.fingerprint ?: return
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.clickable { tap("the request header") { onOpen() } }, verticalAlignment = Alignment.CenterVertically) {
-                MochiView(engine, Modifier.size(40.dp))
+                CharacterView(engine, Modifier.size(40.dp))
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
                     Text(s.agent, style = TypeScale.SECONDARY.style(dim), maxLines = 1, overflow = TextOverflow.Ellipsis)

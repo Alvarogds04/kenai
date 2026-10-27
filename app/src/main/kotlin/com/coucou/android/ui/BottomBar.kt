@@ -29,8 +29,8 @@ import com.coucou.android.core.BarFit
 import com.coucou.android.core.IconKind
 import com.coucou.android.core.Tab
 import com.coucou.android.core.TypeScale
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.MochiConst
+import com.coucou.android.character.BotState
+import com.coucou.android.character.StateColors
 
 private fun Tab.icon() = when (this) {
     Tab.HOME -> IconKind.HOME
@@ -70,7 +70,7 @@ fun BottomBar(tabs: List<Tab>, selected: Tab?, onSelect: (Tab) -> Unit, alert: B
                     Text(stringResource(tab.label()), style = TypeScale.LABEL.style(if (on) t.text.c() else t.textDim.c()), maxLines = 1, softWrap = false)
                 }
                 if (alert && tab == Tab.HOME) {
-                    val amber = MochiConst.STATES[BotState.APPROVAL]?.color?.let(::rgbColor) ?: Color(0xFFF5A524)
+                    val amber = StateColors.STATES[BotState.APPROVAL]?.color?.let(::rgbColor) ?: Color(0xFFF5A524)
                     Box(Modifier.align(Alignment.TopCenter).padding(start = 22.dp, top = 4.dp).size(9.dp).clip(CircleShape).background(amber).border(2.dp, t.panel.c(), CircleShape))
                 }
             }

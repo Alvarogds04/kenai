@@ -1,7 +1,6 @@
 package com.coucou.android.link
 
-import com.coucou.android.mochi.BotState
-import com.coucou.android.mochi.outfit.Wardrobe
+import com.coucou.android.character.BotState
 import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONException
@@ -18,14 +17,12 @@ object Protocol {
     /** One message never exceeds this; a longer line is a protocol error. */
     const val MAX_LINE_BYTES = 64 * 1024
     /** Optional features this app understands; the desktop offers back the ones it has switched on. */
-    val CAPABILITIES = listOf("chat", "details", "answers", "prefs", "diffs", "usage", "services", "relay")
+    val CAPABILITIES = listOf("chat", "details", "answers", "diffs", "usage", "services", "relay")
     const val CAP_CHAT = "chat"
     /** Steps, last line, project folder name and colour of each session. */
     const val CAP_DETAILS = "details"
     /** Answering the questions Claude Code asks, from the phone (each answer confirmed with the screen lock). */
     const val CAP_ANSWERS = "answers"
-    /** What Mochi wears on the computer (no switch there: it is no secret). */
-    const val CAP_PREFS = "prefs"
     /** The files an agent changed (a list on each session) and, when asked for one, its lines. */
     const val CAP_DIFFS = "diffs"
     /** How much of the Claude and Codex plans is used, and when they reset. */
@@ -123,8 +120,6 @@ sealed interface ServerMsg {
     data class Approval(val request: ApprovalRequest) : ServerMsg
     data class ApprovalResolved(val fingerprint: String) : ServerMsg
     data class Question(val request: QuestionRequest) : ServerMsg
-    /** What Mochi wears on the computer: "auto" or an outfit, exactly one of [com.coucou.android.mochi.outfit.Wardrobe.SELECTIONS]. */
-    data class Prefs(val outfit: String) : ServerMsg
     /** The relay's access key was replaced on the computer (only with the `relay` capability). */
     data class RelayAccess(val access: String) : ServerMsg
     /** The service cards the user allowed; an empty list takes them away. */
@@ -212,7 +207,6 @@ object Wire {
                 "diff" -> diff(o)
                 "services" -> ServerMsg.Services(services(o.getJSONArray("services")))
                 "usage" -> ServerMsg.Usage(UsageSnapshot(plan(o.optJSONObject("claude")), plan(o.optJSONObject("codex"))))
-                "prefs" -> o.optString("outfit", "").takeIf { it in Wardrobe.SELECTIONS }?.let { ServerMsg.Prefs(it) }
                 "relayAccess" -> o.optString("access", "").takeIf(RelayPairing::isSecret)?.let { ServerMsg.RelayAccess(it) }
                 "pong" -> ServerMsg.Pong
                 "chatModels" -> ServerMsg.ChatModels(o.getJSONArray("models").objects().mapNotNull(::chatModel))

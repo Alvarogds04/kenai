@@ -2,7 +2,7 @@ package com.coucou.android.core
 
 import com.coucou.android.link.LinkState
 import com.coucou.android.link.SessionInfo
-import com.coucou.android.mochi.BotState
+import com.coucou.android.character.BotState
 
 /** One agent in a glance: its name and one plain line. No command, no path, no answer text. */
 data class GlanceLine(val agent: String, val text: String, val state: BotState)
