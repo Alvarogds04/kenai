@@ -3,20 +3,25 @@ package com.abito.android
 import java.io.File
 import org.junit.Assume.assumeTrue
 
-/** Locates the desktop reference sources (windows/src/...) so tests can compare against them. */
+/**
+ * Locates the Abito desktop sources so tests can compare the app against them. The desktop lives in its own
+ * repository: set ABITO_DESKTOP_ROOT to its checkout, or keep it next to this one as ../../abito-public.
+ * Without it the comparing tests are skipped, never passed.
+ */
 object ReferenceFiles {
-    private fun repoRoot(): File {
-        var dir: File? = File(System.getProperty("user.dir")).absoluteFile
-        while (dir != null) {
-            if (File(dir, "windows/src/core/pills.ts").exists()) return dir
-            dir = dir.parentFile
-        }
-        // Abito's repository has no Abito desktop sources: tests that compare against them are skipped (not passed)
-        // until they point at Abito's desktop (HU-049 T5).
-        assumeTrue("Abito desktop sources (windows/src) are not in this repository", false)
-        error("unreachable")
+    /** Where the desktop keeps the UI core shared with the app (pills, plan levels). */
+    const val CORE = "apps/desktop-tauri/frontend/vendor/coucou/core"
+
+    private fun desktopRoot(): File {
+        val candidates = listOfNotNull(
+            System.getenv("ABITO_DESKTOP_ROOT")?.let(::File),
+            File(System.getProperty("user.dir")).absoluteFile.parentFile?.parentFile?.parentFile?.let { File(it, "abito-public") },
+        )
+        val root = candidates.firstOrNull { File(it, "$CORE/pills.ts").exists() }
+        assumeTrue("Abito desktop sources not found (set ABITO_DESKTOP_ROOT)", root != null)
+        return root!!
     }
 
-    fun read(path: String): String = File(repoRoot(), path).readText()
-    fun file(path: String): File = File(repoRoot(), path)
+    fun read(path: String): String = File(desktopRoot(), path).readText()
+    fun file(path: String): File = File(desktopRoot(), path)
 }

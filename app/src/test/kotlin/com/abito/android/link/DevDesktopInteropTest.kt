@@ -1,6 +1,5 @@
 package com.abito.android.link
 
-import com.abito.android.ReferenceFiles
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.concurrent.LinkedBlockingQueue
@@ -15,7 +14,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /**
- * The real [LinkClient] against android/tools/dev-desktop.mjs, a separate implementation of the
+ * The real [LinkClient] against tools/dev-desktop.mjs, a separate implementation of the
  * protocol (Node's TLS stack, its own certificate). Skipped when node or openssl is missing.
  */
 class DevDesktopInteropTest {
@@ -32,7 +31,7 @@ class DevDesktopInteropTest {
     private fun startDesktop(vararg extra: String): JSONObject {
         assumeTrue("node not available", have("node"))
         assumeTrue("openssl not available", have("openssl", "version"))
-        val script = ReferenceFiles.file("android/tools/dev-desktop.mjs").absolutePath
+        val script = java.io.File("../tools/dev-desktop.mjs").absolutePath
         proc = ProcessBuilder(listOf("node", script, "--host", "127.0.0.1", "--port", "0", "--quiet", "--step", "300") + extra)
             .redirectErrorStream(true).start()
         Thread {
