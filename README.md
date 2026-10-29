@@ -9,7 +9,7 @@ you answer them away from the computer.
 
 - Desktop side: `apps/desktop-tauri/src/phone_link` in the Abito repository (scheme `abito://pair`, mDNS `_abito._tcp`).
 - LAN only, no cloud relay.
-- Planning, backlog (HU-053, HU-037) and decisions live in the Abito vault.
+- Planning, backlog (HU-071, HU-037) and decisions live in the Abito vault.
 
 ## Build
 
