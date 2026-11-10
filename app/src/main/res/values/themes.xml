@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Dark only (the UI itself is Compose). -->
-    <style name="Theme.Abito" parent="android:Theme.DeviceDefault">
+    <style name="Theme.Kenai" parent="android:Theme.DeviceDefault">
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
     </style>

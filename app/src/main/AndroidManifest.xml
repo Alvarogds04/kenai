@@ -20,13 +20,13 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
-        android:name=".app.AbitoApp"
+        android:name=".app.KenaiApp"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:theme="@style/Theme.Abito">
+        android:theme="@style/Theme.Kenai">
 
         <activity
             android:name=".MainActivity"
@@ -71,47 +71,47 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_widget_info" />
         </receiver>
 
-        <!-- The Solo and List widgets: Abito and the agents, pushed by the app when something changes (no timer). -->
+        <!-- The Solo and List widgets: Kenai and the agents, pushed by the app when something changes (no timer). -->
         <receiver android:name=".app.SoloWidget" android:exported="true" android:label="@string/widget_solo_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_solo_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_solo_widget_info" />
         </receiver>
         <receiver android:name=".app.ListWidget" android:exported="true" android:label="@string/widget_list_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_list_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_list_widget_info" />
         </receiver>
 
-        <!-- More Widgets: Abito Big, Status Pill, Waiting Alert, Usage Ring, Today and Abito Mood. Pushed by the app when something changes (no timer). -->
+        <!-- More Widgets: Kenai Big, Status Pill, Waiting Alert, Usage Ring, Today and Kenai Mood. Pushed by the app when something changes (no timer). -->
         <receiver android:name=".app.CharacterBigWidget" android:exported="true" android:label="@string/widget_big_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_big_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_big_widget_info" />
         </receiver>
         <receiver android:name=".app.StatusPillWidget" android:exported="true" android:label="@string/widget_pill_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_pill_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_pill_widget_info" />
         </receiver>
         <receiver android:name=".app.WaitingAlertWidget" android:exported="true" android:label="@string/widget_alert_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_alert_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_alert_widget_info" />
         </receiver>
         <receiver android:name=".app.UsageRingWidget" android:exported="true" android:label="@string/widget_ring_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_ring_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_ring_widget_info" />
         </receiver>
         <receiver android:name=".app.TodayWidget" android:exported="true" android:label="@string/widget_today_label">
             <intent-filter>
@@ -120,20 +120,20 @@
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_today_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_today_widget_info" />
         </receiver>
         <receiver android:name=".app.MoodWidget" android:exported="true" android:label="@string/widget_mood_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
-            <meta-data android:name="android.appwidget.provider" android:resource="@xml/abito_mood_widget_info" />
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_mood_widget_info" />
         </receiver>
 
-        <!-- The quick-settings tile: on while the computer is connected; a tap opens Abito. -->
+        <!-- The quick-settings tile: on while the computer is connected; a tap opens Kenai. -->
         <service
             android:name=".app.GlanceTile"
             android:exported="true"
-            android:icon="@drawable/ic_stat_abito"
+            android:icon="@drawable/ic_stat_kenai"
             android:label="@string/app_name"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
             <intent-filter>

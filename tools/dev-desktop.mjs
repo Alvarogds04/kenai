@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A pretend Abito desktop for developing and testing the Android app without the real one.
+// A pretend Koda desktop for developing and testing the Android app without the real one.
 // Speaks docs/ANDROID_LINK.md (v1): TLS with a self-signed certificate, newline-delimited JSON.
 //
 //   node android/tools/dev-desktop.mjs [--host IP] [--port N] [--name "My PC"] [--step MS] [--once] [--fake-chat] [--details] [--answers] [--diffs] [--usage] [--services]
@@ -61,11 +61,11 @@ const HOST = arg("host", lanIp());
 export const fingerprint = (pill, session, tool, command, inputKey) =>
   crypto.createHash("sha256").update([pill, session, tool, command, inputKey].join("\u001f"), "utf8").digest("hex");
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "abito-dev-"));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kenai-dev-"));
 execFileSync("openssl", [
   "req", "-x509", "-newkey", "ec", "-pkeyopt", "ec_paramgen_curve:prime256v1", "-nodes",
   "-keyout", path.join(dir, "key.pem"), "-out", path.join(dir, "cert.pem"),
-  "-days", "30", "-subj", "/CN=abito-dev-desktop",
+  "-days", "30", "-subj", "/CN=kenai-dev-desktop",
 ], { stdio: "ignore" });
 const key = fs.readFileSync(path.join(dir, "key.pem"));
 const cert = fs.readFileSync(path.join(dir, "cert.pem"));
@@ -364,5 +364,5 @@ server.listen(Number(arg("port", "47821")), "0.0.0.0", () => {
   const port = server.address().port;
   const link = `abito://pair?v=${V}&host=${HOST}&port=${port}&fp=${certSha256}&token=${TOKEN}&name=${encodeURIComponent(NAME)}`;
   log(JSON.stringify({ listening: port, fp: certSha256, link }));
-  if (!flag("quiet")) console.error(`\nPairing link (paste it in Abito for Android):\n${link}\n`);
+  if (!flag("quiet")) console.error(`\nPairing link (paste it in Kenai for Android):\n${link}\n`);
 });

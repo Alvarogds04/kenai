@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder Abito character in the "working" state for the Widget picker (HU-049 T3): a disc in the state colour with two
-     eyes, replaced with Abito's own character in T6. -->
+<!-- Placeholder Kenai character in the "working" state for the Widget picker (HU-049 T3): a disc in the state colour with two
+     eyes, replaced with Kenai's own character in T6. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="120dp" android:height="120dp" android:viewportWidth="120" android:viewportHeight="120">
     <path android:fillColor="#3B9EFF" android:pathData="M60,18 C86,18 100,36 100,62 C100,88 84,100 60,100 C36,100 20,88 20,62 C20,36 34,18 60,18 Z" />

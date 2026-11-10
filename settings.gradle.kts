@@ -5,5 +5,5 @@ dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories { google(); mavenCentral() }
 }
-rootProject.name = "abito-android"
+rootProject.name = "kenai-android"
 include(":app")

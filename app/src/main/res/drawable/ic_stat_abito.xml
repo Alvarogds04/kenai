@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder Abito status-bar icon (HU-049 T3): a white disc, replaced with Abito's own icon. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M12,3 C17,3 21,7 21,12.5 C21,18 17,21 12,21 C7,21 3,18 3,12.5 C3,7 7,3 12,3 Z" />
-</vector>

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder Abito launcher foreground (HU-049 T3): Abito's clay green with its two tall eyes. -->
+<!-- Placeholder Kenai launcher foreground (HU-049 T3): Kenai's clay green with its two tall eyes. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
     <path android:fillColor="#8FCB78" android:pathData="M54,28 C70,28 80,39 80,55 C80,71 69,80 54,80 C39,80 28,71 28,55 C28,39 38,28 54,28 Z" />
