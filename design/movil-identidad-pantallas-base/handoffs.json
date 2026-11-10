@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "chosen": "01-isla-en-el-bolsillo.html",
+  "handoffs": {
+    "01-isla-en-el-bolsillo.html": {
+      "status": "in_progress",
+      "queued": false,
+      "sentAt": "2026-10-29T14:46:05.796Z",
+      "startedAt": "2026-10-29T14:50:51.443Z",
+      "implementedAt": null,
+      "note": "Parcial: Koda (sprites HU-055) y colores de rol ya en Inicio (tarjeta y lista), 713 tests verdes, visto en pixel7. Faltan velo, hoja de aprobación, Emparejar, tema claro y español (bloqueado por política «solo inglés» del repo)."
+    }
+  }
+}

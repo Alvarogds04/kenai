@@ -40,7 +40,8 @@ import com.kenai.android.link.SessionInfo
 import com.kenai.android.character.BotState
 import com.kenai.android.character.StateColors
 import com.kenai.android.character.CharacterEngine
-import com.kenai.android.character.CharacterView
+import com.kenai.android.character.KodaRole
+import com.kenai.android.character.KodaView
 import com.kenai.android.character.Rgb
 import java.time.Instant
 import java.time.ZoneId
@@ -84,7 +85,7 @@ fun HeroCard(
     canAnswer: Boolean = false,
 ) {
     val state = focus?.state ?: BotState.SLEEPING
-    val wash = StateColors.STATES[state]?.color?.let(::rgbColor)
+    val wash = Color(KodaRole.of(state))
     val dim = Color(IslandSurface.TEXT_DIM)
     val white = Color(IslandSurface.TEXT)
     HeroPanel(wash = wash) {
@@ -100,13 +101,13 @@ fun HeroCard(
             }
             if (focus == null) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    CharacterView(engine, Modifier.size(112.dp).then(touch))
+                    KodaView(state, Modifier.size(128.dp).then(touch), stringResource(R.string.koda_description))
                     Text(stringResource(R.string.home_empty_title), style = TypeScale.TITLE.style(white))
                     Text(stringResource(R.string.home_empty_hint), style = TypeScale.SECONDARY.style(dim), maxLines = 3)
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    CharacterView(engine, Modifier.size(108.dp).then(touch))
+                    KodaView(state, Modifier.size(96.dp).then(touch), stringResource(R.string.koda_description))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val pillName = Pills.byId(focus.pillId)?.name.orEmpty()
                         val name = focus.agent.ifBlank { pillName }.ifBlank { stringResource(R.string.app_name) }
@@ -157,12 +158,12 @@ fun AgentRows(others: List<SessionInfo>, engineFor: (SessionInfo) -> CharacterEn
                     .padding(horizontal = Spacing.INSIDE.dp, vertical = 12.dp).semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(Spacing.GAP.dp), verticalAlignment = Alignment.CenterVertically,
             ) {
-                CharacterView(engineFor(s), Modifier.size(40.dp))
+                KodaView(s.state, Modifier.size(40.dp))
                 Column(Modifier.weight(1f)) {
                     Text(name, style = TypeScale.BODY.style(t.text.c()).copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(HomeText.line(s) ?: state, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                StateDot(stateColor(s.state))
+                StateDot(Color(KodaRole.of(s.state)))
             }
         }
     }

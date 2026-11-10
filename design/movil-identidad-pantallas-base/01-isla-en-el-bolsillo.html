@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=1440"><title>A · Isla en el bolsillo</title>
+<style>
+:root{
+  /* design/system.md — role colours, never themed */
+  --go:#b8ff2e;--sun:#ffe100;--red-11:#ff5c75;--island-live:#2eb4ff;--faint:#6f6d66;
+  --on-role:#0b0c0e; /* ink on a role-colour fill (system.md --primary-ink, dark) */
+  /* Dot identity families (never carry a state) */
+  --id-abito:#8dff2b;--id-pi:#2dffac;--id-claude:#ff8a00;--id-codex:#2ea8ff;
+  --font-ui:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --radius-xl:12px;--radius-2xl:18px;--radius-full:999px;
+  --ease-out:cubic-bezier(.23,1,.32,1);
+}
+[data-theme=dark]{
+  --bg:#000;--card:#141518;--surface:#18181b;--tab-on:#1D1F23;
+  --ink:#F5F6F8;--ink-2:#F1F2F4;--muted:#8E939C;
+  --primary-bg:#F5F6F8;--primary-ink:#0B0C0E;--btn:rgba(255,255,255,.09);--btn-h:rgba(255,255,255,.15);
+  --line:rgba(255,255,255,.25);--line-faint:rgba(255,255,255,.08);--fill:rgba(255,255,255,.06);--bubble:rgba(255,255,255,.1);
+  --veil-a:22%;--sys:#F5F6F8;--wall:#0a0b0e;--focus:#fff;
+}
+[data-theme=light]{
+  --bg:#ece4d2;--card:#f7f2e7;--surface:#fbf8f1;--tab-on:#e7e0d0;
+  --ink:#1a1915;--ink-2:#2a2823;--muted:#5f5c54;
+  --primary-bg:#201f1b;--primary-ink:#f7f4ec;--btn:rgba(0,0,0,.06);--btn-h:rgba(0,0,0,.12);
+  --line:rgba(0,0,0,.28);--line-faint:rgba(0,0,0,.08);--fill:rgba(0,0,0,.05);--bubble:rgba(0,0,0,.07);
+  --veil-a:34%;--sys:#1a1915;--wall:#d9d2c0;--focus:#0b3fd1;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--wall);color:var(--ink);font:14px/1.4 var(--font-ui);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+header.top{position:absolute;left:32px;right:32px;top:14px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:24px}
+header.top h1{margin:0;font-size:18px;font-weight:600}
+header.top p{margin:2px 0 0;color:var(--muted);font-size:13px;max-width:880px}
+.ctl{display:flex;gap:8px}
+.cbtn{min-height:44px;padding:0 16px;border:0;border-radius:99px;background:var(--btn);font-weight:600;font-size:13px}
+.cbtn:hover{background:var(--btn-h)}
+main.row{position:absolute;left:0;right:0;top:86px;display:flex;justify-content:center;gap:20px}
+footer.note{position:absolute;left:32px;right:32px;bottom:10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;font-size:12px;color:var(--muted);line-height:1.35}
+footer.note b{color:var(--ink);font-weight:600}
+figure{margin:0}
+figcaption{margin:0 0 6px 4px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+/* ---------- phone ---------- */
+.phone{position:relative;width:330px;height:680px;border-radius:34px;background:var(--bg);overflow:hidden;box-shadow:0 0 0 1px var(--line-faint),0 0 0 8px #0c0d10;display:flex;flex-direction:column}
+[data-theme=light] .phone{box-shadow:0 0 0 1px var(--line-faint),0 0 0 8px #2a2823}
+.sbar{flex:none;height:26px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;font-size:12px;font-weight:600;color:var(--sys)}
+.sbar i{display:inline-block;width:11px;height:7px;border-radius:2px;background:var(--sys);margin-left:4px;opacity:.9}
+.gest{flex:none;height:22px;display:flex;align-items:center;justify-content:center}
+.gest::after{content:"";width:104px;height:4px;border-radius:2px;background:var(--sys);opacity:.85}
+.body{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;min-height:0;overflow:hidden;padding:0 12px}
+/* ---------- state veil ---------- */
+[data-st=reposo]{--c:var(--faint)}[data-st=escucha]{--c:var(--island-live)}[data-st=piensa]{--c:var(--island-live)}
+[data-st=trabaja]{--c:var(--island-live)}[data-st=espera]{--c:var(--sun)}[data-st=termino]{--c:var(--go)}[data-st=error]{--c:var(--red-11)}
+.veil{background:linear-gradient(180deg,color-mix(in srgb,var(--c) var(--veil-a),var(--card)) 0%,var(--card) 92%)}
+/* ---------- parts ---------- */
+.koda{display:inline-block;image-rendering:pixelated;background-repeat:no-repeat;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:2px 9px 2px 7px;border-radius:99px;background:color-mix(in srgb,var(--c) 26%,var(--card));color:var(--ink);min-height:22px}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chip.sunk{background:var(--c);color:var(--on-role)}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.card{background:var(--card);border-radius:var(--radius-2xl);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border:0;border-radius:99px;background:var(--btn);font-weight:600;font-size:14px;color:var(--ink)}
+.btn.pri{background:var(--primary-bg);color:var(--primary-ink)}
+.btn.go{background:var(--go);color:var(--on-role)}
+.btn.block{width:100%}
+.h{font-weight:700;letter-spacing:-.01em}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono);font-size:12.5px}
+.nav{flex:none;display:flex;gap:4px;margin:0 12px 6px;padding:6px;border-radius:99px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.nav a{flex:1;min-height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:99px;font-size:11.5px;font-weight:600;color:var(--muted);text-decoration:none}
+.nav a[aria-current]{background:var(--tab-on);color:var(--ink)}
+.nav svg,.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:10px 20px 8px;box-shadow:0 -1px 0 var(--line-faint)}
+.sheet .grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+[data-theme=light] .scrim{background:rgba(26,25,21,.38)}
+.fp{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--muted);margin:12px 0 6px}
+.row2{display:flex;gap:10px}
+.row2 .btn{flex:1}
+.agent{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 14px}
+.agent .t{flex:1;min-width:0}
+.agent .t b{display:block;font-size:15px}
+.agent .t span{font-size:13px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bubble{max-width:82%;padding:10px 14px;border-radius:18px;font-size:14px}
+.bubble.me{align-self:flex-end;background:var(--bubble);border-bottom-right-radius:6px}
+.bubble.ab{align-self:flex-start;background:var(--card);border-bottom-left-radius:6px;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.composer{display:flex;gap:8px;align-items:center;padding:8px 12px}
+.field{flex:1;min-height:48px;display:flex;align-items:center;padding:0 16px;border-radius:99px;background:var(--fill);color:var(--muted);font-size:14px;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.send{width:48px;height:48px;border-radius:50%;border:0;background:var(--primary-bg);color:var(--primary-ink);display:flex;align-items:center;justify-content:center}
+.cmd{background:var(--card);border-radius:12px;padding:10px 12px;margin:10px 0 4px;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-faint);word-break:break-all}
+.sec{font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 4px 6px;color:var(--muted);font-weight:600}
+@media (prefers-reduced-motion:no-preference){.veil,.chip{transition:background .4s var(--ease-out)}}
+</style></head><body>
+<header class="top"><div><h1>A · Isla en el bolsillo</h1><p>Evolución de la app de hoy: una tarjeta-isla arriba con Koda y el agente en foco, los demás agentes en lista debajo, barra inferior de tres secciones y el permiso como hoja inferior.</p></div>
+<div class="ctl"><button class="cbtn" id="react" type="button">Koda: Trabajando</button><button class="cbtn" id="theme" type="button" aria-pressed="false">Tema: oscuro</button></div></header>
+<main class="row"><figure><figcaption>Emparejar</figcaption><div class="phone" data-st="reposo" role="group" aria-label="Emparejar"><div class="sbar" aria-hidden="true"><span>9:41</span><span>5G<i></i><i style="width:16px"></i></span></div><div class="body"><div class="scroll" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:14px;padding:0 24px">
+      <span class="koda" data-koda="reposo"  data-scale="4" role="img" aria-label="Koda, en reposo" style="width:128px;height:128px"></span>
+      <h2 class="h" style="font-size:22px;margin:4px 0 0">Conectá con tu computadora</h2>
+      <p class="muted" style="margin:0;font-size:14px">En tu computadora abrí Abito, después Ajustes, Teléfono Android, y escaneá el código.</p>
+      <button class="btn pri block" type="button" style="margin-top:6px"><svg class="ic" viewBox="0 0 24 24"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M8 9h2v2H8zM14 9h2v2h-2zM8 14h2v2H8zM13 14h3v2h-3z"/></svg>Escanear código QR</button>
+      <div class="row2" style="width:100%"><button class="btn" type="button">Pegar el enlace</button><button class="btn" type="button">Probar la demo</button></div>
+      <span class="muted" style="font-size:12px;margin-top:6px">Abito para Android · solo en tu red local</span></div></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>Inicio</figcaption><div class="phone"  role="group" aria-label="Inicio"><div class="sbar" aria-hidden="true"><span>9:41</span><span>5G<i></i><i style="width:16px"></i></span></div><div class="body"><div class="scroll" style="padding:0">
+      <section class="veil" data-st="trabaja" data-cyclest style="border-radius:0 0 30px 30px;padding:8px 18px 20px;box-shadow:inset 0 -1px 0 var(--line-faint)">
+        <div style="display:flex;justify-content:space-between;align-items:center;min-height:32px;font-size:12.5px;color:var(--muted)"><span><span class="dot" style="display:inline-block;background:var(--go);margin-right:6px"></span>Estudio-PC</span><span>3 en curso</span></div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:6px"><span class="koda" data-koda="trabaja" data-cycle data-scale="3" role="img" aria-label="Koda, trabajando" style="width:96px;height:96px"></span>
+          <div><div class="h" style="font-size:20px">Claude Code</div><div class="muted" style="font-size:13px">Migrando tablas de pedidos</div>
+          <span class="chip" style="margin-top:8px"><i></i><span data-cyclelabel>Trabajando</span></span></div></div>
+      </section>
+      <div style="display:flex;flex-direction:column;gap:8px;margin:12px">
+        <div class="card agent" data-st="espera"><span class="dot" style="background:var(--id-codex)"></span><div class="t"><b>Codex</b><span>Quiere correr un comando</span></div><span class="chip sunk"><i style="background:var(--on-role)"></i>Tu sí</span></div>
+        <div class="card agent" data-st="termino"><span class="dot" style="background:var(--id-pi)"></span><div class="t"><b>Pi</b><span>Migración aplicada, 14 tests pasan</span></div><span class="chip"><i></i>Listo</span></div>
+        <div class="card agent" data-st="reposo"><span class="dot" style="background:var(--id-abito)"></span><div class="t"><b>Abito</b><span>Todo tranquilo</span></div><span class="chip"><i></i>Reposo</span></div>
+      </div></div><nav class="nav" aria-label="Secciones"><a href="#" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Inicio</a><a href="#" ><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Chat</a><a href="#" ><svg viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>Aprobación</figcaption><div class="phone" data-st="espera" role="group" aria-label="Aprobación"><div class="sbar" aria-hidden="true"><span>9:41</span><span>5G<i></i><i style="width:16px"></i></span></div><div class="body"><div class="scroll" style="opacity:.55"><div class="card agent" style="margin-top:12px"><span class="dot" style="background:var(--id-claude)"></span><div class="t"><b>Claude Code</b><span>Quiere ejecutar un comando</span></div></div></div>
+     <div class="scrim"></div>
+     <section class="sheet" data-st="espera" aria-label="Pedido de permiso">
+      <div class="grab"></div>
+      <div style="display:flex;gap:12px;align-items:center"><span class="koda" data-koda="espera"  data-scale="2" role="img" aria-label="Koda, esperando tu sí" style="width:64px;height:64px"></span><div><div class="h" style="font-size:17px">Claude Code</div><div class="muted" style="font-size:13px">Quiere ejecutar un comando</div></div></div>
+      <div class="cmd mono">npm run migrate -- --env staging</div>
+      <p class="muted" style="margin:6px 2px;font-size:13px">Permitir solo si lo pediste vos. Caduca en 4:32.</p>
+      <div class="fp"><svg class="ic" style="width:18px;height:18px" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span>Permitir en el teléfono pide tu huella o el bloqueo de pantalla. Denegar no.</span></div>
+      <div class="row2" style="margin-top:6px"><button class="btn" type="button">Denegar</button><button class="btn go" type="button">Permitir</button></div>
+      <button class="btn block" type="button" style="margin-top:8px;background:transparent">Ahora no</button></section></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>Chat</figcaption><div class="phone" data-st="escucha" role="group" aria-label="Chat"><div class="sbar" aria-hidden="true"><span>9:41</span><span>5G<i></i><i style="width:16px"></i></span></div><div class="body"><div class="scroll" style="display:flex;flex-direction:column;gap:10px;padding:8px 12px">
+      <div class="h" style="font-size:20px;min-height:40px;display:flex;align-items:center">Chat</div>
+      <div class="bubble me">¿Qué terminó mientras no estaba?</div>
+      <div class="bubble ab">Pi terminó la migración: se aplicó y pasan 14 tests. Claude Code espera tu sí para correr <span class="mono">npm run migrate</span>.</div>
+      <div class="bubble me">Dejalo esperando, lo reviso en el escritorio.</div>
+      <div style="align-self:flex-start;display:flex;align-items:center;gap:8px" class="muted"><span class="koda" data-koda="escucha"  data-scale="2" role="img" aria-label="Koda, escuchando" style="width:64px;height:64px"></span><span style="font-size:12px">Abito está escribiendo…</span></div></div>
+     <div class="composer"><div class="field">Escribí un mensaje</div><button class="send" type="button" aria-label="Enviar"><svg class="ic" viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button></div><nav class="nav" aria-label="Secciones"><a href="#" ><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>Inicio</a><a href="#" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></svg>Chat</a><a href="#" ><svg viewBox="0 0 24 24"><path d="M4 8h9M17 8h3M4 16h3M11 16h9"/><circle cx="15" cy="8" r="2"/><circle cx="9" cy="16" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure></main>
+<footer class="note"><div><b>Compromiso:</b> la más cercana a lo que ya existe (poco riesgo al implementar); el permiso exige abrir una hoja, un toque más que resolverlo en la tarjeta, y con muchos agentes la lista crece bajo una tarjeta fija.</div><div><b>Android:</b> barras de estado y de gestos respetadas; objetivos de 48 dp o más; Atrás cierra la hoja; ningún gesto es obligatorio. Emparejar, chat y aprobación llevarán FLAG_SECURE como hoy.</div><div><b>Accesibilidad:</b> contraste AA en oscuro y claro (colores de rol solo como relleno, con tinta #0b0c0e encima), foco visible, Koda con etiqueta de texto; con movimiento reducido Koda queda en su primer cuadro.</div></footer>
+<script>
+const KODA={"s32":"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAADgCAYAAADLym6RAAASaklEQVR42u2dX2gdVR7Hf3cyD1GTVfriiyCCL8KaCnYjNSJppdyQCtbWQsXtU2orNN0Kzbr+oXm4EhFJxW4iWDX4IEKhTWvAhnsp2uBuFUv70CiUBWERfHEfZNvEpS9l9iE942/OnDnnNzPnz+TO+cHl5t577nzO95xzz/zJfH+nATWIgS+iCL9efrrRAB8AANCoWwcMfBFFtvmu9VfqB8BXpi7sqtTBKd93vu98Z2z88J1f42OAOh6E+oNgHz585IyhwWY0NNiMqrKdurWjrfYPZF+efOMwlKnE0GAzmnzj8LobgDrZRfXbav/AVCXKinc9ABm7KF+HfhvtrxwAAzdv5a4Egw/cvFX5BpDF6SPjhfg69Ztu/0B3JXSKdzUAL17qNFpTx2G5twcGbt6C00fGobOwGLnQb7r9w7yVaE1BpPrF6hTPsy9e6jRsd4Br/Sb5Yd6KTL5xGK5cXoJHNw3DlctLAADx349uGjZ3McNxB7jWb4ofUH9Fy709MVAWVy4vwXJvT6kpXNUA25sb42f8t46Drirot8mXzgB4Q3mjzHdlDaAa5VcuLwFsGo6/m2f3URX9NvmkXcDjw0+mnr9Z+jpR5tDEZKIMAKTKVLEBqqzfBj+kwkXvZ32Gy+hoBJcd4Fq/aX5QBK5DgI4GODQxCYcmJqVlXNa97DZs8JXXAWamWzCybVfiPf616L2RbbtgZrq1rjvAtX5n/KHBZrRyfTV66+gr0cr11Wjl+mrELouyz1aur0bvvjYWvfvamLQM20beo+DOwmL8fbw9ti38WvTe0GAzZlMv4lRJvy1+fFS8cn01wqOnfX5eWsnV9oXE676RLdLy/Db77+5ryBqgfX4eZqZb8b4dj3C2nY/eXjvte/HV45ll2DZGtu0C2VmAa/2u+A3c6BcvdRpspKgqgCuhguPOYQy+M1x3gGv9rvjKXyFlo5RylEu4LjvAtf5K8PE+9Jefvhfua0X7XFW5X376PvGeSji/H5NtO0851X7YtX7n7c8Ks2dVJSgNj7fDnqvaAK71u+Cn9kMHxrbAibm1qfXA2NrU+uyeceEBluxU5Mypaei0zyU+Z9tlU7GoAXj+ibkLpN1BVn2YBszOw3et3zRfWIntzY0wtm8v7Nw9kdggi527J1KVGNm2K1WGb3z+86xG8Hx7fGkFcODK5A0Mlon3fPv8zEqIvsjH3Mefpt7jK86HTLzn2+cL/xnECuzc/fvNF6rKqIKNYMrpiOe75fvw4cOHDx9lHTLr3RbWDfpLWcMA3BozqtABLvTbtKYFJhpBly3K9QB0qd+WNS1QbWDg5q3CzhRdt4S76IAq6LdhTQuoG6WI0enKqdIAtK3fpjUtLNo5tg9mKPf3m7KFVU2/arbsSmuY6w6oin5vDfPWMK186THAcm9P/Mgb1O+K0pfZagBV6jYb+l3zQ0rqVFPOHEoHlGk80r61Avpd8snWsPH3O/F7swebQmuSqIyqEpScdaYaYPnpRkM1CKtiDTPV/qGsAzB89mATFq/dSLzm4aIyskrk6XwXA1CXM6mofhvtT7KGAQAsXrsBR/aMwpE9o5ll+TK6rGFMzOjWzTC6dXOio/kG4Mt0gzXMZPsHssbHzhxRfPT24didI4pDE5MwM90q1QmuBiDW3z4/DyPbdsUP7Exi+kVlyui31f5kaxg/vYqcOXwZ/hdR1Bo2/n4HRrdujjv2qf1HYfZgM2ENyyrTLdYwU+2/bqxhpgegt4Zl/AopG6WWYxXI4nWzNUylvxJ83j2jy5kjsm5TGkCnNeyto6/EVvMsvmv9ztuffYALlLUmscbHz1kWKVMNgH322HZWNf0u+NqmI9G0w6YbZnYASN63zt+jjncD+LtlrGF4t7K9uRHOda7Gt1hT7tG3qd8FPzABZ/sl1vAXL3Ua5zpXlaYFVmHd966z7Y3t25v7/nqb+l3wA7AUFy91GmXsTZ5vhh9SRt///vvv1Gd33vNA4rWozO2LI1HRX7Tnm+crZwDRhvn3KWWKhueb5UuvAzB7cXNke8qqzHvPZWWYPZkdiLA417kqvS7g+eb5pFvCdu6eyPSeU8ucOTWdcLPKxHu+PX5hmzJOUsAnJ8Bl8PdZBajiPd88P6CcPgEAfPbBe4nnrODL4YqN7duba+R7vnk++UIQP72IglKmyBGx57vl+/BRLlwu2uz1yyOoQ2NUqQOqpp90GoivKRepALv5cWiwGa0UvCKmY/81NNiMVibbiTp5/cQv5k25rnMbOvlFfoHdrD/XLsC1V18Hv781km/0d7n+kPrlgZu3cjt1Et8FgNbU8UJZsz3fHD/XDOByCVnPN8MPi1ai25ZQrSs/LFqRbvPJ15UfqI4aTx8Zj0fScm8PfPLDPwAApHCKjZt61Or5ZvnKGaAOy6fWmU/eBXTz8ql15jdU542PDz8pdMOKFiwQlWEVyHMKVDV+mdDFl9neWIjKqPghZdQ9uGM/jG7dHL+/+NW3qbJZZcokSTDJp1xeNZ0fgKp//P0OfPnhmwAAcO3qPzPzA4jKqPST8wMAgNKezZfh7dlFrmLp5ON6sARTFL6u/ABl9QNAnABCFqwMRX8g+rB9fj4+kvzXHY9lWrOZPTvLms2iNXU8zuilagRTfJFLhsLHK5diM6bIm8+X0an/2MlFOHZyERa/+jZTP1+Goj+VH8BVbgCbfPzLeP3NdxoqPh8mls11pb8hmqJMWbOZNy9r32vLGo5/AWwA1FV/QzYNUTZKLYfNiSpTpMllU/n76+69/+FGnfUHeApSLeuaF9x/d1+jfX4+zpfDzIlnTk2n9oUm+ZRt111/6ii1rC+d3yZexlTljzfFF9XD6ydemChTCRFYtY6ubn5WHequ30p+AHYAUsQerYsvCkp9ul2/9buCfVQrSJmyivrT77zngUSaFnwkPPfxp0qblEk+dQnXbtdvJT8APxVRxOvm41Mf0Zq7ddVvLT9AXnu0ST6l8eui31p+gDxTnyk+qwO7GmebX0X9VvMD5F3B2vPN843nB2BgdtCRZ+R7vnm+0fwAurzonu+W78OHDx8+fPjw4aMuUWbtehPb8frNhPQ6QNk1f8skRqhCB9RBf2CqEXRkxXDZAXXRrxwAula/Xo8dUAf9ge5G0J0Zw3UHdLv+MG9FXGTGwGzKv3FN16Gb9IdFpiQXmTFcp2bpVv0hdRQt9/aQRF65vASwaTj+bp7RW5UOqJN+6THAcm9P/MgbZb4r6wBVXLm8lGAW2YfWST9pF+AqO4br9Cx10B9SxGdl38BiVRk61mMH1EF/pTOEuO6AOuhXzgAz0y2AOx4DAEgkYMgKXGZmuhWPzPXaAd2uP5DBVQJEWTL4aWlmulUq146JFDHUxq+D/pQ9HNuImfjZg01Y/OpbeGr/0Tj9ymr7Ajz/yA54/pEdsNq+ICyDt5HFqEoH1FW/cOVutv9QRZksFfw5MW4UF2lq6qrfSZaKLJ7LDvD6BVOUzJeOP1OVyzv9qdh429RyFGbd9SeySLBkAqYyVag6QCXORAfUUb8wQZLIZlQk8poTcONgO1ORBAn81IunWJUps076G1Tx2I3CKkRZnjxPI1Abn3njq8bn3bnrQX/qQlCW7RhXjB1R4iQFrDL89/OGiI9FixqiCnzeoJnlzq2a/pAygvhReebUdOq0gmWjYIHFy/Z7lF8Hv23RlOiSL3Lnnjk1Hc8IVdYfCioTiUbuZx+8By+89HL8LNrfiAyMbKHCPd/9Lf6M+eRvM6X8TvtcnOBAdp7smi9qp/WgPxCNyBNzFxIjaefuibjTX3jp5Xh6O3tyFs6enM38BRQJns+LxzNQVfisjVj7AADMf/lz3PhV1h9KpqWIHwSi6UX1CyjaCZhPmYFc8/k2KtL5LvTnylShCoqHvcg+sKg/3jYfX8nL2dnO9Dfu6t+QqvBvK79aSyzg+W75IQDA6g+//v5PhT9uANvh+e74AYPyYJvePM93xw/wKOQrYdOb5/lu+IFq6rHlzfN8N/xAtB/CYcub5/lu+MoZIG8linrzPN8NP6Secpjypnm+W/66MYd6vhl+QJ1GbHrzPL8i3kAT3jR+GRXPd8u3ag4VLNtKskx7vjl+SIXz95w/PvxkynAgKlPWHOn5ZvkhFT57sAkPbXxi7TWAcPlyURldy6d7vhk+efl4tmFZ8GVE3rSxfXvjByU83yy/suZQz7fsDbTtTZuZbiXWzvF8N3zr5lC2hDp7FhkXPN8e36o5lD8Nka2e5fl2+ImwZY7MWjzZ893yhQZGneZIbLoUVcDz7fNzGxep05JoahPd3Zp3DT3P18sPqXCqQxUtZhjpXDbN883wA51wviK6bmr0fHP8EHxoDVG+vioHKU+O7vXrVadAZfh8HgNbfNbxIneOTf1521+5CzCxfn2eoPLZ+rhnTk3HD9YppvnMnJll0LShv2j7h7LRd2BsC3Ta50qtX39gbAtgt2ue0U/lixy0rJzII6ebj4Ni4jTBL9r+pGMAXevXs/9Apa5AaeBTOsAUHzuDWTlso2cdYFJ/0fZXjkJ+v4YBOtav18E/e3I2bmTRPtgGn6Vy4W30eHYyxS/T/tJjABvr1+vgP7tnHA6MbYl/iexhk99pn4unXPZgg9I0v0z7F8peZXv9eipf1oB14Ivav7OwGDWfGY3rwb+24kMXeeBZ2PDCe/6G4iuHmor5G/c5vQDi+fe5GwDzN+6DXX/42al4z/9ZPgB0JijAI44q3vPd8mFosBl1FhajsgkKOguL0V39G6K7+jdE7Wgg/ps9PN8t3+rq4UWmPc83y7eyevgjD/0Jflv5tSF6eL5bfuVXD/d8wwki8lbC1eLNnu8TRHg+dEGCCHx3ap5pTHeCBFkd6qTfaoKIvP54U4sn43rgdO111F/p1cNN8AWdUGv96yJBhO7Fk/GCCVT9ovdVrt/1oD9XgojFazcSr/nOF5XhGwH74lV3xphcPJnV4/U33yF1vmrJlqwyVddPThCxeO2GcvFivkyZxZt5PoDdxaMxn1mr2UP0axOVWQ/6Q9noYwkK8NSOgyUnePHV48LPWYKCQxOTAFNrZfJMvSb41Dpg/qGJ9NTK8/lZgb2uuv5aJ4i4vQsg8fkQ8WVRVf21SxDBgh0JswFQV/3Sc0WV9ZjiT8c2ZWxNFvrTDfNFdai7/sw17Pvv7muojImUDBXMmoS3jW1c+EKIbT4AwL33P9yos/7UqMPPlJG4nhIkqGaAuusvvDugrlmfZwo0wS/aAN2sv1b5AYrc39/t+p3dFu6jGtF1+QEofHYtXFWHOujvmvwAefiUzq+L/q7ID5CXT9331kF/1+QHoOYQGNu3N7dxtZv1d0V+AM+veX4Azy/O76r8AJ6fn+/zA/j8AHZi9Zkx6WvP72I+c6JGf/5r4lk2Mj3fDt/6LmD1mTHoW5hzNgV6fpIf2J6G+hbmrE9/nu+Yz087+LXnu+X7s4Ca83348OHDhw8fPkiRldxAV167qvNd1sEEt0GB4tcs9RhOOAywloQYAKA1lfSplf2HiGu+yzrY4DaoUJyu5Lljs8KNnT4yHv/NMlTwlVJVzDXfRh1ky8Wa1s7zQ74CKSiXpwZXDicpak0djz8fuHkr/j6rGK4U88GJGsAl314d0qlhbGm/fWNolFoyRpZfTjWiWLDPRSOX/b2W6izdCa759uvweyfY1o4HQYinBVUOuu3NjYn0ZFmfqSrLnLH8tOSSb7sOLrUrDwL5PLOiXDjfLH2dmIayyuARiuGymzNd823UIYtvQzvmO0kShfPkUPgiF6wsSRMuX5Zvog2ofBPaeX6uJFEPbXxi7TVAZpIovgxuAAympmkBWEuA9OPnH8biHtyxX8j/8fMP49cP7tgfb6Mo32QbqPgmtWM+OUkUEyULvozOJEl/+fsniWdR8GV08F22gQ3tgWwExgmGMuKjtw/HiYpEwZIUsdE89/Gn8UN0QKLi//SfX5R8XKYM33QbyPimtWN+5gGQiSRFvOAsi5Rrvq06iPi2tDM+OVs4v9G+kS2pJEV8GZ3hmu+yDia5QdZ5qSgZIh/PHZvNvDSpGoGyI2HXfP6I2kQdsvgmtMvOBMKs69Fs+XVZWlTsTZOVw6t4q2zSVeJTtk2tA5tyqXyd2gGApp/PH8Py2JRJUiTaXlZ+nCryddchD1+3dhE/dQAishQ/u2c8d7JkkYcdAGKvetbBn+fb5Yf8/gcAUpXg7ceiaYcvI/Kny8R7vht+IKoEzihxYu5Car/B9s9ZcFaG345MvOe74YeykYjf++yD9+CFl16OnwEAzp5MH4XicnmEe74bvs8PUHP+/wEB83Xi3WhG0AAAAABJRU5ErkJggg==","s24":"data:image/png;base64,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","seq":{"reposo":{"row":0,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0,2,2,0,0,3,0,0,1,1,1,1],"fps":8},"escucha":{"row":1,"seq":[0,0,0,0,1,1,1,1,0,0,0,0,0,2,2,0,0,0,0,1,1,1,3,3,0,0],"fps":8},"piensa":{"row":2,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,2,2,3,3,3,3,1,1,1,1,0,0,0],"fps":8},"trabaja":{"row":3,"seq":[0,0,1,1,2,2,3,3],"fps":8},"espera":{"row":4,"seq":[0,0,0,1,2,2,3,3,0,1,2,3,3,0,0,0],"fps":8},"termino":{"row":5,"seq":[0,0,0,0,0,0,1,1,2,2,2,2,3,3,0,0,0,0,0,0],"fps":8},"error":{"row":6,"seq":[0,0,0,0,0,1,1,2,2,3,3,2,3,2,3,0,0,0,0,1,1],"fps":8}}};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function paint(el,f){const s=+el.dataset.scale,st=KODA.seq[el.dataset.koda];
+  el.style.backgroundImage='url('+KODA.s32+')';el.style.backgroundSize=(128*s)+'px '+(224*s)+'px';
+  el.style.backgroundPosition='-'+(f*32*s)+'px -'+(st.row*32*s)+'px';}
+const ticks=new WeakMap();
+document.querySelectorAll('[data-koda]').forEach(el=>{ticks.set(el,0);paint(el,KODA.seq[el.dataset.koda].seq[0]);});
+if(!reduce)setInterval(()=>{document.querySelectorAll('[data-koda]').forEach(el=>{const st=KODA.seq[el.dataset.koda];
+  const t=(ticks.get(el)+1)%st.seq.length;ticks.set(el,t);paint(el,st.seq[t]);});},125);
+document.getElementById('theme').addEventListener('click',e=>{const d=document.documentElement;
+  const n=d.dataset.theme==='dark'?'light':'dark';d.dataset.theme=n;e.currentTarget.setAttribute('aria-pressed',n==='light');
+  e.currentTarget.textContent=n==='light'?'Tema: claro':'Tema: oscuro';});
+const ORDER=['reposo','escucha','piensa','trabaja','espera','termino','error'];
+const NAMES={reposo:'En reposo',escucha:'Escuchando',piensa:'Pensando',trabaja:'Trabajando',espera:'Espera tu sí',termino:'Terminó',error:'Con error'};
+let i=ORDER.indexOf('trabaja');
+document.getElementById('react').addEventListener('click',()=>{i=(i+1)%ORDER.length;const s=ORDER[i];
+  document.querySelectorAll('[data-cycle]').forEach(el=>{el.dataset.koda=s;el.setAttribute('aria-label','Koda, '+NAMES[s].toLowerCase());});
+  document.querySelectorAll('[data-cyclest]').forEach(el=>{el.dataset.st=s;});
+  document.querySelectorAll('[data-cyclelabel]').forEach(el=>{el.textContent=NAMES[s];});
+  document.getElementById('react').textContent='Koda: '+NAMES[s];});
+</script></body></html>

@@ -1,0 +1,13 @@
+{
+  "title": "Abito para Android · estado actual",
+  "brief": "Foto fiel de la app móvil de hoy (emulador pixel7, modo demo) y su inventario de pantallas.",
+  "artboards": [
+    {
+      "file": "01-estado-actual.html",
+      "title": "As-is · inventario y captura de Inicio",
+      "tradeoff": "Registro de hoy, no una propuesta; las pantallas con FLAG_SECURE se describen por texto, no por imagen.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

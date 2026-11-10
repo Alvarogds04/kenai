@@ -1,0 +1,27 @@
+{
+  "title": "Abito móvil · identidad y pantallas base",
+  "brief": "Tres direcciones de estructura para la app de Abito en Android (emparejar, inicio, aprobación, chat) con Koda y los colores de design/system.md del escritorio, en oscuro y claro, textos en español.",
+  "artboards": [
+    {
+      "file": "01-isla-en-el-bolsillo.html",
+      "title": "A · Isla en el bolsillo",
+      "tradeoff": "La más cercana a la app de hoy (poco riesgo al implementar); el permiso exige abrir una hoja, un toque más, y con muchos agentes la lista crece bajo una tarjeta fija.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-bandeja-de-pendientes.html",
+      "title": "B · Bandeja de pendientes",
+      "tradeoff": "Lo más rápido para responder un permiso (un toque desde Inicio) y se lee de un vistazo; Koda pierde protagonismo en Inicio.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-una-cosa-a-la-vez.html",
+      "title": "C · Una cosa a la vez",
+      "tradeoff": "La más expresiva y la que más usa a Koda; chat y ajustes cuestan más de descubrir y el deslizar-para-permitir exige botones alternativos.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}
