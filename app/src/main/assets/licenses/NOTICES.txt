@@ -1,6 +1,6 @@
 KENAI FOR ANDROID: LICENCES AND NOTICES
 
-Kenai for Android (https://github.com/Alvarogds04/abito) is free, has no ads and no analytics.
+Kenai for Android (https://github.com/Alvarogds04/kenai) is free, has no ads and no analytics.
 
 1. The code
 

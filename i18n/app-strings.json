@@ -3,7 +3,7 @@
   "strings": {
     "app_name": "Kenai",
     "about_unofficial": "Kenai for Android. Part of its code comes from Coucou for Android by Rhytam Biswas (MIT License).",
-    "about_repo": "github.com/Alvarogds04/abito",
+    "about_repo": "github.com/Alvarogds04/kenai",
     "licences_title": "Licences",
     "licences_intro": "Kenai's code is MIT-licensed; part of it comes from Coucou for Android (MIT). The libraries are listed with their licence.",
     "about_assets": "Kenai does not use Coucou's name, the Mochi character, Coucou's icon or its sounds, which are © Louis Raillé. The code taken from Coucou for Android is © Rhytam Biswas, released under the MIT License.",
