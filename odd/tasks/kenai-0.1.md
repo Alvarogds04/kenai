@@ -30,8 +30,8 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - [x] T8 (S5) Koda instead of Abito's clay character everywhere in the app · worker · a7e5951
 - [x] T9 (S7) Bottom bar never covers a sheet's buttons · worker · 85f5187
 - [x] T10 (S6) Demo texts and diagnostics report in Spanish · worker · 01ad329
-- [ ] T11 (S8a) Replica: Koda instead of the clay mascot · worker
-- [ ] T12 (S8b) Three improvement directions under design/kenai-mejoras/ · worker, parallel
+- [x] T11 (S8a) Replica: Koda instead of the clay mascot · worker · de17f49 (check-phone 49, check-widgets 119, 0 errors)
+- [x] T12 (S8b) Three improvement directions under design/kenai-mejoras/ · worker · 54d47b3
 - [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
 ## Log
@@ -53,3 +53,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L16: T8 a7e5951 (Koda drawn by CharacterEngine/CharacterView/CharacterBitmap, widget previews, launcher and notification icons; parent removed the unused ClayModel.kt and switched Home's hero to CharacterView so taps show), T9 85f5187 (paste and address sheets drawn above the bar; the bar hides while any sheet is open; sheets reach the bottom edge), T10 01ad329 (demo statuses and the copied report through Words). Parent re-ran the suite: 803 tests, 0 failures; installed the committed APK on the emulator: Koda on Home, Gallery and approval sheet, Spanish everywhere checked, Deny round trip, no crash. Open: the Gallery's state labels (idle, working…) are internal names in English.
 - L17: «Si a español» → the Gallery names its states and emotes in the phone language (698469f). «B» → the tile on the lock screen shows the same line as unlocked: agent name + state word ("Claude Code · Esperando tu aprobación"); never a command or a file, never a decision from the tile.
 - L18: T5 lock-screen change bc83094 (805 tests, 0 failures). «podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras» → T11 (replica with Koda) and T12 (3 directions), parallel, disjoint folders.
+- L19: T12 design/kenai-mejoras/: 01-decidi-en-un-toque, 02-timeline-del-dia, 03-koda-al-frente (54d47b3; _check.cjs errors 0, tokens of system.md only). T11 de17f49: the replica draws Koda everywhere (state→pose and emote→pose as the app, agent light on sheets/session/hero, still frames in widgets, launcher Koda face). Opened on the canvas; no artboard chosen yet.
