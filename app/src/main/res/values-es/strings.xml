@@ -184,6 +184,13 @@
     <string name="state_ratelimit">Llegó al límite</string>
     <string name="state_sleeping">Durmiendo</string>
     <string name="state_dizzy">Mareado</string>
+    <string name="emote_love">Cariñoso</string>
+    <string name="emote_surprised">Sorprendido</string>
+    <string name="emote_proud">Orgulloso</string>
+    <string name="emote_wink">Guiño</string>
+    <string name="emote_yawn">Bostezando</string>
+    <string name="emote_happy">Contento</string>
+    <string name="emote_annoyed">Molesto</string>
     <string name="agent_kind">Agente</string>
     <string name="link_pair">Emparejar con tu computadora</string>
     <string name="link_approval">Revisar el pedido</string>

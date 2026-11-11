@@ -140,6 +140,7 @@ import com.kenai.android.ui.ScreenTitle
 import com.kenai.android.ui.SectionTitle
 import com.kenai.android.ui.linkDotColor
 import com.kenai.android.ui.linkStatusText
+import com.kenai.android.ui.stateLabel
 
 class MainActivity : ComponentActivity() {
     private val model get() = (application as KenaiApp).model
@@ -516,10 +517,21 @@ private fun Gallery(onBack: () -> Unit) {
         ScreenTitle(stringResource(R.string.gallery), onBack)
         Spacer(Modifier.height(Gap))
         LazyVerticalGrid(GridCells.Fixed(3), horizontalArrangement = Arrangement.spacedBy(Gap), verticalArrangement = Arrangement.spacedBy(Gap)) {
-            gridItems(states) { (s, e) -> GalleryCell(s.key, e) }
-            gridItems(emotes) { (m, e) -> GalleryCell(m.key, e) }
+            gridItems(states) { (s, e) -> GalleryCell(stringResource(stateLabel(s)), e) }
+            gridItems(emotes) { (m, e) -> GalleryCell(stringResource(emoteLabel(m)), e) }
         }
     }
+}
+
+/** The Gallery's name for an emote, in the phone's language. */
+private fun emoteLabel(e: BotEmote): Int = when (e) {
+    BotEmote.LOVE -> R.string.emote_love
+    BotEmote.SURPRISED -> R.string.emote_surprised
+    BotEmote.PROUD -> R.string.emote_proud
+    BotEmote.WINK -> R.string.emote_wink
+    BotEmote.YAWN -> R.string.emote_yawn
+    BotEmote.HAPPY -> R.string.emote_happy
+    BotEmote.ANNOYED -> R.string.emote_annoyed
 }
 
 @Composable

@@ -184,6 +184,13 @@
     <string name="state_ratelimit">Limit reached</string>
     <string name="state_sleeping">Sleeping</string>
     <string name="state_dizzy">Dizzy</string>
+    <string name="emote_love">Loving</string>
+    <string name="emote_surprised">Surprised</string>
+    <string name="emote_proud">Proud</string>
+    <string name="emote_wink">Wink</string>
+    <string name="emote_yawn">Yawning</string>
+    <string name="emote_happy">Happy</string>
+    <string name="emote_annoyed">Annoyed</string>
     <string name="agent_kind">Agent</string>
     <string name="link_pair">Pair with your computer</string>
     <string name="link_approval">Review request</string>
