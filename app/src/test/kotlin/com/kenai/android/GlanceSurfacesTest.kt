@@ -44,8 +44,10 @@ class GlanceSurfacesTest {
     }
 
     @Test fun theTileOnlyOpensTheApp() {
+        // A tap opens what waits (an approval, a question) or Home, through the non-exported LaunchActivity; it never decides.
         assertTrue(tile.contains("startActivityAndCollapse"))
-        for (word in listOf("decide", "allow", "answer", "unpair")) assertFalse("tile uses $word", tile.contains(word, ignoreCase = true))
+        assertTrue(tile.contains("LaunchActivity::class.java"))
+        for (word in listOf("decide", "allow", "deny", "answer", "approve(", "unpair")) assertFalse("tile uses $word", tile.contains(word, ignoreCase = true))
     }
 
     @Test fun everyChangeOfThePictureReachesTheSurfaces() {

@@ -172,6 +172,49 @@ class PendingLaunchTest {
         assertTrue(src.contains("private var screen: LaunchScreen?"))
     }
 
+    // ── The question slot (a tap on the quick-settings tile) ────────────────────────────────────────
+
+    @Test fun theTileAsksForAQuestionOnce() {
+        launch.requestQuestion("agent_codex")
+        assertEquals("agent_codex", launch.takeQuestion())
+        assertNull("only once", launch.takeQuestion())
+        assertNull("nothing asked", launch.takeQuestion())
+    }
+
+    @Test fun aStaleOrBadQuestionRequestIsDropped() {
+        launch.requestQuestion("agent_codex")
+        now += PendingLaunch.TTL_MS + 1
+        assertNull(launch.takeQuestion())
+        for (bad in listOf("", " ", null, "x".repeat(PendingLaunch.MAX_PILL + 1))) {
+            launch.requestQuestion(bad)
+            assertNull("'$bad'", launch.takeQuestion())
+        }
+    }
+
+    @Test fun theQuestionSlotMeetsNoOther() {
+        launch.request("fp-1", allow = true)
+        launch.requestSession("agent_claude")
+        launch.requestScreen(LaunchScreen.CHAT)
+        launch.requestQuestion("agent_codex")
+        assertEquals("agent_codex", launch.takeQuestion())
+        assertEquals(LaunchScreen.CHAT, launch.takeScreen())
+        assertEquals("agent_claude", launch.takeSession())
+        assertEquals("the Allow is still there, untouched", PendingLaunch.Request("fp-1", true), launch.take())
+        launch.requestQuestion("agent_codex")
+        assertNull("a question is never an Allow", launch.take())
+        assertNull("nor a session", launch.takeSession())
+        assertNull("nor a screen", launch.takeScreen())
+    }
+
+    @Test fun theExportedActivityOnlyAsksTheModelForTheQuestionToOpen() {
+        val src = File(main + "MainActivity.kt").readText()
+        assertTrue(src.contains("model.launch.takeQuestion()"))
+        assertFalse(src.contains("EXTRA_QUESTION"))
+        val callers = File(main).walkTopDown().filter { it.extension == "kt" }
+            .filter { it.readText().contains("launch.requestQuestion(") }.map { it.name }.toList()
+        assertEquals(listOf("LaunchActivity.kt"), callers)
+    }
+
     @Test fun theExportedActivityOnlyAsksTheModelForTheScreenToOpen() {
         val src = File(main + "MainActivity.kt").readText()
         assertTrue(src.contains("model.launch.takeScreen()"))

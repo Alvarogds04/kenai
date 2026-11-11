@@ -19,6 +19,9 @@ class PendingLaunch(private val clock: () -> Long = System::currentTimeMillis) {
     private var screen: LaunchScreen? = null
     private var screenAt = 0L
 
+    private var question: String? = null
+    private var questionAt = 0L
+
     @Synchronized
     fun request(fp: String?, allow: Boolean) {
         val clean = fp?.takeIf { it.isNotBlank() && it.length <= MAX_FP }
@@ -75,6 +78,26 @@ class PendingLaunch(private val clock: () -> Long = System::currentTimeMillis) {
         val fresh = clock() - screenAt <= TTL_MS
         screen = null
         return if (fresh) s else null
+    }
+
+    /**
+     * "Open this session's question", from a tap on the quick-settings tile. A slot of its own: it only opens the question
+     * sheet, where the user still answers behind the screen lock; it never carries an Allow, a session or a screen. Only the
+     * non-exported LaunchActivity calls it.
+     */
+    @Synchronized
+    fun requestQuestion(pillId: String?) {
+        question = pillId?.takeIf { it.isNotBlank() && it.length <= MAX_PILL }
+        questionAt = clock()
+    }
+
+    /** The pill id whose question to open, once, if the tap is fresh; null for everything else. */
+    @Synchronized
+    fun takeQuestion(): String? {
+        val id = question ?: return null
+        val fresh = clock() - questionAt <= TTL_MS
+        question = null
+        return if (fresh) id else null
     }
 
     companion object {

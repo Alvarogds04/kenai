@@ -281,16 +281,29 @@ class MainActivity : ComponentActivity() {
         }
         // A tap on a widget button: a screen of the closed list ([LaunchScreen]), even when the app is locked, not connected or not paired.
         model.launch.takeScreen()?.let { screen = it.screen }
+        // A tap on the quick-settings tile while a question waits: its sheet, where the answer still goes behind the screen lock.
+        model.launch.takeQuestion()?.let { pill ->
+            if (model.questionFor(pill) != null) {
+                if (screen == Screen.SCAN) screen = Screen.HOME
+                questionPill = pill
+            }
+        }
         val launch = model.launch.take() ?: return
         val fp = launch.fingerprint
-        if (launch.allow) {
-            val request = model.approvals.firstOrNull { it.fingerprint == fp }
-            when {
-                request != null -> approve(request)
-                // The app was closed: the desktop offers the request again once the link is back.
-                model.linkState != LinkState.CONNECTED -> model.wantAllow = fp
-                else -> model.message = getString(R.string.msg_not_pending)
+        val request = model.approvals.firstOrNull { it.fingerprint == fp }
+        if (!launch.allow) {
+            // A tap on a request's notification or on the tile: its sheet rises again, even if it was closed before.
+            if (request != null) {
+                if (screen == Screen.SCAN) screen = Screen.HOME
+                closedApproval = null
             }
+            return
+        }
+        when {
+            request != null -> approve(request)
+            // The app was closed: the desktop offers the request again once the link is back.
+            model.linkState != LinkState.CONNECTED -> model.wantAllow = fp
+            else -> model.message = getString(R.string.msg_not_pending)
         }
     }
 

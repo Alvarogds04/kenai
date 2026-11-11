@@ -38,6 +38,7 @@
     "widget_big_not_connected": "Not connected",
     "widget_ring_cd": "%1$s plan usage, %2$d percent used",
     "widget_today_cd": "%1$d agent tasks finished today",
+    "tile_waiting": "%1$d waiting",
     "widget_pill_cd": "%1$s, %2$s",
     "widget_initial_title": "Kenai",
     "widget_initial_line": "Waiting for your agents",

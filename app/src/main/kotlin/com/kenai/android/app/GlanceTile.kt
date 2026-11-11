@@ -7,13 +7,17 @@ import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import com.kenai.android.MainActivity
+import com.kenai.android.R
 import com.kenai.android.core.Glance
+import com.kenai.android.core.LaunchScreen
+import com.kenai.android.core.TilePlan
+import com.kenai.android.core.TileTarget
 
 /**
- * The quick-settings tile: on while the computer is connected, its second line is the headline of [Glance]. A tap
- * opens Kenai (it never approves or changes anything). The system calls [onStartListening] when the shade opens, so
- * it needs no timer; [requestUpdate] asks it to refresh when the picture changes while the shade is open.
+ * The quick-settings tile: on while the computer is connected; its second line says what waits ("2 waiting", or the most
+ * urgent agent and its state, see [TilePlan]). A tap opens what waits (the request's sheet, the question's sheet) or Home,
+ * through LaunchActivity (ours, not exported); the tile itself never settles a request. The system calls [onStartListening]
+ * when the shade opens, so it needs no timer; [requestUpdate] asks it to refresh when the picture changes while the shade is open.
  */
 class GlanceTile : TileService() {
     override fun onStartListening() = paint(this)
@@ -21,8 +25,17 @@ class GlanceTile : TileService() {
     // Below Android 14 only the Intent form exists; lint flags the call although it is behind the version check.
     @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
-        val open = Intent(this, MainActivity::class.java)
+        val model = (applicationContext as KenaiApp).model
+        val open = Intent(this, LaunchActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            .apply {
+                when (val target = TilePlan.target(model.glance(), model.approvals, model.questions)) {
+                    // Only the fingerprint: the sheet opens and the user chooses there, behind the screen lock.
+                    is TileTarget.Approval -> putExtra(Notifications.EXTRA_FP, target.fingerprint)
+                    is TileTarget.Question -> putExtra(LaunchActivity.EXTRA_QUESTION, target.pillId)
+                    TileTarget.Home -> putExtra(LaunchActivity.EXTRA_SCREEN, LaunchScreen.HOME.key)
+                }
+            }
         if (Build.VERSION.SDK_INT >= 34) {
             startActivityAndCollapse(PendingIntent.getActivity(this, 0, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE))
         } else {
@@ -41,7 +54,8 @@ class GlanceTile : TileService() {
             val t = tile.qsTile ?: return
             val g: Glance = (tile.applicationContext as KenaiApp).model.glance()
             t.label = "Kenai"
-            t.subtitle = g.headline
+            // Over the lock screen it names no agent, like the notifications' public versions.
+            t.subtitle = TilePlan.subtitle(g, tile.isLocked) { n -> tile.getString(R.string.tile_waiting, n) }
             t.state = if (g.connected) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             t.updateTile()
         }
