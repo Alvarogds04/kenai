@@ -54,61 +54,50 @@ object GlanceBuilder {
         approvals: Int,
         nameOf: (String) -> String,
     ): Glance {
-        if (!paired) return Glance("Not paired", "Open Kenai to connect to your computer", GlanceTone.CALM, false, emptyList(), 0)
+        val w = Words.current()
+        if (!paired) return Glance(w.notPaired, w.openToConnect, GlanceTone.CALM, false, emptyList(), 0)
         if (link != LinkState.CONNECTED) {
             val connecting = link == LinkState.CONNECTING
             return Glance(
-                if (connecting) "Connecting…" else "Not connected",
-                if (connecting) "Reaching your computer" else "Kenai cannot reach your computer",
+                if (connecting) w.connecting else w.notConnected,
+                if (connecting) w.reachingComputer else w.cannotReachComputer,
                 GlanceTone.CALM, false, emptyList(), 0,
             )
         }
         val ranked = sessions.sortedBy { ORDER.indexOf(it.state).let { i -> if (i < 0) ORDER.size else i } }
-        val lines = ranked.take(MAX_LINES).map { GlanceLine(nameOf(it.pillId), lineOf(it), it.state) }
+        val lines = ranked.take(MAX_LINES).map { GlanceLine(nameOf(it.pillId), lineOf(it, w), it.state) }
         val questions = sessions.count { it.state == BotState.QUESTION }
         val waiting = approvals + questions
         val busy = sessions.count { it.state in BUSY }
         val trouble = sessions.count { it.state in TROUBLE }
         val where = desktop?.takeIf { it.isNotBlank() }
         return when {
-            approvals > 0 -> Glance(
-                "Waiting for you",
-                if (approvals == 1) "1 request to approve" else "$approvals requests to approve",
-                GlanceTone.ATTENTION, true, lines, waiting,
-            )
-            questions > 0 -> Glance(
-                "Waiting for your answer",
-                if (questions == 1) "1 question from an agent" else "$questions questions from agents",
-                GlanceTone.ATTENTION, true, lines, waiting,
-            )
-            trouble > 0 -> Glance(
-                "An agent needs a look",
-                if (trouble == 1) "1 agent stopped" else "$trouble agents stopped",
-                GlanceTone.TROUBLE, true, lines, 0,
-            )
+            approvals > 0 -> Glance(w.waitingForYou, w.requestsToApprove(approvals), GlanceTone.ATTENTION, true, lines, waiting)
+            questions > 0 -> Glance(w.waitingForAnswer, w.questionsFromAgents(questions), GlanceTone.ATTENTION, true, lines, waiting)
+            trouble > 0 -> Glance(w.agentNeedsALook, w.agentsStopped(trouble), GlanceTone.TROUBLE, true, lines, 0)
             busy > 0 -> Glance(
-                if (busy == 1) "${nameOf(ranked.first { it.state in BUSY }.pillId)} is working" else "$busy agents are working",
-                where?.let { "On $it" } ?: "Working",
+                if (busy == 1) w.isWorking(nameOf(ranked.first { it.state in BUSY }.pillId)) else w.agentsWorking(busy),
+                where?.let { w.onComputer(it) } ?: w.working,
                 GlanceTone.BUSY, true, lines, 0,
             )
             sessions.any { it.state == BotState.FINISHED } -> Glance(
-                "All done", where?.let { "On $it" } ?: "Finished", GlanceTone.OK, true, lines, 0,
+                w.allDone, where?.let { w.onComputer(it) } ?: w.finished, GlanceTone.OK, true, lines, 0,
             )
-            else -> Glance("Connected", where?.let { "To $it" } ?: "Nothing is running", GlanceTone.OK, true, lines, 0)
+            else -> Glance(w.connected, where?.let { w.toComputer(it) } ?: w.nothingRunning, GlanceTone.OK, true, lines, 0)
         }
     }
 
     /** The plain line of a session: its state in a few words, never its step text or answer (those stay in the app). */
-    fun lineOf(s: SessionInfo): String = when (s.state) {
-        BotState.APPROVAL -> "Waiting for your approval"
-        BotState.QUESTION -> "Has a question"
-        BotState.ERROR -> "Stopped on an error"
-        BotState.RATELIMIT -> "Hit a limit"
-        BotState.DIZZY -> "Needs a look"
-        BotState.FINISHED -> "Finished"
-        BotState.SLEEPING, BotState.IDLE -> "Idle"
-        BotState.THINKING -> "Thinking"
-        BotState.SEARCHING -> "Searching"
-        else -> "Working" // never the step text: it can hold a file name or a command
+    fun lineOf(s: SessionInfo, w: Words = Words.current()): String = when (s.state) {
+        BotState.APPROVAL -> w.waitingForApproval
+        BotState.QUESTION -> w.hasAQuestion
+        BotState.ERROR -> w.stoppedOnAnError
+        BotState.RATELIMIT -> w.hitALimit
+        BotState.DIZZY -> w.needsALook
+        BotState.FINISHED -> w.finished
+        BotState.SLEEPING, BotState.IDLE -> w.idle
+        BotState.THINKING -> w.thinking
+        BotState.SEARCHING -> w.searching
+        else -> w.working // never the step text: it can hold a file name or a command
     }
 }

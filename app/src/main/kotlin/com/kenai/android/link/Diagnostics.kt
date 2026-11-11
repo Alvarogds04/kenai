@@ -1,5 +1,6 @@
 package com.kenai.android.link
 
+import com.kenai.android.core.Words
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
@@ -7,12 +8,16 @@ import java.net.SocketTimeoutException
 import javax.net.ssl.SSLException
 
 /** The questions "Can't connect?" asks, in the order that makes each answer meaningful. */
-enum class DiagStep(val title: String) {
-    NETWORK("Phone network"),
-    ADDRESS("Saved address answers"),
-    DISCOVERY("Computer announces itself"),
-    SECURE("Secure connection (pinned certificate)"),
-    TOKEN("Pairing code and version"),
+enum class DiagStep {
+    NETWORK,
+    ADDRESS,
+    DISCOVERY,
+    SECURE,
+    TOKEN,
+    ;
+
+    /** Its name on the screen, in the phone's language ([Words]); the copied report uses the English one. */
+    val title: String get() = Words.current().diagTitle(this)
 }
 
 sealed class DiagResult {
@@ -40,26 +45,31 @@ object Diagnostics {
         fun put(step: DiagStep, r: DiagResult) { out += step to r; onResult(step, r) }
         fun failed(step: DiagStep) = out.any { it.first == step && it.second !is DiagResult.Ok }
 
-        put(DiagStep.NETWORK, safe { env.network() })
-        put(DiagStep.ADDRESS, if (failed(DiagStep.NETWORK)) DiagResult.Skipped("Needs the Wi-Fi") else safe { env.address() })
-        put(DiagStep.DISCOVERY, if (failed(DiagStep.NETWORK)) DiagResult.Skipped("Needs the Wi-Fi") else safe { env.discovery() })
-        put(DiagStep.SECURE, if (failed(DiagStep.ADDRESS)) DiagResult.Skipped("Needs the address to answer") else safe { env.secure() })
-        put(DiagStep.TOKEN, if (failed(DiagStep.ADDRESS) || failed(DiagStep.SECURE)) DiagResult.Skipped("Needs the secure connection") else safe { env.token() })
+        val w = Words.current()
+        put(DiagStep.NETWORK, safe(w) { env.network() })
+        put(DiagStep.ADDRESS, if (failed(DiagStep.NETWORK)) DiagResult.Skipped(w.needsWifi) else safe(w) { env.address() })
+        put(DiagStep.DISCOVERY, if (failed(DiagStep.NETWORK)) DiagResult.Skipped(w.needsWifi) else safe(w) { env.discovery() })
+        put(DiagStep.SECURE, if (failed(DiagStep.ADDRESS)) DiagResult.Skipped(w.needsTheAddress) else safe(w) { env.secure() })
+        put(DiagStep.TOKEN, if (failed(DiagStep.ADDRESS) || failed(DiagStep.SECURE)) DiagResult.Skipped(w.needsTheSecureConnection) else safe(w) { env.token() })
         return out
     }
 
-    private fun broken(e: Exception) = DiagResult.Problem("The check itself failed (${e.javaClass.simpleName})", "Try again.")
+    private fun broken(e: Exception, w: Words) = DiagResult.Problem(w.checkFailed(e.javaClass.simpleName), w.tryAgain)
 
-    private fun safe(f: () -> DiagResult): DiagResult = try { f() } catch (e: Exception) { broken(e) }
+    private fun safe(w: Words, f: () -> DiagResult): DiagResult = try { f() } catch (e: Exception) { broken(e, w) }
 
-    /** "192.168.1.20" -> "192.168.x.x": enough to tell a home network from a hotspot, not enough to find a house. */
-    fun maskHost(host: String): String {
+    /**
+     * "192.168.1.20" -> "192.168.x.x": enough to tell a home network from a hotspot, not enough to find a house. A name is "a name
+     * (hidden)", in English by default because the copied report is for support; the screen passes the phone's [Words].
+     */
+    fun maskHost(host: String, w: Words = Words.EN): String {
         val parts = host.split(".")
-        return if (parts.size == 4 && parts.all { p -> p.isNotEmpty() && p.all(Char::isDigit) }) "${parts[0]}.${parts[1]}.x.x" else "a name (hidden)"
+        return if (parts.size == 4 && parts.all { p -> p.isNotEmpty() && p.all(Char::isDigit) }) "${parts[0]}.${parts[1]}.x.x" else w.aNameHidden
     }
 
     /**
-     * The report the user can copy and send. It names the checks and what they found; it never contains the pairing code,
+     * The report the user can copy and send, for support: its frame and the names of the checks are English whatever the phone's
+     * language; what each check found is as the screen showed it. It names the checks and what they found; it never contains the pairing code,
      * the certificate fingerprint, the computer's name, the full address or any key.
      */
     fun report(appVersion: String, androidVersion: String, device: String, results: List<Pair<DiagStep, DiagResult>>, hostMasked: String, via: String): String =
@@ -69,9 +79,9 @@ object Diagnostics {
             for ((step, r) in results) {
                 appendLine(
                     when (r) {
-                        is DiagResult.Ok -> "OK       ${step.title}: ${r.detail}"
-                        is DiagResult.Problem -> "PROBLEM  ${step.title}: ${r.problem}"
-                        is DiagResult.Skipped -> "SKIPPED  ${step.title}: ${r.why}"
+                        is DiagResult.Ok -> "OK       ${Words.EN.diagTitle(step)}: ${r.detail}"
+                        is DiagResult.Problem -> "PROBLEM  ${Words.EN.diagTitle(step)}: ${r.problem}"
+                        is DiagResult.Skipped -> "SKIPPED  ${Words.EN.diagTitle(step)}: ${r.why}"
                     },
                 )
             }
@@ -89,9 +99,14 @@ class LanDiagnostics(
     private val connector: Connector = PinnedTls.connector(p),
     private val timeoutMs: Int = 3_000,
 ) : DiagEnv {
+    /** The phone's words, read at each check. */
+    private val w: Words get() = Words.current()
+
+    private fun masked(host: String) = Diagnostics.maskHost(host, w)
+
     override fun network(): DiagResult = when {
-        wifiUp() -> DiagResult.Ok("Wi-Fi is connected")
-        else -> DiagResult.Problem("The phone is not on a Wi-Fi network", "Join the same Wi-Fi as your computer.")
+        wifiUp() -> DiagResult.Ok(w.wifiConnected)
+        else -> DiagResult.Problem(w.notOnWifi, w.joinTheSameWifi)
     }
 
     override fun address(): DiagResult {
@@ -99,14 +114,11 @@ class LanDiagnostics(
         val s = Socket()
         return try {
             s.connect(InetSocketAddress(p.host, p.port), timeoutMs)
-            DiagResult.Ok("Answers in ${(System.nanoTime() - started) / 1_000_000} ms at ${Diagnostics.maskHost(p.host)}")
+            DiagResult.Ok(w.answersIn((System.nanoTime() - started) / 1_000_000, masked(p.host)))
         } catch (_: SocketTimeoutException) {
-            DiagResult.Problem(
-                "No answer from ${Diagnostics.maskHost(p.host)}",
-                "Is the computer on and Kenai running with the Phone link switched on? Same Wi-Fi? A guest network or client isolation blocks it.",
-            )
+            DiagResult.Problem(w.noAnswerFrom(masked(p.host)), w.noAnswerHint)
         } catch (_: IOException) {
-            DiagResult.Problem("Cannot reach ${Diagnostics.maskHost(p.host)}", "The computer may have a new address: see the next line, or type the address in Home.")
+            DiagResult.Problem(w.cannotReachHost(masked(p.host)), w.newAddressHint)
         } finally {
             runCatching { s.close() }
         }
@@ -115,51 +127,48 @@ class LanDiagnostics(
     override fun discovery(): DiagResult {
         val found = Discovery.candidates(discover(), p)
         return when {
-            found.isEmpty() -> DiagResult.Problem(
-                "The computer is not announcing itself here",
-                "Some networks block this. If the saved address answers, you can ignore it; otherwise type the address in Home.",
-            )
-            found.any { it.host == p.host && it.port == p.port } -> DiagResult.Ok("Found, same address as the saved one")
-            else -> DiagResult.Problem("Found at ${Diagnostics.maskHost(found.first().host)}, not at the saved address", "Open Home: the phone updates the address by itself when it is not connected.")
+            found.isEmpty() -> DiagResult.Problem(w.notAnnouncing, w.notAnnouncingHint)
+            found.any { it.host == p.host && it.port == p.port } -> DiagResult.Ok(w.foundAtTheSavedAddress)
+            else -> DiagResult.Problem(w.foundElsewhere(masked(found.first().host)), w.foundElsewhereHint)
         }
     }
 
     override fun secure(): DiagResult = try {
         connector.connect(timeoutMs).close()
-        DiagResult.Ok("The computer's certificate is the one you paired with")
+        DiagResult.Ok(w.certificateMatches)
     } catch (e: SSLException) {
         if (generateSequence<Throwable>(e) { it.cause }.any { it is java.security.cert.CertificateException }) {
-            DiagResult.Problem("This is not the computer you paired with (its certificate differs)", "Koda may have been reinstalled, or this is another computer. Pair again.")
+            DiagResult.Problem(w.notThePairedComputer, w.reinstalledHint)
         } else {
-            DiagResult.Problem("The secure handshake failed", "Try again. If it keeps failing, pair again.")
+            DiagResult.Problem(w.handshakeFailed, w.handshakeHint)
         }
     } catch (_: IOException) {
-        DiagResult.Problem("The secure connection could not be opened", "The address answers but nothing speaks Kenai there. Is the Phone link switched on?")
+        DiagResult.Problem(w.secureNotOpened, w.secureNotOpenedHint)
     }
 
     override fun token(): DiagResult {
         val s = try {
             connector.connect(timeoutMs)
         } catch (_: IOException) {
-            return DiagResult.Problem("Could not connect to say hello", "See the lines above.")
+            return DiagResult.Problem(w.couldNotSayHello, w.seeTheLinesAbove)
         }
         return try {
             s.soTimeout = 5_000
             s.getOutputStream().apply { write((Wire.encode(ClientMsg.Hello(Protocol.VERSION, p.token, "Diagnostics", emptyList())) + "\n").toByteArray()); flush() }
-            val line = readLine(s) ?: return DiagResult.Problem("The computer closed the connection at once", "Try again.")
+            val line = readLine(s) ?: return DiagResult.Problem(w.closedAtOnce, w.tryAgain)
             when (val m = Wire.decodeServer(line)) {
                 is ServerMsg.Welcome ->
-                    if (m.version == Protocol.VERSION) DiagResult.Ok("Pairing code accepted, protocol version ${m.version}")
-                    else DiagResult.Problem("The computer speaks version ${m.version}, this app speaks ${Protocol.VERSION}", "Update Koda on the computer or Kenai on the phone.")
+                    if (m.version == Protocol.VERSION) DiagResult.Ok(w.codeAccepted(m.version))
+                    else DiagResult.Problem(w.versionMismatch(m.version, Protocol.VERSION), w.updateEither)
                 is ServerMsg.Error ->
-                    if (m.code == "auth") DiagResult.Problem("The pairing code was refused", "The computer made a new code (Pair again). Scan its new code.")
-                    else DiagResult.Problem("The computer answered with an error (${m.code})", "Try again.")
-                else -> DiagResult.Problem("An unexpected answer to hello", "Update Koda on the computer and Kenai on the phone.")
+                    if (m.code == "auth") DiagResult.Problem(w.codeRefused, w.codeRefusedHint)
+                    else DiagResult.Problem(w.answeredWithError(m.code), w.tryAgain)
+                else -> DiagResult.Problem(w.unexpectedAnswer, w.updateBoth)
             }
         } catch (_: SocketTimeoutException) {
-            DiagResult.Problem("No answer to hello", "The computer is busy or asleep. Try again.")
+            DiagResult.Problem(w.noAnswerToHello, w.busyOrAsleep)
         } catch (_: IOException) {
-            DiagResult.Problem("The connection broke while saying hello", "Try again.")
+            DiagResult.Problem(w.brokeDuringHello, w.tryAgain)
         } finally {
             runCatching { s.getOutputStream().apply { write((Wire.encode(ClientMsg.Bye) + "\n").toByteArray()); flush() } }
             runCatching { s.close() }

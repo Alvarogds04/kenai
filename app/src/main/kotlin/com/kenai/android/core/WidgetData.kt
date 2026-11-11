@@ -106,21 +106,23 @@ object PlanUsageLook {
      * When the window resets, as a clock time that stays true while nothing redraws the Widget: "resets at 14:30" today, "resets Fri 14:30"
      * within the next week, "resets Oct 21 14:30" later. Null when there is no reset time (0) or it has passed. [zone] is the phone's.
      */
-    fun resetLine(resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String? {
+    fun resetLine(resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault(), w: Words = Words.current()): String? {
         if (resetsAtMs <= 0 || resetsAtMs <= nowMs) return null
         val at = Instant.ofEpochMilli(resetsAtMs).atZone(zone)
         val days = ChronoUnit.DAYS.between(Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate(), at.toLocalDate())
-        val clock = "%02d:%02d".format(at.hour, at.minute)
+        val clock = String.format(Locale.ROOT, "%02d:%02d", at.hour, at.minute)
+        // Day and month names in the words' own language; "vie." and "oct." lose their dot, as "Fri" and "Oct" have none.
+        fun short(name: String) = name.trimEnd('.')
         return when {
-            days == 0L -> "resets at $clock"
-            days < 7 -> "resets ${at.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} $clock"
-            else -> "resets ${at.month.getDisplayName(TextStyle.SHORT, Locale.ENGLISH)} ${at.dayOfMonth} $clock"
+            days == 0L -> w.resetsAt(clock)
+            days < 7 -> w.resetsOnDay(short(at.dayOfWeek.getDisplayName(TextStyle.SHORT, w.locale)), clock)
+            else -> w.resetsOnDate(short(at.month.getDisplayName(TextStyle.SHORT, w.locale)), at.dayOfMonth, clock)
         }
     }
 
     /** "Near limit" (with the reset time when known) from the red line; null below it, where there is no warning. */
-    fun note(pct: Int, resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault()): String? =
-        if (!nearLimit(pct)) null else listOfNotNull("Near limit", resetLine(resetsAtMs, nowMs, zone)).joinToString(" · ")
+    fun note(pct: Int, resetsAtMs: Long, nowMs: Long, zone: ZoneId = ZoneId.systemDefault(), w: Words = Words.current()): String? =
+        if (!nearLimit(pct)) null else listOfNotNull(w.nearLimit, resetLine(resetsAtMs, nowMs, zone, w)).joinToString(" · ")
 }
 
 /** The plan usage a ring or a bar shows: which plan and window, how much of it is used, and the warning line when it is near the limit. */
@@ -177,22 +179,22 @@ data class WidgetContent(
     /** The one clear line when there is no agent to list: the computer is not there, or nothing runs. Null when there are agents. */
     val emptyLine: String? get() = when {
         tiles.isNotEmpty() -> null
-        !connected -> "Waiting for your computer"
-        else -> "No agents running"
+        !connected -> Words.current().waitingForComputer
+        else -> Words.current().noAgentsRunning
     }
 
     /** The Waiting Alert's line: "2 waiting" in orange, or a calm word. */
     val alertLine: String get() = when {
-        !connected -> "Not connected"
-        waiting > 0 -> "$waiting waiting"
-        else -> "All calm"
+        !connected -> Words.current().notConnected
+        waiting > 0 -> Words.current().waiting(waiting)
+        else -> Words.current().allCalm
     }
 
     /** The line under the alert: who is waiting, or why there is nothing to say. */
     val alertSub: String get() = when {
-        !connected -> "Waiting for your PC"
+        !connected -> Words.current().waitingForPc
         waiting > 0 -> top?.name.orEmpty()
-        else -> "Nothing needs you"
+        else -> Words.current().nothingNeedsYou
     }
 
     /** Kenai's face on the Today widget: pleased once something finished today, calm before. */
@@ -273,7 +275,7 @@ object WidgetData {
     fun usageRows(usage: UsageSnapshot?, nowMs: Long): List<UsageRing> {
         usage ?: return emptyList()
         return listOf("Claude" to usage.claude, "Codex" to usage.codex).mapNotNull { (name, plan) ->
-            plan?.fiveHour?.let { row(name, "5 h", it, nowMs) } ?: plan?.sevenDay?.let { row(name, "week", it, nowMs) }
+            plan?.fiveHour?.let { row(name, "5 h", it, nowMs) } ?: plan?.sevenDay?.let { row(name, Words.current().week, it, nowMs) }
         }
     }
 
@@ -302,7 +304,8 @@ object WidgetData {
         }
         val approvals = if (which == WidgetSample.WAITING) 1 else 0
         val names = sessions.associate { it.pillId to it.agent }
-        val glance = GlanceBuilder.build(true, link, "Your PC", sessions, approvals) { names[it] ?: "An agent" }
+        val w = Words.current()
+        val glance = GlanceBuilder.build(true, link, w.yourPc, sessions, approvals) { names[it] ?: w.anAgent }
         fun plan(five: Int, week: Int) = PlanUsage(PlanWindow(five, nowMs + 2 * HOUR_MS), PlanWindow(week, nowMs + 3 * 24 * HOUR_MS))
         // Codex has only its week here, so the second row of Kenai Big reads "Codex · week".
         fun week(pct: Int) = PlanUsage(null, PlanWindow(pct, nowMs + 3 * 24 * HOUR_MS))
@@ -321,7 +324,7 @@ object WidgetData {
             WidgetSample.WORKING, WidgetSample.WAITING -> 3
             WidgetSample.DONE -> 5
         }
-        return build(glance, sessions, { names[it] ?: "An agent" }, usage, today, nowMs)
+        return build(glance, sessions, { names[it] ?: w.anAgent }, usage, today, nowMs)
     }
 
     private const val HOUR_MS = 3_600_000L
@@ -338,7 +341,7 @@ object WidgetData {
         for ((name, plan) in listOf("Claude" to usage.claude, "Codex" to usage.codex)) {
             plan ?: continue
             plan.fiveHour?.let { return row(name, "5 h", it, nowMs) }
-            plan.sevenDay?.let { return row(name, "week", it, nowMs) }
+            plan.sevenDay?.let { return row(name, Words.current().week, it, nowMs) }
         }
         return null
     }

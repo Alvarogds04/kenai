@@ -19,6 +19,7 @@ import com.kenai.android.core.GlanceTone
 import com.kenai.android.core.OverlayPolicy
 import com.kenai.android.core.SafeText
 import com.kenai.android.core.ToolLabels
+import com.kenai.android.core.Words
 import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.character.BotState
 
@@ -31,31 +32,34 @@ class Notifications(private val context: Context) {
     private val nm = context.getSystemService(NotificationManager::class.java)
 
     init {
+        // Channel names in the phone's language ([Words]); creating a channel again only renames it, so a new language shows on the
+        // next start.
+        val w = Words.current()
         nm.deleteNotificationChannel("approvals")
         nm.deleteNotificationChannel("approvals_v2")
         nm.createNotificationChannel(
-            NotificationChannel(CH_LINK, "Connection", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Shows that Kenai is connected to your computer"
+            NotificationChannel(CH_LINK, w.channelLink, NotificationManager.IMPORTANCE_LOW).apply {
+                description = w.channelLinkAbout
                 setShowBadge(false)
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_UPDATES, "Updates", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "An agent finished, failed or has a question"
+            NotificationChannel(CH_UPDATES, w.channelUpdates, NotificationManager.IMPORTANCE_LOW).apply {
+                description = w.channelUpdatesAbout
                 setShowBadge(false)
             },
         )
         // The same request while the pill is on screen: in the shade only, no heads-up and no sound,
         // so the pill and the notification never overlap at the top of the screen.
         nm.createNotificationChannel(
-            NotificationChannel(CH_APPROVAL_QUIET, "Approvals (quiet)", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "A waiting request, kept in the shade while the pill shows it"
+            NotificationChannel(CH_APPROVAL_QUIET, w.channelApprovalsQuiet, NotificationManager.IMPORTANCE_LOW).apply {
+                description = w.channelApprovalsQuietAbout
                 setShowBadge(false)
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(CH_APPROVAL, "Approvals", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "An agent is waiting for your permission"
+            NotificationChannel(CH_APPROVAL, w.channelApprovals, NotificationManager.IMPORTANCE_HIGH).apply {
+                description = w.channelApprovalsAbout
                 // A short buzz, so a request is felt even when the notification volume is 0 (a channel cannot change
                 // later, which is why this one has a new id).
                 enableVibration(true)

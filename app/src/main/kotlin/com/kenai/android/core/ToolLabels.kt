@@ -7,50 +7,27 @@ package com.kenai.android.core
  * as "Running npm test" is left alone. Used by the Home card and the island, so both say the same.
  */
 object ToolLabels {
-    private val KNOWN = mapOf(
-        "askuserquestion" to "Asking a question",
-        "askquestion" to "Asking a question",
-        "bash" to "Running a command",
-        "shell" to "Running a command",
-        "runshellcommand" to "Running a command",
-        "execcommand" to "Running a command",
-        "read" to "Reading files",
-        "readfile" to "Reading files",
-        "readmanyfiles" to "Reading files",
-        "edit" to "Editing files",
-        "multiedit" to "Editing files",
-        "write" to "Editing files",
-        "writefile" to "Editing files",
-        "notebookedit" to "Editing files",
-        "applypatch" to "Editing files",
-        "grep" to "Searching files",
-        "glob" to "Searching files",
-        "ls" to "Looking at files",
-        "websearch" to "Searching the web",
-        "googlewebsearch" to "Searching the web",
-        "webfetch" to "Reading a web page",
-        "task" to "Running a sub-agent",
-        "todowrite" to "Planning",
-        "exitplanmode" to "Planning",
+    /** Tool names (reduced by [key]) by what they do; the words for each kind are in [Words]. */
+    private val KINDS = mapOf(
+        "askuserquestion" to ToolKind.ASK, "askquestion" to ToolKind.ASK,
+        "bash" to ToolKind.RUN, "shell" to ToolKind.RUN, "runshellcommand" to ToolKind.RUN, "execcommand" to ToolKind.RUN,
+        "read" to ToolKind.READ, "readfile" to ToolKind.READ, "readmanyfiles" to ToolKind.READ,
+        "edit" to ToolKind.EDIT, "multiedit" to ToolKind.EDIT, "write" to ToolKind.EDIT, "writefile" to ToolKind.EDIT,
+        "notebookedit" to ToolKind.EDIT, "applypatch" to ToolKind.EDIT,
+        "grep" to ToolKind.SEARCH_FILES, "glob" to ToolKind.SEARCH_FILES, "ls" to ToolKind.LOOK,
+        "websearch" to ToolKind.SEARCH_WEB, "googlewebsearch" to ToolKind.SEARCH_WEB, "webfetch" to ToolKind.READ_WEB,
+        "task" to ToolKind.SUB_AGENT,
+        "todowrite" to ToolKind.PLAN, "exitplanmode" to ToolKind.PLAN,
     )
 
-    /** The same tools as an action after "wants to" or "Allowed:": "run a command", "edit files". */
-    private val ACTIONS = mapOf(
-        "askuserquestion" to "ask a question", "askquestion" to "ask a question",
-        "bash" to "run a command", "shell" to "run a command", "runshellcommand" to "run a command", "execcommand" to "run a command",
-        "read" to "read files", "readfile" to "read files", "readmanyfiles" to "read files",
-        "edit" to "edit files", "multiedit" to "edit files", "write" to "edit files", "writefile" to "edit files",
-        "notebookedit" to "edit files", "applypatch" to "edit files",
-        "grep" to "search files", "glob" to "search files", "ls" to "look at files",
-        "websearch" to "search the web", "googlewebsearch" to "search the web", "webfetch" to "read a web page",
-        "task" to "run a sub-agent",
-    )
-
-    /** What a request is for, as an action ("run a command"); an unknown tool is cleaned and lower-cased. */
-    fun action(tool: String): String {
+    /**
+     * What a request is for, as an action after "wants to" or "Allowed:" ("run a command", "edit files"); an unknown tool, or one
+     * with no action of its own (planning), is cleaned and lower-cased.
+     */
+    fun action(tool: String, w: Words = Words.current()): String {
         val name = tool.trim()
-        if (name.isEmpty()) return "do something"
-        return ACTIONS[key(name)] ?: clean(name).lowercase()
+        if (name.isEmpty()) return w.doSomething
+        return KINDS[key(name)]?.let { w.toolAction(it) } ?: clean(name).lowercase()
     }
 
     private const val SEP = " · "
@@ -66,7 +43,7 @@ object ToolLabels {
      * agent wrote are never shown here. Free text that is not a tool name gives "" so the screen falls back to the
      * state's own word.
      */
-    fun label(raw: String): String {
+    fun label(raw: String, w: Words = Words.current()): String {
         val text = raw.trim().removeSuffix("·").trim()
         if (text.isEmpty()) return ""
         // "Bash · npm test": the tool is named, the rest is what it does (and stays out of sight).
@@ -75,8 +52,9 @@ object ToolLabels {
         val rest = if (at > 0) text.substring(at + SEP.length).trim() else ""
         if (!looksLikeAName(head)) return ""
         // An unknown word shows only if it can be a tool's name: a key or a token pasted in its place never does.
-        if (KNOWN[key(head)] == null && !plausibleToolName(head)) return ""
-        val tool = KNOWN[key(head)] ?: clean(head)
+        val kind = KINDS[key(head)]
+        if (kind == null && !plausibleToolName(head)) return ""
+        val tool = kind?.let { w.toolLabel(it) } ?: clean(head)
         val program = if (rest.isNotEmpty()) SafeText.requestLabel(head, rest).substringAfter(SEP, "") else ""
         return if (program.isNotEmpty()) "$tool$SEP$program" else tool
     }

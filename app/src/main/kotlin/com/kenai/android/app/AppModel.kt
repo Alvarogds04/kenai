@@ -33,6 +33,7 @@ import com.kenai.android.core.ScanDecision
 import com.kenai.android.core.ChatHistory
 import com.kenai.android.core.ChatModels
 import com.kenai.android.core.ChatSession
+import com.kenai.android.core.Words
 import com.kenai.android.link.AddressFinder
 import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.link.QuestionRequest
@@ -349,7 +350,7 @@ class AppModel(private val context: Context) : LinkListener {
 
     /** The name the user knows the agent by: the session's own name, else the pill catalog. */
     fun agentName(pillId: String): String =
-        sessions.firstOrNull { it.pillId == pillId }?.agent?.takeIf { it.isNotBlank() } ?: Pills.byId(pillId)?.name ?: "An agent"
+        sessions.firstOrNull { it.pillId == pillId }?.agent?.takeIf { it.isNotBlank() } ?: Pills.byId(pillId)?.name ?: Words.current().anAgent
 
     val isPaired get() = store.loadPairing() != null
 

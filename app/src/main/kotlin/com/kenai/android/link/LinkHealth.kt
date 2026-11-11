@@ -1,5 +1,7 @@
 package com.kenai.android.link
 
+import com.kenai.android.core.Words
+
 /**
  * What the phone knows about the health of the link, in plain terms, so Home can say what happened ("Connection lost 2 min ago,
  * reconnecting") instead of showing a silent state. Pure: the clock is passed in, so every sentence is a unit test.
@@ -24,29 +26,24 @@ data class LinkHealth(
 
 object LinkHealthText {
     /** "less than a minute", "2 min", "1 h 5 min", "3 h". */
-    fun ago(ms: Long): String {
+    fun ago(ms: Long, w: Words = Words.current()): String {
         val minutes = (ms.coerceAtLeast(0) / 60_000).toInt()
         return when {
-            minutes < 1 -> "less than a minute"
+            minutes < 1 -> w.lessThanAMinute
             minutes < 60 -> "$minutes min"
             minutes % 60 == 0 -> "${minutes / 60} h"
             else -> "${minutes / 60} h ${minutes % 60} min"
         }
     }
 
-    private fun why(reason: LostReason?) = when (reason) {
-        LostReason.SILENT -> "The computer stopped answering. This is usual after the phone slept."
-        LostReason.CLOSED -> "The computer closed the connection."
-        LostReason.NETWORK -> "The network dropped."
-        null -> ""
-    }
+    private fun why(reason: LostReason?, w: Words) = reason?.let { w.lostWhy(it) }.orEmpty()
 
     /** The two lines for Home while the link is down after having worked; null when there is nothing to say. */
-    fun lines(connected: Boolean, health: LinkHealth, nowMs: Long): Pair<String, String>? {
+    fun lines(connected: Boolean, health: LinkHealth, nowMs: Long, w: Words = Words.current()): Pair<String, String>? {
         val at = health.lostAtMs ?: return null
         if (connected) return null
-        val head = "Connection lost ${ago(nowMs - at)} ago, reconnecting" + if (health.attempts >= 3) " (${health.attempts} tries)" else ""
-        return head to why(health.reason)
+        val head = w.connectionLost(ago(nowMs - at, w)) + if (health.attempts >= 3) " " + w.tries(health.attempts) else ""
+        return head to why(health.reason, w)
     }
 }
 
@@ -80,11 +77,5 @@ object BatteryHint {
     /** Where to look: Samsung hides the setting in two places. */
     fun isSamsung(manufacturer: String) = manufacturer.equals("samsung", ignoreCase = true)
 
-    fun steps(samsung: Boolean): List<String> =
-        if (samsung) listOf(
-            "Open Settings > Apps > Kenai for Android > Battery and choose Unrestricted.",
-            "Then Settings > Battery > Background usage limits: make sure Kenai is not in Sleeping apps or Deep sleeping apps (add it to Never sleeping apps).",
-        ) else listOf(
-            "Open the app's battery setting and choose Unrestricted (or Don't optimise).",
-        )
+    fun steps(samsung: Boolean, w: Words = Words.current()): List<String> = w.batterySteps(samsung)
 }
