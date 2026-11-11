@@ -16,7 +16,9 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - [x] T1a (S1) Phone: every screen, sheets, demo loop, fake data · worker · 5c6f7ee (check-phone.cjs 39 checks, 0 errors)
 - [x] T1b (S1) Widget panel wired to the phone + Playwright check · worker · 5c6f7ee (check-widgets.cjs 112 checks, 0 errors)
 - [x] T2 (S2.5) Light theme · worker · e3e7f63 (722 tests, 0 failures)
-- [ ] T3 (S2.6) Spanish strings and the end of the English-only rule · last, so it translates the strings T4/T5 add
+- [~] T3 (S2.6) Spanish strings and the end of the English-only rule · split (L10)
+- [ ] T3a (S2.6) Resource strings: multi-locale generator, values-es, parity test replacing EnglishOnlyTest, build config · worker
+- [ ] T3b (S2.6) Texts built in code (Glance, WidgetData, HomeText, ToolLabels, SafeText, LinkHealth, Diagnostics, notification channels) in English and Spanish by phone locale · worker, parallel with T3a
 - [x] T4 (S2.7a) Vibration on an arriving approval or question · worker · 87cb0d8 (740 tests, 0 failures)
 - [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
@@ -30,3 +32,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L7: T4 done in 87cb0d8: "Vibrate" switch (on by default) in Settings > Sound; buzzes for questions and for approvals not shown as heads-up, also in quiet hours; one buzz per request/question (same agent within 15 s = same question). Parent re-ran the suite: 740 tests, 0 failures. Known: with the switch off, a heads-up approval still vibrates through its notification channel (Android setting).
 - L8: T1b done; parent changed Finished today to count only when paired, as the real app (AppModel.onSessions); both checks re-run: 39 + 112 checks, 0 errors. Replica committed in 5c6f7ee.
 - L9: T5 done in 6d9ee67: tile subtitle = "N waiting" or the most urgent agent + state; tap opens the pending approval, else the oldest question, else Home, through LaunchActivity; never decides. Parent re-ran the suite: 758 tests, 0 failures. Open decision for the human: on the lock screen the tile names no agent ("N waiting" or a state word), mirroring the notifications' lock-screen versions; before, it showed names.
+- L10: T3 split into T3a (resources) and T3b (texts built in Kotlin), disjoint files, run in parallel. Spanish wording follows the design session's rule (odd/tasks/diseno-movil-isla.md S2: «en español todo» → Spanish UI with voseo, as in the artboards: «Conectá con tu computadora», «Escribí un mensaje»). English stays the default for every other locale.
