@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="es" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=1440"><title>3 · Koda al frente · Kenai mejoras</title>
+<style>
+:root{
+  --go:#b8ff2e;--sun:#ffe100;--red-11:#ff5c75;--island-live:#2eb4ff;--faint:#6f6d66;
+  --on-role:#0B0C0E;
+  --id-koda:#8dff2b;--id-claude:#ff8a00;--id-codex:#2dffac;--id-gemini:#b04dff;
+  --font-ui:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --r-xl:12px;--r-2xl:18px;--r-full:999px;
+  --ease-out:cubic-bezier(.23,1,.32,1);--spring:cubic-bezier(.25,.9,.35,1.03);
+  --pw:360px;
+}
+[data-theme=dark]{--bg:#000;--card:#141518;--surface:#18181b;--tab-on:#1D1F23;--ink:#F5F6F8;--ink-2:#F1F2F4;--muted:#8E939C;
+--primary-bg:#F5F6F8;--primary-ink:#0B0C0E;--btn:rgba(255,255,255,.09);--btn-h:rgba(255,255,255,.15);
+--line:rgba(255,255,255,.25);--line-faint:rgba(255,255,255,.08);--fill:rgba(255,255,255,.06);--bubble:rgba(255,255,255,.1);
+--veil:22%;--board:#18181b;--bezel:#1D1F23;--scrim:rgba(0,0,0,.6);}
+[data-theme=light]{--bg:#ece4d2;--card:#f7f2e7;--surface:#fbf8f1;--tab-on:#e7e0d0;--ink:#1a1915;--ink-2:#2a2823;--muted:#5f5c54;
+--primary-bg:#201f1b;--primary-ink:#f7f4ec;--btn:rgba(0,0,0,.06);--btn-h:rgba(0,0,0,.12);
+--line:rgba(0,0,0,.28);--line-faint:rgba(0,0,0,.08);--fill:rgba(0,0,0,.05);--bubble:rgba(0,0,0,.07);
+--veil:34%;--board:#fbf8f1;--bezel:#2a2823;--scrim:rgba(0,0,0,.38);}
+.keep-dark{--bg:#000;--card:#141518;--surface:#18181b;--tab-on:#1D1F23;--ink:#F5F6F8;--ink-2:#F1F2F4;--muted:#8E939C;
+--primary-bg:#F5F6F8;--primary-ink:#0B0C0E;--btn:rgba(255,255,255,.09);--btn-h:rgba(255,255,255,.15);
+--line:rgba(255,255,255,.25);--line-faint:rgba(255,255,255,.08);--fill:rgba(255,255,255,.06);--bubble:rgba(255,255,255,.1);
+--veil:22%;--board:#18181b;--bezel:#1D1F23;--scrim:rgba(0,0,0,.6);color:var(--ink)}
+body[data-narrow]{--pw:320px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--board);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+h1,h2,h3,p,ul,ol{margin:0}
+ul,ol{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.top{position:absolute;left:28px;right:28px;top:10px;height:60px;display:flex;align-items:center;gap:24px}
+.top .tt{flex:1;min-width:0}
+.top h1{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.top p{font-size:13px;color:var(--muted);margin-top:2px;max-width:820px}
+.ctl{display:flex;gap:8px;flex:none}
+.cbtn{min-height:40px;padding:0 14px;border-radius:var(--r-full);background:var(--btn);font-weight:600;font-size:13px;white-space:nowrap}
+.cbtn:hover{background:var(--btn-h)}
+main.row{position:absolute;left:0;right:0;top:76px;display:flex;justify-content:center;gap:16px;align-items:flex-start}
+figure{margin:0}
+figcaption{margin:0 0 6px 2px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.better{position:absolute;left:28px;right:28px;bottom:10px;height:244px;overflow:hidden;padding:14px 20px;background:var(--card);border-radius:var(--r-2xl);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.better>h2{font-size:14px;font-weight:700;margin-bottom:10px}
+.better .cols{display:grid;grid-template-columns:1fr 1fr 1fr 1.1fr;gap:22px}
+.better h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.better h3 i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.better li,.better p{font-size:12.5px;line-height:1.38;color:var(--ink-2)}
+.better li{padding-left:12px;position:relative;margin-bottom:5px}
+.better li::before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:var(--muted)}
+.better .trade{padding-left:18px;box-shadow:inset 1px 0 0 var(--line-faint)}
+.better .trade p+p{margin-top:6px}
+/* ---------- phone ---------- */
+.phone{position:relative;width:var(--pw);height:760px;zoom:.7;border:8px solid var(--bezel);border-radius:44px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column;color:var(--ink)}
+.sbar{flex:none;height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600}
+.sbar i{display:inline-block;width:12px;height:8px;border-radius:2px;background:var(--ink);margin-left:4px}
+.gest{flex:none;height:20px;display:flex;align-items:center;justify-content:center}
+.gest::after{content:"";width:110px;height:4px;border-radius:2px;background:var(--ink)}
+.scr{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;min-height:0;overflow:hidden;padding:0 14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stack>*,.scr>*{flex-shrink:0}
+.scr>.scroll,.scr>.scr{flex-shrink:1}
+.scroll{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+/* ---------- roles ---------- */
+[data-r=sun]{--c:var(--sun)}[data-r=live]{--c:var(--island-live)}[data-r=go]{--c:var(--go)}[data-r=red]{--c:var(--red-11)}[data-r=faint]{--c:var(--faint)}
+.veil{background:linear-gradient(180deg,color-mix(in srgb,var(--c) var(--veil),var(--card)) 0%,var(--card) 88%)}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:2px 10px 2px 8px;border-radius:var(--r-full);background:var(--fill);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.chip.solid{background:var(--c);color:var(--on-role);box-shadow:none}
+.chip.solid i{background:var(--on-role)}
+.card{background:var(--card);border-radius:var(--r-2xl);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:6px 18px;border-radius:var(--r-full);background:var(--btn);font-weight:600;font-size:15px;color:var(--ink);text-align:center;line-height:1.2}
+.btn:hover{background:var(--btn-h)}
+.btn.pri{background:var(--primary-bg);color:var(--primary-ink)}
+.btn.go{background:var(--go);color:var(--on-role)}
+.btn.ghost{background:transparent}
+.btn.ghost:hover{background:var(--fill)}
+.btn.sm{min-height:44px;padding:4px 14px;font-size:14px}
+.btn.lg{min-height:56px;font-size:16px}
+.btn.xl{min-height:60px;font-size:17px}
+.btn.block{width:100%}
+.btn[disabled]{cursor:default;color:var(--muted)}
+.btn .ic{width:20px;height:20px}
+.icbtn{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.icbtn:hover{background:var(--fill)}
+.row2{display:flex;gap:10px}.row2>*{flex:1}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:var(--font-mono);font-size:13px}
+.cmd{background:var(--surface);border-radius:var(--r-xl);padding:10px 12px;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-faint);word-break:break-all;line-height:1.45}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.tiny{font-size:12px}
+.sec{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 2px 8px}
+.h{font-weight:700;letter-spacing:-.01em}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1px var(--line)}
+.halo{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:color-mix(in srgb,var(--c) 18%,var(--card));box-shadow:inset 0 0 0 2px var(--c)}
+.halo>.dot{position:absolute;right:1px;bottom:1px;box-shadow:0 0 0 2px var(--card)}
+.koda{display:inline-block;image-rendering:pixelated;background-repeat:no-repeat;flex:none}
+.row{display:flex;align-items:center;gap:12px}
+.t{flex:1;min-width:0}
+.t>b{display:block;font-size:15px;font-weight:600}
+.t>span{display:block;font-size:13px;color:var(--muted)}
+.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 12px}
+/* nav */
+.nav{flex:none;display:flex;gap:4px;margin:6px 14px 6px;padding:6px;border-radius:var(--r-full);background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.nav a{position:relative;flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:var(--r-full);font-size:12px;font-weight:600;color:var(--muted);text-decoration:none}
+.nav a[aria-current]{background:var(--tab-on);color:var(--ink)}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--sun);color:var(--on-role);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* island strip (stays dark in both themes, as the app's island) */
+.island{flex:none;margin:4px 12px 10px;min-height:52px;padding:6px 8px 6px 8px;border-radius:26px;background:var(--bg);display:flex;align-items:center;gap:10px;box-shadow:inset 0 0 0 1.5px var(--c)}
+.island .t>b{font-size:14px}
+.island .t>span{font-size:12px}
+/* sheets */
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:10px 18px 14px;box-shadow:inset 0 1px 0 var(--line-faint)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+/* options (radio rows) */
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;min-height:60px;padding:12px 14px;border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.opt .mark{width:22px;height:22px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px var(--line);margin-top:1px}
+.opt[aria-checked=true]{box-shadow:inset 0 0 0 2px var(--ink)}
+.opt[aria-checked=true] .mark{box-shadow:inset 0 0 0 7px var(--ink)}
+.opt[role=checkbox] .mark{border-radius:6px}
+.opt b{display:block;font-size:15px}
+.opt span{display:block;font-size:13px;color:var(--muted)}
+/* switches */
+.sw{flex:none;position:relative;width:56px;height:44px;border-radius:22px}
+.sw::before{content:"";position:absolute;left:2px;top:6px;width:52px;height:32px;border-radius:16px;background:var(--btn);box-shadow:inset 0 0 0 2px var(--line)}
+.sw::after{content:"";position:absolute;left:8px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--muted)}
+.sw[aria-checked=true]::before{background:var(--go);box-shadow:none}
+.sw[aria-checked=true]::after{left:28px;background:var(--on-role)}
+.setrow{display:flex;gap:12px;align-items:center;min-height:60px;padding:10px 14px}
+.setrow+.setrow{box-shadow:inset 0 1px 0 var(--line-faint)}
+.bar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.bar>i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.spin{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 2.5px var(--line);border-top:2.5px solid var(--c)}
+@media (prefers-reduced-motion:no-preference){
+  .spin{animation:spin .9s linear infinite}
+  .bar>i{transition:width .9s linear}
+  .sheetnav{transition:transform .3s var(--ease-out)}
+  .fade{animation:fade .16s var(--ease-out)}
+  .kbtn:active .koda{transform:scale(.96)}
+  .kbtn .koda{transition:transform .12s var(--ease-out)}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></head><body>
+<header class="top"><div class="tt"><h1>3 · Koda al frente</h1><p>Koda grande y reactivo es el centro: te cuenta en una frase qué pasa, cambia de pose con cada estado y responde al toque. Navegación en una hoja inferior, letra más grande y emparejar como un recorrido de tres pasos con el QR.</p></div>
+<div class="ctl"><button class="cbtn" id="ctl-koda" type="button">Koda: Trabajando</button><button class="cbtn" id="narrow" type="button" aria-pressed="false">Ancho: 360 dp</button><button class="cbtn" id="theme" type="button" aria-pressed="false">Tema: oscuro</button></div></header>
+<main class="row"><figure><figcaption>1 · Emparejar en 3 pasos</figcaption><div class="phone" role="group" aria-label="Emparejar en 3 pasos" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.steps{display:flex;gap:6px;padding:4px 18px 0}
+.steps i{flex:1;height:6px;border-radius:3px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.steps i.on{background:var(--ink);box-shadow:none}
+.vf{position:relative;width:220px;height:220px;margin:4px auto 0;border-radius:28px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.vf>b{position:absolute;width:36px;height:36px;border:4px solid var(--ink)}
+.vf>b:nth-child(1){left:14px;top:14px;border-right:0;border-bottom:0;border-radius:12px 0 0 0}
+.vf>b:nth-child(2){right:14px;top:14px;border-left:0;border-bottom:0;border-radius:0 12px 0 0}
+.vf>b:nth-child(3){left:14px;bottom:14px;border-right:0;border-top:0;border-radius:0 0 0 12px}
+.vf>b:nth-child(4){right:14px;bottom:14px;border-left:0;border-top:0;border-radius:0 0 12px 0}
+.qr{position:absolute;inset:58px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.qr span{border-radius:2px;background:var(--ink)}
+.qr span.o{background:transparent}
+.say{position:relative;padding:12px 16px;border-radius:20px;background:var(--card);font-size:17px;font-weight:600;line-height:1.35;box-shadow:inset 0 0 0 1px var(--line-faint);text-align:center}
+.say::after{content:"";position:absolute;left:50%;bottom:-8px;width:16px;height:16px;margin-left:-8px;background:var(--card);transform:rotate(45deg);box-shadow:inset -1px -1px 0 var(--line-faint)}
+.kbtn{display:block;margin:0 auto;border-radius:32px;padding:4px}
+.agchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.agchip{flex:none;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 16px 8px 10px;border-radius:20px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.agchip b{display:block;font-size:15px}.agchip span{display:block;font-size:12.5px;color:var(--muted)}
+.sheetnav{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:6px 14px 6px;box-shadow:inset 0 1px 0 var(--line-faint),0 -1px 0 var(--line-faint);transform:translateY(calc(100% - 118px))}
+.sheetnav[data-open]{transform:none}
+.sheetnav .tabs{display:flex;gap:6px}
+.sheetnav .tabs button{flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:20px;font-size:13px;font-weight:600;color:var(--muted)}
+.sheetnav .tabs button[aria-current]{background:var(--tab-on);color:var(--ink)}
+.handle{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;min-height:44px;justify-content:center;font-size:12px;color:var(--muted)}
+.handle::before{content:"";width:40px;height:5px;border-radius:3px;background:var(--line)}
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 14px}
+.wid{border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);padding:12px;display:flex;flex-direction:column;min-width:0}
+.ring{width:72px;height:72px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+</style>
+  <div class="steps" role="progressbar" aria-label="Paso del emparejamiento" aria-valuemin="1" aria-valuemax="3" aria-valuenow="2" id="steps"><i class="on"></i><i class="on"></i><i></i></div>
+  <p class="tiny muted" style="padding:6px 18px 0" id="steplabel">Paso 2 de 3</p>
+  <div class="scroll" style="padding:14px 20px;display:flex;flex-direction:column;justify-content:center"><div data-step="1" class="stack" style="align-items:center;text-align:center;gap:10px" hidden>
+    <span class="koda" data-koda="escucha" data-scale="5" role="img" aria-label="Koda, escuchando" style="width:160px;height:160px" ></span><h2 class="h" style="font-size:26px">Hola, soy Koda</h2>
+    <p class="muted" style="font-size:16px">En tu computadora abrí Koda, después Ajustes › Teléfono Android.</p>
+    <button class="btn pri lg block" type="button" data-go="2">Ya lo abrí</button>
+    <button class="btn ghost block" type="button">Probá el modo demo</button></div><div data-step="2" class="stack" style="align-items:stretch;text-align:center;gap:10px">
+    <h2 class="h" style="font-size:24px">Escaneá el código</h2>
+    <p class="muted" style="font-size:15px">Apuntá la cámara al código que aparece en Ajustes › Teléfono Android de tu computadora.</p>
+    <div class="vf" role="img" aria-label="Visor de la cámara con el código de emparejamiento"><b></b><b></b><b></b><b></b>
+      <div class="qr"><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class="o"></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class="o"></span><span class=""></span><span class="o"></span><span class=""></span></div>
+      <span style="position:absolute;right:-14px;bottom:-18px"><span class="koda" data-koda="piensa" data-scale="2" role="img" aria-label="Koda, pensando" style="width:64px;height:64px" ></span></span></div>
+    <p class="tiny muted">Kenai usa la cámara solo en esta pantalla, para leer el código. No se guarda ni se envía nada.</p>
+    <div class="row2"><button class="btn" type="button" data-go="1">Atrás</button><button class="btn pri" type="button" data-go="3">Leí el código</button></div>
+    <button class="btn ghost block" type="button">Mejor pegar el enlace</button></div><div data-step="3" class="stack" style="align-items:center;text-align:center;gap:10px" hidden>
+    <span class="koda" data-koda="termino" data-scale="5" role="img" aria-label="Koda, terminó" style="width:160px;height:160px" ></span><h2 class="h" style="font-size:24px">¿Emparejar con Alvaro PC?</h2>
+    <p class="muted" style="font-size:15px">192.168.1.20:47821 en tu red. Emparejá solo con una computadora que sea tuya.</p>
+    <button class="btn go lg block" type="button">Emparejar</button>
+    <button class="btn block" type="button" data-go="2">Atrás</button></div></div></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>2 · Inicio</figcaption><div class="phone" role="group" aria-label="Inicio" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.steps{display:flex;gap:6px;padding:4px 18px 0}
+.steps i{flex:1;height:6px;border-radius:3px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.steps i.on{background:var(--ink);box-shadow:none}
+.vf{position:relative;width:220px;height:220px;margin:4px auto 0;border-radius:28px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.vf>b{position:absolute;width:36px;height:36px;border:4px solid var(--ink)}
+.vf>b:nth-child(1){left:14px;top:14px;border-right:0;border-bottom:0;border-radius:12px 0 0 0}
+.vf>b:nth-child(2){right:14px;top:14px;border-left:0;border-bottom:0;border-radius:0 12px 0 0}
+.vf>b:nth-child(3){left:14px;bottom:14px;border-right:0;border-top:0;border-radius:0 0 0 12px}
+.vf>b:nth-child(4){right:14px;bottom:14px;border-left:0;border-top:0;border-radius:0 0 12px 0}
+.qr{position:absolute;inset:58px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.qr span{border-radius:2px;background:var(--ink)}
+.qr span.o{background:transparent}
+.say{position:relative;padding:12px 16px;border-radius:20px;background:var(--card);font-size:17px;font-weight:600;line-height:1.35;box-shadow:inset 0 0 0 1px var(--line-faint);text-align:center}
+.say::after{content:"";position:absolute;left:50%;bottom:-8px;width:16px;height:16px;margin-left:-8px;background:var(--card);transform:rotate(45deg);box-shadow:inset -1px -1px 0 var(--line-faint)}
+.kbtn{display:block;margin:0 auto;border-radius:32px;padding:4px}
+.agchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.agchip{flex:none;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 16px 8px 10px;border-radius:20px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.agchip b{display:block;font-size:15px}.agchip span{display:block;font-size:12.5px;color:var(--muted)}
+.sheetnav{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:6px 14px 6px;box-shadow:inset 0 1px 0 var(--line-faint),0 -1px 0 var(--line-faint);transform:translateY(calc(100% - 118px))}
+.sheetnav[data-open]{transform:none}
+.sheetnav .tabs{display:flex;gap:6px}
+.sheetnav .tabs button{flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:20px;font-size:13px;font-weight:600;color:var(--muted)}
+.sheetnav .tabs button[aria-current]{background:var(--tab-on);color:var(--ink)}
+.handle{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;min-height:44px;justify-content:center;font-size:12px;color:var(--muted)}
+.handle::before{content:"";width:40px;height:5px;border-radius:3px;background:var(--line)}
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 14px}
+.wid{border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);padding:12px;display:flex;flex-direction:column;min-width:0}
+.ring{width:72px;height:72px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+</style>
+  <div class="row" style="justify-content:space-between;padding:2px 18px 6px"><span class="row small" style="gap:6px"><span class="dot" style="background:var(--go)"></span>Alvaro PC · conectado</span><span class="small muted">3 agentes</span></div>
+  <div class="scroll" style="padding:0 12px">
+    <section class="veil" data-r="live" id="hero3" style="border-radius:32px;padding:18px 16px 14px;display:flex;flex-direction:column;align-items:center;gap:12px">
+      <p class="say" id="say" aria-live="polite">Claude Code está compilando kenai. Codex corre los tests.</p>
+      <button class="kbtn" type="button" id="kodabtn" aria-label="Tocá a Koda para cambiar de estado"><span class="koda" data-koda="trabaja" data-scale="6" role="img" aria-label="Koda, trabajando" style="width:192px;height:192px" id="koda3"></span></button>
+      <div class="row" style="gap:8px"><span class="chip solid" id="chip3"><i></i><span id="chip3t">Trabajando</span></span><button class="btn sm pri" type="button" id="act3" hidden>Revisar el pedido</button></div>
+    </section>
+    <div class="agchips" style="margin-top:12px" role="list" aria-label="Agentes">
+      <button class="agchip" role="listitem" type="button"><span class="halo" data-r="live" style="width:44px;height:44px" ><span class="koda" data-koda="trabaja" data-scale="1.1" role="img" aria-label="Koda, trabajando" style="width:35.2px;height:35.2px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><span><b>Claude Code</b><span>Trabajando</span></span></button>
+      <button class="agchip" role="listitem" type="button"><span class="halo" data-r="live" style="width:44px;height:44px" ><span class="koda" data-koda="piensa" data-scale="1.1" role="img" aria-label="Koda, pensando" style="width:35.2px;height:35.2px" ></span><span class="dot" style="background:var(--id-codex)" aria-hidden="true"></span></span><span><b>Codex</b><span>Pensando</span></span></button>
+      <button class="agchip" role="listitem" type="button"><span class="halo" data-r="faint" style="width:44px;height:44px" ><span class="koda" data-koda="reposo" data-scale="1.1" role="img" aria-label="Koda, durmiendo" style="width:35.2px;height:35.2px" ></span><span class="dot" style="background:var(--id-gemini)" aria-hidden="true"></span></span><span><b>Gemini CLI</b><span>Durmiendo</span></span></button></div>
+  </div>
+  <div class="scrim" id="navscrim" hidden></div>
+  <nav class="sheetnav" id="sheetnav" aria-label="Secciones">
+    <button class="handle" type="button" id="handle" aria-expanded="false" aria-controls="navmore">Deslizá o tocá para ver más</button>
+    <div class="tabs"><button type="button" aria-current="page"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 11.5L12 5L20 11.5"/><path d="M6 10.5V19H18V10.5"/></svg>Inicio</button><button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M15.5 6.5a3 3 0 0 1 0 5.5M17.5 14.5a5 5 0 0 1 3 4.5"/></svg>Agentes</button><button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg>Chat</button><button type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ajustes</button></div>
+    <div id="navmore" class="stack" style="gap:10px;padding:12px 4px 4px">
+      <section class="card" style="padding:12px 14px" aria-labelledby="u3"><h3 id="u3" class="sec">Uso del plan</h3>
+        <div class="stack" style="gap:10px">
+          <div data-r="live"><div class="row small" style="justify-content:space-between"><b>Claude · 5 horas</b><span>68%</span></div><div class="bar" style="margin:4px 0"><i style="width:68%"></i></div><span class="tiny muted">Se reinicia en 2 h 14</span></div>
+          <div data-r="live"><div class="row small" style="justify-content:space-between"><b>Codex · Semana</b><span>86%</span></div><div class="bar" style="margin:4px 0"><i style="width:86%"></i></div><span class="tiny muted">Se reinicia el jueves</span></div></div></section>
+      <section class="card" aria-labelledby="r3"><h3 id="r3" class="sec" style="padding:12px 14px 0">Recientes</h3>
+        <div class="item"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M5.5 12.5L9.7 16.7L18.5 7.5"/></svg><div class="t"><b>Permitiste: editar archivos</b><span>Claude Code · Ayer</span></div></div></section>
+    </div>
+  </nav></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>3 · Aprobación</figcaption><div class="phone" role="group" aria-label="Aprobación" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr">
+  <div class="row" style="padding:0 8px 0 4px;gap:4px"><button class="icbtn" type="button" aria-label="Cerrar"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M7 7L17 17M17 7L7 17"/></svg></button><span class="small muted">Pedido de permiso</span></div>
+  <section class="veil" data-r="sun" style="margin:0 12px;border-radius:32px;padding:14px 16px 16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px" aria-labelledby="ap3">
+    <span class="koda" data-koda="espera" data-scale="5" role="img" aria-label="Koda, esperando tu sí" style="width:160px;height:160px" ></span><span class="chip solid" data-r="sun"><i></i><span data-countdown="272">Caduca en 4:32</span></span>
+    <h2 id="ap3" class="h" style="font-size:24px;line-height:1.2">Claude Code quiere ejecutar un comando</h2>
+    <p class="small muted">en kenai · Alvaro PC</p></section>
+  <div class="scroll stack" style="padding:12px 16px 0;gap:8px">
+    <div class="cmd mono" style="font-size:14px">rm -rf app/build &amp;&amp; ./gradlew assembleRelease</div>
+    <p class="small">Permitilo solo si lo pediste vos.</p></div>
+  <div class="stack" style="padding:0 16px 4px;gap:8px">
+    <button class="btn go xl block" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M7 6.5A7 7 0 0 1 19 11.5"/><path d="M5 10a7 7 0 0 0-.2 1.5V14"/><path d="M8.5 19.5A10 10 0 0 0 9.5 15V11.5a2.5 2.5 0 0 1 5 0V13"/><path d="M12 11.5V15a8 8 0 0 1-1.6 5"/><path d="M14.5 16.5a12 12 0 0 1-.8 3.5"/><path d="M17.3 14.5V13"/></svg>Permitir</button>
+    <div class="row2"><button class="btn lg" type="button">Denegar</button><button class="btn ghost lg" type="button">Ahora no</button></div>
+    <p class="row tiny muted" style="gap:8px;align-items:flex-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8M15.5 10.5V8"/><path d="M8.5 8A3.5 3.5 0 0 1 15.5 8"/></svg><span>Permitir en el teléfono pide tu huella o el bloqueo de pantalla. Denegar no.</span></p></div></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>4 · Chat con Koda</figcaption><div class="phone" role="group" aria-label="Chat con Koda" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.steps{display:flex;gap:6px;padding:4px 18px 0}
+.steps i{flex:1;height:6px;border-radius:3px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.steps i.on{background:var(--ink);box-shadow:none}
+.vf{position:relative;width:220px;height:220px;margin:4px auto 0;border-radius:28px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.vf>b{position:absolute;width:36px;height:36px;border:4px solid var(--ink)}
+.vf>b:nth-child(1){left:14px;top:14px;border-right:0;border-bottom:0;border-radius:12px 0 0 0}
+.vf>b:nth-child(2){right:14px;top:14px;border-left:0;border-bottom:0;border-radius:0 12px 0 0}
+.vf>b:nth-child(3){left:14px;bottom:14px;border-right:0;border-top:0;border-radius:0 0 0 12px}
+.vf>b:nth-child(4){right:14px;bottom:14px;border-left:0;border-top:0;border-radius:0 0 12px 0}
+.qr{position:absolute;inset:58px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.qr span{border-radius:2px;background:var(--ink)}
+.qr span.o{background:transparent}
+.say{position:relative;padding:12px 16px;border-radius:20px;background:var(--card);font-size:17px;font-weight:600;line-height:1.35;box-shadow:inset 0 0 0 1px var(--line-faint);text-align:center}
+.say::after{content:"";position:absolute;left:50%;bottom:-8px;width:16px;height:16px;margin-left:-8px;background:var(--card);transform:rotate(45deg);box-shadow:inset -1px -1px 0 var(--line-faint)}
+.kbtn{display:block;margin:0 auto;border-radius:32px;padding:4px}
+.agchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.agchip{flex:none;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 16px 8px 10px;border-radius:20px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.agchip b{display:block;font-size:15px}.agchip span{display:block;font-size:12.5px;color:var(--muted)}
+.sheetnav{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:6px 14px 6px;box-shadow:inset 0 1px 0 var(--line-faint),0 -1px 0 var(--line-faint);transform:translateY(calc(100% - 118px))}
+.sheetnav[data-open]{transform:none}
+.sheetnav .tabs{display:flex;gap:6px}
+.sheetnav .tabs button{flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:20px;font-size:13px;font-weight:600;color:var(--muted)}
+.sheetnav .tabs button[aria-current]{background:var(--tab-on);color:var(--ink)}
+.handle{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;min-height:44px;justify-content:center;font-size:12px;color:var(--muted)}
+.handle::before{content:"";width:40px;height:5px;border-radius:3px;background:var(--line)}
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 14px}
+.wid{border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);padding:12px;display:flex;flex-direction:column;min-width:0}
+.ring{width:72px;height:72px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+</style>
+  <div class="row" style="padding:0 12px 6px 4px;gap:6px"><button class="icbtn" type="button" aria-label="Atrás"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M14.5 6L8.5 12L14.5 18"/></svg></button><span class="halo" data-r="live" style="width:40px;height:40px" ><span class="koda" data-koda="escucha" data-scale="1" role="img" aria-label="Koda, escuchando" style="width:32px;height:32px" ></span></span><h2 class="h" style="font-size:19px;flex:1">Chat</h2></div>
+  <div class="scroll stack" style="gap:10px;padding-top:4px">
+    <p class="tiny muted" style="text-align:center">Hoy</p>
+    <p style="align-self:flex-end;max-width:82%;padding:10px 14px;border-radius:20px 20px 6px 20px;background:var(--bubble);font-size:15px">¿Cómo compilo la versión de Android?</p>
+    <div class="row" style="align-items:flex-end;gap:8px"><span class="koda" data-koda="termino" data-scale="1.25" role="img" aria-label="Koda, terminó" style="width:40px;height:40px" ></span><p style="max-width:80%;padding:10px 14px;border-radius:20px 20px 20px 6px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);font-size:15px">Corré <span class="mono">./gradlew assembleRelease</span>. El APK queda en <span class="mono">app/build/outputs/apk/release</span>. ¿Querés que también lo firme?</p></div>
+    <p style="align-self:flex-end;max-width:82%;padding:10px 14px;border-radius:20px 20px 6px 20px;background:var(--bubble);font-size:15px">Sí, con la clave de release.</p>
+    <div class="row muted small" style="gap:8px" role="status"><span class="koda" data-koda="piensa" data-scale="1.25" role="img" aria-label="Koda, pensando" style="width:40px;height:40px" ></span>Koda está escribiendo…</div>
+    <div class="row" style="gap:6px;flex-wrap:wrap"><button class="chip" type="button" style="min-height:44px">¿Qué terminó hoy?</button><button class="chip" type="button" style="min-height:44px">¿Quién me espera?</button></div>
+  </div>
+  <div class="row" style="padding:6px 12px 0;gap:8px"><button class="chip" type="button" style="min-height:44px;flex:none">Modelo: Claude Sonnet</button><p class="tiny muted">La clave de API nunca llega a este teléfono.</p></div>
+  <div class="row" style="padding:8px 12px 4px;gap:8px"><label class="t" style="min-height:52px;display:flex;align-items:center;padding:0 18px;border-radius:var(--r-full);background:var(--fill);box-shadow:inset 0 0 0 1px var(--line-faint)"><span class="muted" style="font-size:15px">Preguntame lo que quieras…</span></label><button class="icbtn" type="button" aria-label="Enviar" style="width:52px;height:52px;background:var(--primary-bg);color:var(--primary-ink)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M12 19V6"/><path d="M6.5 11.5L12 6L17.5 11.5"/></svg></button></div></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>5 · Widgets</figcaption><div class="phone" role="group" aria-label="Widgets" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.steps{display:flex;gap:6px;padding:4px 18px 0}
+.steps i{flex:1;height:6px;border-radius:3px;background:var(--fill);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.steps i.on{background:var(--ink);box-shadow:none}
+.vf{position:relative;width:220px;height:220px;margin:4px auto 0;border-radius:28px;background:var(--surface);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.vf>b{position:absolute;width:36px;height:36px;border:4px solid var(--ink)}
+.vf>b:nth-child(1){left:14px;top:14px;border-right:0;border-bottom:0;border-radius:12px 0 0 0}
+.vf>b:nth-child(2){right:14px;top:14px;border-left:0;border-bottom:0;border-radius:0 12px 0 0}
+.vf>b:nth-child(3){left:14px;bottom:14px;border-right:0;border-top:0;border-radius:0 0 0 12px}
+.vf>b:nth-child(4){right:14px;bottom:14px;border-left:0;border-top:0;border-radius:0 0 12px 0}
+.qr{position:absolute;inset:58px;display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.qr span{border-radius:2px;background:var(--ink)}
+.qr span.o{background:transparent}
+.say{position:relative;padding:12px 16px;border-radius:20px;background:var(--card);font-size:17px;font-weight:600;line-height:1.35;box-shadow:inset 0 0 0 1px var(--line-faint);text-align:center}
+.say::after{content:"";position:absolute;left:50%;bottom:-8px;width:16px;height:16px;margin-left:-8px;background:var(--card);transform:rotate(45deg);box-shadow:inset -1px -1px 0 var(--line-faint)}
+.kbtn{display:block;margin:0 auto;border-radius:32px;padding:4px}
+.agchips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px}
+.agchip{flex:none;display:flex;align-items:center;gap:10px;min-height:60px;padding:8px 16px 8px 10px;border-radius:20px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.agchip b{display:block;font-size:15px}.agchip span{display:block;font-size:12.5px;color:var(--muted)}
+.sheetnav{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:6px 14px 6px;box-shadow:inset 0 1px 0 var(--line-faint),0 -1px 0 var(--line-faint);transform:translateY(calc(100% - 118px))}
+.sheetnav[data-open]{transform:none}
+.sheetnav .tabs{display:flex;gap:6px}
+.sheetnav .tabs button{flex:1;min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:20px;font-size:13px;font-weight:600;color:var(--muted)}
+.sheetnav .tabs button[aria-current]{background:var(--tab-on);color:var(--ink)}
+.handle{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;min-height:44px;justify-content:center;font-size:12px;color:var(--muted)}
+.handle::before{content:"";width:40px;height:5px;border-radius:3px;background:var(--line)}
+.wgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:0 14px}
+.wid{border-radius:26px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);padding:12px;display:flex;flex-direction:column;min-width:0}
+.ring{width:72px;height:72px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+</style>
+  <div style="padding:6px 22px 14px"><p style="font-size:44px;font-weight:300;line-height:1">14:41</p><p class="small muted">martes 11 de noviembre</p></div>
+  <div class="wgrid">
+    <section class="wid veil" data-r="live" style="grid-column:span 4;flex-direction:row;align-items:center;gap:12px" aria-label="Widget Estado grande">
+      <span class="koda" data-koda="trabaja" data-scale="2.5" role="img" aria-label="Koda, trabajando" style="width:80px;height:80px" ></span><div class="t"><b style="font-size:17px">Claude Code</b><span>Trabajando · kenai</span>
+        <div class="row" style="gap:6px;margin-top:8px"><button class="icbtn" type="button" aria-label="Abrir el chat" style="background:var(--btn);width:44px;height:44px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg></button><button class="icbtn" type="button" aria-label="Abrir las decisiones recientes" style="background:var(--btn);width:44px;height:44px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12L15 14"/></svg></button><button class="icbtn" type="button" aria-label="Abrir Ajustes" style="background:var(--btn);width:44px;height:44px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg></button></div></div>
+      <svg class="ring" viewBox="0 0 72 72" role="img" aria-label="Uso del plan Claude, 5 horas, 68 por ciento usado"><circle cx="36" cy="36" r="30" style="stroke:var(--fill)"/><circle cx="36" cy="36" r="30" style="stroke:var(--ink)" stroke-dasharray="128 189" transform="rotate(-90 36 36)" stroke-linecap="round"/><text x="36" y="41" text-anchor="middle" style="fill:var(--ink);font:700 15px var(--font-ui)">68%</text></svg></section>
+    <section class="wid" data-r="live" style="grid-column:span 2;align-items:center;text-align:center;gap:6px" aria-label="Widget Ánimo de los agentes">
+      <span class="halo" data-r="live" style="width:104px;height:104px" ><span class="koda" data-koda="piensa" data-scale="2.75" role="img" aria-label="Koda, pensando" style="width:88px;height:88px" ></span></span><b class="small">Pensando</b></section>
+    <section class="wid veil" data-r="go" style="grid-column:span 2;align-items:center;text-align:center;gap:2px" aria-label="Widget Terminadas hoy">
+      <span class="koda" data-koda="termino" data-scale="2" role="img" aria-label="Koda, terminó" style="width:64px;height:64px" ></span><b style="font-size:30px;line-height:1.1">5</b><span class="tiny muted">hechas hoy</span></section>
+    <section class="wid" data-r="sun" style="grid-column:span 4;flex-direction:row;align-items:center;gap:10px;padding:8px 14px;border-radius:var(--r-full)" aria-label="Widget Estado en una línea">
+      <span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="t clip"><b style="display:inline;font-size:14px">Gemini CLI</b> <span style="display:inline" class="small muted">· Tiene una pregunta</span></span><span class="chip solid"><i></i>Responder</span></section>
+  </div></div><div class="gest" aria-hidden="true"></div></div></figure></main>
+<section class="better" aria-labelledby="better-h"><h2 id="better-h">Qué mejora frente a la app de hoy</h2><div class="cols">
+<div data-r="go"><h3><i></i>UI</h3><ul><li>Koda a 192 px sobre el velo del color de rol, con una frase que resume; títulos de 24–26 px, botones de 56–60 px y más aire.</li><li>Los colores de rol de system.md solo en el velo, el chip de estado y la acción principal; widgets con Koda como figura y el anillo de uso en tinta.</li></ul></div>
+<div data-r="live"><h3><i></i>UX</h3><ul><li>Navegación en una hoja inferior: pestañas grandes al alcance del pulgar y, al deslizar, uso del plan y recientes sin cambiar de pantalla.</li><li>Emparejar en tres pasos con barra de progreso, el QR en el medio, Atrás en cada paso y «Mejor pegar el enlace» siempre visible.</li></ul></div>
+<div data-r="sun"><h3><i></i>CX</h3><ul><li>La app tiene personalidad: Koda reacciona al toque y te habla en una frase en vez de un tablero.</li><li>El primer uso explica qué pasa y por qué la cámara; el chat sugiere preguntas útiles («¿Quién me espera?»).</li></ul></div>
+<div class="trade" data-r="red"><h3><i></i>Compromiso</h3><p>Menos información por pantalla: uso del plan, servicios y recientes quedan dentro de la hoja; con varios pedidos a la vez, una sola frase no alcanza.</p><p>El personaje grande puede competir con un pedido urgente si no se cuida el orden; más trabajo de animación y de pruebas en pantallas chicas y con texto grande.</p></div>
+</div></section>
+<script>
+const KODA={"s32":"data:image/png;base64,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","s24":"data:image/png;base64,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","seq":{"reposo":{"row":0,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0,2,2,0,0,3,0,0,1,1,1,1],"fps":8},"escucha":{"row":1,"seq":[0,0,0,0,1,1,1,1,0,0,0,0,0,2,2,0,0,0,0,1,1,1,3,3,0,0],"fps":8},"piensa":{"row":2,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,2,2,3,3,3,3,1,1,1,1,0,0,0],"fps":8},"trabaja":{"row":3,"seq":[0,0,1,1,2,2,3,3],"fps":8},"espera":{"row":4,"seq":[0,0,0,1,2,2,3,3,0,1,2,3,3,0,0,0],"fps":8},"termino":{"row":5,"seq":[0,0,0,0,0,0,1,1,2,2,2,2,3,3,0,0,0,0,0,0],"fps":8},"error":{"row":6,"seq":[0,0,0,0,0,1,1,2,2,3,3,2,3,2,3,0,0,0,0,1,1],"fps":8}}};
+const LBL={"reposo":"durmiendo","escucha":"escuchando","piensa":"pensando","trabaja":"trabajando","espera":"esperando tu sí","termino":"terminó","error":"con un error"};
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ticks=new WeakMap();
+function paint(el,f){const s=+el.dataset.scale,st=KODA.seq[el.dataset.koda];
+  el.style.backgroundImage='url('+KODA.s32+')';el.style.backgroundSize=(128*s)+'px '+(224*s)+'px';
+  el.style.backgroundPosition='-'+(f*32*s)+'px -'+(st.row*32*s)+'px';}
+function koda(el,pose){el.dataset.koda=pose;el.setAttribute('aria-label','Koda, '+LBL[pose]);ticks.set(el,0);paint(el,KODA.seq[pose].seq[0]);}
+$$('[data-koda]').forEach(el=>{ticks.set(el,0);paint(el,KODA.seq[el.dataset.koda].seq[0]);});
+if(!reduce)setInterval(()=>{$$('[data-koda]').forEach(el=>{const st=KODA.seq[el.dataset.koda];
+  const t=((ticks.get(el)||0)+1)%st.seq.length;ticks.set(el,t);paint(el,st.seq[t]);});},125);
+$('#theme').addEventListener('click',e=>{const d=document.documentElement;const n=d.dataset.theme==='dark'?'light':'dark';
+  d.dataset.theme=n;e.currentTarget.setAttribute('aria-pressed',String(n==='light'));e.currentTarget.textContent=n==='light'?'Tema: claro':'Tema: oscuro';});
+$('#narrow').addEventListener('click',e=>{const on=!document.body.hasAttribute('data-narrow');document.body.toggleAttribute('data-narrow',on);
+  e.currentTarget.setAttribute('aria-pressed',String(on));e.currentTarget.textContent=on?'Ancho: 320 dp':'Ancho: 360 dp';});
+/* expiry countdown: text keeps updating with reduced motion; only the bar transition is motion */
+setInterval(()=>{$$('[data-countdown]').forEach(el=>{let s=Math.max(0,+el.dataset.countdown-1);el.dataset.countdown=s;
+  el.textContent='Caduca en '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');});
+  $$('[data-countbar]').forEach(b=>{const s=+$('[data-countdown]').dataset.countdown;b.style.width=(s/300*100)+'%';});},1000);
+/* radio and checkbox rows, switches */
+$$('[role=radiogroup]').forEach(g=>$$('[role=radio]',g).forEach(o=>o.addEventListener('click',()=>{$$('[role=radio]',g).forEach(x=>x.setAttribute('aria-checked',String(x===o)));})));
+$$('[role=checkbox],[role=switch]').forEach(o=>o.addEventListener('click',()=>o.setAttribute('aria-checked',String(o.getAttribute('aria-checked')!=='true'))));
+
+const ST=[
+ {pose:'trabaja',r:'live',chip:'Trabajando',say:'Claude Code está compilando kenai. Codex corre los tests.'},
+ {pose:'espera',r:'sun',chip:'Espera tu sí',say:'Claude Code te espera: quiere ejecutar un comando.',act:'Revisar el pedido'},
+ {pose:'termino',r:'go',chip:'Terminó',say:'¡Listo! Hoy terminaron 5 tareas.'},
+ {pose:'reposo',r:'faint',chip:'Durmiendo',say:'Todo tranquilo. Te aviso si alguien te necesita.'},
+ {pose:'error',r:'red',chip:'Error',say:'Codex se detuvo por un error en npm test.',act:'Ver qué pasó'}];
+let si=0;
+function setKoda(i){si=i;const s=ST[i];koda($('#koda3'),s.pose);$('#hero3').dataset.r=s.r;$('#chip3').dataset.r=s.r;
+  const faint=s.r==='faint';$('#chip3').classList.toggle('solid',!faint);$('#chip3t').textContent=s.chip;$('#say').textContent=s.say;
+  $('#act3').hidden=!s.act;if(s.act)$('#act3').textContent=s.act;$('#ctl-koda').textContent='Koda: '+s.chip;}
+$('#kodabtn').addEventListener('click',()=>setKoda((si+1)%ST.length));
+$('#ctl-koda').addEventListener('click',()=>setKoda((si+1)%ST.length));
+$('#handle').addEventListener('click',e=>{const open=!$('#sheetnav').hasAttribute('data-open');$('#sheetnav').toggleAttribute('data-open',open);
+  $('#navscrim').hidden=!open;e.currentTarget.setAttribute('aria-expanded',String(open));e.currentTarget.textContent=open?'Tocá para cerrar':'Deslizá o tocá para ver más';});
+$('#navscrim').addEventListener('click',()=>$('#handle').click());
+function step(n){$$('[data-step]').forEach(s=>s.hidden=s.dataset.step!==String(n));$$('#steps i').forEach((b,i)=>b.classList.toggle('on',i<n));
+  $('#steps').setAttribute('aria-valuenow',n);$('#steplabel').textContent='Paso '+n+' de 3';}
+$$('[data-go]').forEach(b=>b.addEventListener('click',()=>step(+b.dataset.go)));
+</script></body></html>

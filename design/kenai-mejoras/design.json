@@ -1,0 +1,28 @@
+{
+  "title": "Kenai · 3 mejoras de UI, UX y CX con Koda",
+  "brief": "podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras",
+  "feature": "odd/tasks/kenai-0.1.md",
+  "artboards": [
+    {
+      "file": "01-decidi-en-un-toque.html",
+      "title": "1 · Decidí en un toque",
+      "tradeoff": "Lo más rápido y seguro para decidir (un toque y la huella desde Inicio, con resultado confirmado); con un pedido abierto Inicio deja de mostrar a Koda grande y el progreso de los demás.",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "02-timeline-del-dia.html",
+      "title": "2 · Timeline del día",
+      "tradeoff": "Cuenta qué pasó en el día y da contexto para decidir; más para leer y desplazarse, y decidir cuesta dos toques (Revisar → Permitir).",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "file": "03-koda-al-frente.html",
+      "title": "3 · Koda al frente",
+      "tradeoff": "La más expresiva y la que mejor recibe al usuario nuevo; menos información por pantalla (uso y recientes quedan en la hoja) y Koda grande puede competir con un pedido urgente.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

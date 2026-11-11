@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=1440"><title>2 · Timeline del día · Kenai mejoras</title>
+<style>
+:root{
+  --go:#b8ff2e;--sun:#ffe100;--red-11:#ff5c75;--island-live:#2eb4ff;--faint:#6f6d66;
+  --on-role:#0B0C0E;
+  --id-koda:#8dff2b;--id-claude:#ff8a00;--id-codex:#2dffac;--id-gemini:#b04dff;
+  --font-ui:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --r-xl:12px;--r-2xl:18px;--r-full:999px;
+  --ease-out:cubic-bezier(.23,1,.32,1);--spring:cubic-bezier(.25,.9,.35,1.03);
+  --pw:360px;
+}
+[data-theme=dark]{--bg:#000;--card:#141518;--surface:#18181b;--tab-on:#1D1F23;--ink:#F5F6F8;--ink-2:#F1F2F4;--muted:#8E939C;
+--primary-bg:#F5F6F8;--primary-ink:#0B0C0E;--btn:rgba(255,255,255,.09);--btn-h:rgba(255,255,255,.15);
+--line:rgba(255,255,255,.25);--line-faint:rgba(255,255,255,.08);--fill:rgba(255,255,255,.06);--bubble:rgba(255,255,255,.1);
+--veil:22%;--board:#18181b;--bezel:#1D1F23;--scrim:rgba(0,0,0,.6);}
+[data-theme=light]{--bg:#ece4d2;--card:#f7f2e7;--surface:#fbf8f1;--tab-on:#e7e0d0;--ink:#1a1915;--ink-2:#2a2823;--muted:#5f5c54;
+--primary-bg:#201f1b;--primary-ink:#f7f4ec;--btn:rgba(0,0,0,.06);--btn-h:rgba(0,0,0,.12);
+--line:rgba(0,0,0,.28);--line-faint:rgba(0,0,0,.08);--fill:rgba(0,0,0,.05);--bubble:rgba(0,0,0,.07);
+--veil:34%;--board:#fbf8f1;--bezel:#2a2823;--scrim:rgba(0,0,0,.38);}
+.keep-dark{--bg:#000;--card:#141518;--surface:#18181b;--tab-on:#1D1F23;--ink:#F5F6F8;--ink-2:#F1F2F4;--muted:#8E939C;
+--primary-bg:#F5F6F8;--primary-ink:#0B0C0E;--btn:rgba(255,255,255,.09);--btn-h:rgba(255,255,255,.15);
+--line:rgba(255,255,255,.25);--line-faint:rgba(255,255,255,.08);--fill:rgba(255,255,255,.06);--bubble:rgba(255,255,255,.1);
+--veil:22%;--board:#18181b;--bezel:#1D1F23;--scrim:rgba(0,0,0,.6);color:var(--ink)}
+body[data-narrow]{--pw:320px}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--board);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+h1,h2,h3,p,ul,ol{margin:0}
+ul,ol{padding:0;list-style:none}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.top{position:absolute;left:28px;right:28px;top:10px;height:60px;display:flex;align-items:center;gap:24px}
+.top .tt{flex:1;min-width:0}
+.top h1{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.top p{font-size:13px;color:var(--muted);margin-top:2px;max-width:820px}
+.ctl{display:flex;gap:8px;flex:none}
+.cbtn{min-height:40px;padding:0 14px;border-radius:var(--r-full);background:var(--btn);font-weight:600;font-size:13px;white-space:nowrap}
+.cbtn:hover{background:var(--btn-h)}
+main.row{position:absolute;left:0;right:0;top:76px;display:flex;justify-content:center;gap:16px;align-items:flex-start}
+figure{margin:0}
+figcaption{margin:0 0 6px 2px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.better{position:absolute;left:28px;right:28px;bottom:10px;height:244px;overflow:hidden;padding:14px 20px;background:var(--card);border-radius:var(--r-2xl);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.better>h2{font-size:14px;font-weight:700;margin-bottom:10px}
+.better .cols{display:grid;grid-template-columns:1fr 1fr 1fr 1.1fr;gap:22px}
+.better h3{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.better h3 i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.better li,.better p{font-size:12.5px;line-height:1.38;color:var(--ink-2)}
+.better li{padding-left:12px;position:relative;margin-bottom:5px}
+.better li::before{content:"";position:absolute;left:0;top:8px;width:4px;height:4px;border-radius:50%;background:var(--muted)}
+.better .trade{padding-left:18px;box-shadow:inset 1px 0 0 var(--line-faint)}
+.better .trade p+p{margin-top:6px}
+/* ---------- phone ---------- */
+.phone{position:relative;width:var(--pw);height:760px;zoom:.7;border:8px solid var(--bezel);border-radius:44px;background:var(--bg);overflow:hidden;display:flex;flex-direction:column;color:var(--ink)}
+.sbar{flex:none;height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600}
+.sbar i{display:inline-block;width:12px;height:8px;border-radius:2px;background:var(--ink);margin-left:4px}
+.gest{flex:none;height:20px;display:flex;align-items:center;justify-content:center}
+.gest::after{content:"";width:110px;height:4px;border-radius:2px;background:var(--ink)}
+.scr{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+.scroll{flex:1;min-height:0;overflow:hidden;padding:0 14px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.stack>*,.scr>*{flex-shrink:0}
+.scr>.scroll,.scr>.scr{flex-shrink:1}
+.scroll{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent)}
+/* ---------- roles ---------- */
+[data-r=sun]{--c:var(--sun)}[data-r=live]{--c:var(--island-live)}[data-r=go]{--c:var(--go)}[data-r=red]{--c:var(--red-11)}[data-r=faint]{--c:var(--faint)}
+.veil{background:linear-gradient(180deg,color-mix(in srgb,var(--c) var(--veil),var(--card)) 0%,var(--card) 88%)}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:26px;padding:2px 10px 2px 8px;border-radius:var(--r-full);background:var(--fill);font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--c);flex:none}
+.chip.solid{background:var(--c);color:var(--on-role);box-shadow:none}
+.chip.solid i{background:var(--on-role)}
+.card{background:var(--card);border-radius:var(--r-2xl);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:6px 18px;border-radius:var(--r-full);background:var(--btn);font-weight:600;font-size:15px;color:var(--ink);text-align:center;line-height:1.2}
+.btn:hover{background:var(--btn-h)}
+.btn.pri{background:var(--primary-bg);color:var(--primary-ink)}
+.btn.go{background:var(--go);color:var(--on-role)}
+.btn.ghost{background:transparent}
+.btn.ghost:hover{background:var(--fill)}
+.btn.sm{min-height:44px;padding:4px 14px;font-size:14px}
+.btn.lg{min-height:56px;font-size:16px}
+.btn.xl{min-height:60px;font-size:17px}
+.btn.block{width:100%}
+.btn[disabled]{cursor:default;color:var(--muted)}
+.btn .ic{width:20px;height:20px}
+.icbtn{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.icbtn:hover{background:var(--fill)}
+.row2{display:flex;gap:10px}.row2>*{flex:1}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.mono{font-family:var(--font-mono);font-size:13px}
+.cmd{background:var(--surface);border-radius:var(--r-xl);padding:10px 12px;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-faint);word-break:break-all;line-height:1.45}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.tiny{font-size:12px}
+.sec{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:0 2px 8px}
+.h{font-weight:700;letter-spacing:-.01em}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;box-shadow:0 0 0 1px var(--line)}
+.halo{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:color-mix(in srgb,var(--c) 18%,var(--card));box-shadow:inset 0 0 0 2px var(--c)}
+.halo>.dot{position:absolute;right:1px;bottom:1px;box-shadow:0 0 0 2px var(--card)}
+.koda{display:inline-block;image-rendering:pixelated;background-repeat:no-repeat;flex:none}
+.row{display:flex;align-items:center;gap:12px}
+.t{flex:1;min-width:0}
+.t>b{display:block;font-size:15px;font-weight:600}
+.t>span{display:block;font-size:13px;color:var(--muted)}
+.clip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item{display:flex;align-items:center;gap:12px;min-height:64px;padding:8px 12px}
+/* nav */
+.nav{flex:none;display:flex;gap:4px;margin:6px 14px 6px;padding:6px;border-radius:var(--r-full);background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint)}
+.nav a{position:relative;flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:var(--r-full);font-size:12px;font-weight:600;color:var(--muted);text-decoration:none}
+.nav a[aria-current]{background:var(--tab-on);color:var(--ink)}
+.badge{position:absolute;top:3px;left:calc(50% + 6px);min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--sun);color:var(--on-role);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center}
+/* island strip (stays dark in both themes, as the app's island) */
+.island{flex:none;margin:4px 12px 10px;min-height:52px;padding:6px 8px 6px 8px;border-radius:26px;background:var(--bg);display:flex;align-items:center;gap:10px;box-shadow:inset 0 0 0 1.5px var(--c)}
+.island .t>b{font-size:14px}
+.island .t>span{font-size:12px}
+/* sheets */
+.scrim{position:absolute;inset:0;background:var(--scrim)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:28px 28px 0 0;padding:10px 18px 14px;box-shadow:inset 0 1px 0 var(--line-faint)}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+/* options (radio rows) */
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;min-height:60px;padding:12px 14px;border-radius:16px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line-faint);text-align:left}
+.opt .mark{width:22px;height:22px;border-radius:50%;flex:none;box-shadow:inset 0 0 0 2px var(--line);margin-top:1px}
+.opt[aria-checked=true]{box-shadow:inset 0 0 0 2px var(--ink)}
+.opt[aria-checked=true] .mark{box-shadow:inset 0 0 0 7px var(--ink)}
+.opt[role=checkbox] .mark{border-radius:6px}
+.opt b{display:block;font-size:15px}
+.opt span{display:block;font-size:13px;color:var(--muted)}
+/* switches */
+.sw{flex:none;position:relative;width:56px;height:44px;border-radius:22px}
+.sw::before{content:"";position:absolute;left:2px;top:6px;width:52px;height:32px;border-radius:16px;background:var(--btn);box-shadow:inset 0 0 0 2px var(--line)}
+.sw::after{content:"";position:absolute;left:8px;top:12px;width:20px;height:20px;border-radius:50%;background:var(--muted)}
+.sw[aria-checked=true]::before{background:var(--go);box-shadow:none}
+.sw[aria-checked=true]::after{left:28px;background:var(--on-role)}
+.setrow{display:flex;gap:12px;align-items:center;min-height:60px;padding:10px 14px}
+.setrow+.setrow{box-shadow:inset 0 1px 0 var(--line-faint)}
+.bar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.bar>i{display:block;height:100%;border-radius:3px;background:var(--c)}
+.spin{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 2.5px var(--line);border-top:2.5px solid var(--c)}
+@media (prefers-reduced-motion:no-preference){
+  .spin{animation:spin .9s linear infinite}
+  .bar>i{transition:width .9s linear}
+  .sheetnav{transition:transform .3s var(--ease-out)}
+  .fade{animation:fade .16s var(--ease-out)}
+  .kbtn:active .koda{transform:scale(.96)}
+  .kbtn .koda{transition:transform .12s var(--ease-out)}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+</style></head><body>
+<header class="top"><div class="tt"><h1>2 · Timeline del día</h1><p>Inicio pasa a ser «Hoy»: lo que te necesita fijado arriba y debajo lo que hizo cada agente, en orden y con hora, con Koda en el color de su estado. Un resumen de tres cifras y un modo calma para las horas de silencio.</p></div>
+<div class="ctl"><button class="cbtn" id="narrow" type="button" aria-pressed="false">Ancho: 360 dp</button><button class="cbtn" id="theme" type="button" aria-pressed="false">Tema: oscuro</button></div></header>
+<main class="row"><figure><figcaption>1 · Hoy</figcaption><div class="phone" role="group" aria-label="Hoy" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.tg{padding:10px 0 4px}.tg+.tg{box-shadow:inset 0 1px 0 var(--line-faint)}
+.tg-h{min-height:52px}
+.tl-list{margin:4px 0 0 0}
+.tl{display:grid;grid-template-columns:44px 14px 1fr;align-items:start;gap:8px;min-height:36px;position:relative}
+.tl-time{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px;text-align:right}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:6px;box-shadow:0 0 0 3px var(--bg)}
+.tl::before{content:"";position:absolute;left:56px;top:16px;bottom:-6px;width:2px;background:var(--line-faint)}
+.tl:last-child::before{display:none}
+.tl-body{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;padding-bottom:8px}
+.tl-body>span{flex:1;min-width:140px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.sum>button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;min-height:64px;text-align:left;border-radius:14px}
+.sum>button:hover{background:var(--fill)}
+.sum>button+button{box-shadow:inset 1px 0 0 var(--line-faint)}
+.sum b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.sum span{font-size:12px;color:var(--muted);line-height:1.25}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.fchip{flex:none;min-height:44px;padding:0 12px;border-radius:var(--r-full);background:var(--fill);font-size:13px;font-weight:600;white-space:nowrap;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.fchip[aria-pressed=true]{background:var(--primary-bg);color:var(--primary-ink)}
+</style>
+  <div style="padding:6px 16px 8px"><div class="row" style="justify-content:space-between"><h2 class="h" style="font-size:26px">Hoy</h2><span class="chip" data-r="go"><i></i>Alvaro PC</span></div>
+    <p class="small muted">martes 11 de noviembre · actualizado hace 10 s</p></div>
+  <div class="scroll stack" style="gap:10px">
+    <section class="card sum" aria-label="Resumen de hoy">
+      <button type="button"><b>5</b><span>tareas terminadas</span></button>
+      <button type="button"><b>3</b><span>decisiones tuyas</span></button>
+      <button type="button" data-r="live"><b>68%</b><span>Claude · 5 h</span><span class="bar" style="width:100%;margin-top:3px" aria-hidden="true"><i style="width:68%"></i></span></button></section>
+    <div class="filters" role="toolbar" aria-label="Filtrar la línea de tiempo">
+      <button class="fchip" type="button" aria-pressed="true" data-f="all">Todo</button>
+      <button class="fchip" type="button" aria-pressed="false" data-f="need">Te necesitan · 2</button>
+      <button class="fchip" type="button" aria-pressed="false" data-f="done">Terminó · 2</button>
+      <button class="fchip" type="button" aria-pressed="false" data-f="error">Errores · 0</button></div>
+    <div id="tl" aria-live="polite"><section class="tg" aria-labelledby="g-claude"><div class="row tg-h"><span class="halo" data-r="sun" style="width:48px;height:48px" ><span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><div class="t"><b id="g-claude">Claude Code</b><span class="clip">kenai</span></div><span class="chip solid" data-r="sun"><i></i>Espera tu sí</span></div>
+  <ol class="tl-list"><li class="tl" data-kind="need" data-r="sun"><span class="tl-time">14:40</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Quiere ejecutar un comando</span><button class="btn sm pri" type="button">Revisar</button></div></li><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:31</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Editó 2 archivos · +15 −1</span></div></li><li class="tl" data-kind="done" data-r="go"><span class="tl-time">14:12</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Terminó: el build pasó y arregló dos avisos de lint</span></div></li></ol></section><section class="tg" aria-labelledby="g-gemini"><div class="row tg-h"><span class="halo" data-r="sun" style="width:48px;height:48px" ><span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-gemini)" aria-hidden="true"></span></span><div class="t"><b id="g-gemini">Gemini CLI</b><span class="clip">notes</span></div><span class="chip solid" data-r="sun"><i></i>Tiene una pregunta</span></div>
+  <ol class="tl-list"><li class="tl" data-kind="need" data-r="sun"><span class="tl-time">14:38</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>«¿En qué rama?»</span><button class="btn sm pri" type="button">Responder</button></div></li></ol></section><section class="tg" aria-labelledby="g-codex"><div class="row tg-h"><span class="halo" data-r="live" style="width:48px;height:48px" ><span class="koda" data-koda="trabaja" data-scale="1.25" role="img" aria-label="Koda, trabajando" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-codex)" aria-hidden="true"></span></span><div class="t"><b id="g-codex">Codex</b><span class="clip">kenai-desktop</span></div><span class="chip " data-r="live"><i></i>Trabajando</span></div>
+  <ol class="tl-list"><li class="tl" data-kind="did" data-r="live"><span class="tl-time">14:36</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Ejecutando un comando · npm test</span></div></li><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">13:58</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Permitiste: editar archivos</span></div></li><li class="tl" data-kind="done" data-r="go"><span class="tl-time">13:20</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Terminó: actualizó el README</span></div></li></ol></section>
+      <div id="tl-empty" class="card" style="padding:18px;display:flex;gap:12px;align-items:center" hidden><span class="koda" data-koda="termino" data-scale="1.5" role="img" aria-label="Koda, terminó" style="width:48px;height:48px" ></span><p class="small">Ningún agente tuvo errores hoy. <button class="btn ghost sm" type="button" data-f="all" style="text-decoration:underline">Ver todo</button></p></div></div>
+  </div><nav class="nav" aria-label="Secciones"><a href="#" aria-current="page" aria-label="Hoy, 2 esperándote"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M9 7H20M9 12H20M9 17H20M4.5 7V7.1M4.5 12V12.1M4.5 17V17.1"/></svg>Hoy<span class="badge" aria-hidden="true">2</span></a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg>Chat</a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>2 · Pedido con contexto</figcaption><div class="phone" role="group" aria-label="Pedido con contexto" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.tg{padding:10px 0 4px}.tg+.tg{box-shadow:inset 0 1px 0 var(--line-faint)}
+.tg-h{min-height:52px}
+.tl-list{margin:4px 0 0 0}
+.tl{display:grid;grid-template-columns:44px 14px 1fr;align-items:start;gap:8px;min-height:36px;position:relative}
+.tl-time{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px;text-align:right}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:6px;box-shadow:0 0 0 3px var(--bg)}
+.tl::before{content:"";position:absolute;left:56px;top:16px;bottom:-6px;width:2px;background:var(--line-faint)}
+.tl:last-child::before{display:none}
+.tl-body{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;padding-bottom:8px}
+.tl-body>span{flex:1;min-width:140px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.sum>button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;min-height:64px;text-align:left;border-radius:14px}
+.sum>button:hover{background:var(--fill)}
+.sum>button+button{box-shadow:inset 1px 0 0 var(--line-faint)}
+.sum b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.sum span{font-size:12px;color:var(--muted);line-height:1.25}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.fchip{flex:none;min-height:44px;padding:0 12px;border-radius:var(--r-full);background:var(--fill);font-size:13px;font-weight:600;white-space:nowrap;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.fchip[aria-pressed=true]{background:var(--primary-bg);color:var(--primary-ink)}
+</style>
+  <div style="padding:6px 16px 8px" aria-hidden="true"><h2 class="h" style="font-size:26px">Hoy</h2></div>
+  <div class="scroll" aria-hidden="true"><section class="tg" aria-labelledby="g2-claude"><div class="row tg-h"><span class="halo" data-r="sun" style="width:48px;height:48px" ><span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><div class="t"><b id="g2-claude">Claude Code</b><span class="clip">kenai</span></div><span class="chip solid" data-r="sun"><i></i>Espera tu sí</span></div>
+  <ol class="tl-list"><li class="tl" data-kind="need" data-r="sun"><span class="tl-time">14:40</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Quiere ejecutar un comando</span><button class="btn sm pri" type="button">Revisar</button></div></li><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:31</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Editó 2 archivos · +15 −1</span></div></li><li class="tl" data-kind="done" data-r="go"><span class="tl-time">14:12</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Terminó: el build pasó y arregló dos avisos de lint</span></div></li></ol></section></div>
+  <div class="scrim"></div>
+  <section class="sheet stack" role="dialog" aria-modal="true" aria-labelledby="ctx-t" style="gap:10px">
+    <div class="grab"></div>
+    <div class="row"><span class="halo" data-r="sun" style="width:52px;height:52px" ><span class="koda" data-koda="espera" data-scale="1.3" role="img" aria-label="Koda, esperando tu sí" style="width:41.6px;height:41.6px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><div class="t"><h2 id="ctx-t" class="h" style="font-size:18px">Claude Code</h2><span>Quiere ejecutar un comando · kenai</span></div></div>
+    <div><span class="chip solid" data-r="sun"><i></i><span data-countdown="272">Caduca en 4:32</span></span></div>
+    <div class="cmd mono">rm -rf app/build &amp;&amp; ./gradlew assembleRelease</div>
+    <div><h3 class="sec" style="margin-bottom:4px">Lo que hizo antes</h3>
+      <ol><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:31</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Editó app/build.gradle.kts · +3 −1</span></div></li><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:31</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Creó docs/RELEASE.md · +12</span></div></li><li class="tl" data-kind="done" data-r="go"><span class="tl-time">14:12</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Ejecutó npm run build · pasó</span></div></li></ol></div>
+    <p class="small">Permitilo solo si lo pediste vos.</p>
+    <div class="row2"><button class="btn lg" type="button" >Denegar</button><button class="btn go lg" type="button" ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M7 6.5A7 7 0 0 1 19 11.5"/><path d="M5 10a7 7 0 0 0-.2 1.5V14"/><path d="M8.5 19.5A10 10 0 0 0 9.5 15V11.5a2.5 2.5 0 0 1 5 0V13"/><path d="M12 11.5V15a8 8 0 0 1-1.6 5"/><path d="M14.5 16.5a12 12 0 0 1-.8 3.5"/><path d="M17.3 14.5V13"/></svg>Permitir</button></div>
+    <p class="row tiny muted" style="gap:8px;align-items:flex-start"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px"><rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8M15.5 10.5V8"/><path d="M8.5 8A3.5 3.5 0 0 1 15.5 8"/></svg><span>Permitir en el teléfono pide tu huella o el bloqueo de pantalla. Denegar no.</span></p>
+  </section></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>3 · Pregunta en el hilo</figcaption><div class="phone" role="group" aria-label="Pregunta en el hilo" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr"><style>
+.tg{padding:10px 0 4px}.tg+.tg{box-shadow:inset 0 1px 0 var(--line-faint)}
+.tg-h{min-height:52px}
+.tl-list{margin:4px 0 0 0}
+.tl{display:grid;grid-template-columns:44px 14px 1fr;align-items:start;gap:8px;min-height:36px;position:relative}
+.tl-time{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px;text-align:right}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:var(--c);margin-top:6px;box-shadow:0 0 0 3px var(--bg)}
+.tl::before{content:"";position:absolute;left:56px;top:16px;bottom:-6px;width:2px;background:var(--line-faint)}
+.tl:last-child::before{display:none}
+.tl-body{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;padding-bottom:8px}
+.tl-body>span{flex:1;min-width:140px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.sum>button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;min-height:64px;text-align:left;border-radius:14px}
+.sum>button:hover{background:var(--fill)}
+.sum>button+button{box-shadow:inset 1px 0 0 var(--line-faint)}
+.sum b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.1}
+.sum span{font-size:12px;color:var(--muted);line-height:1.25}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.fchip{flex:none;min-height:44px;padding:0 12px;border-radius:var(--r-full);background:var(--fill);font-size:13px;font-weight:600;white-space:nowrap;box-shadow:inset 0 0 0 1px var(--line-faint)}
+.fchip[aria-pressed=true]{background:var(--primary-bg);color:var(--primary-ink)}
+</style>
+  <div style="padding:6px 16px 8px"><h2 class="h" style="font-size:26px">Hoy</h2></div>
+  <div class="scroll">
+    <section class="tg" aria-labelledby="g3-gem"><div class="row tg-h"><span class="halo" data-r="sun" style="width:48px;height:48px" ><span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-gemini)" aria-hidden="true"></span></span><div class="t"><b id="g3-gem">Gemini CLI</b><span>notes</span></div><span class="chip solid" data-r="sun"><i></i>Tiene una pregunta</span></div>
+      <ol class="tl-list"><li class="tl" data-r="sun"><span class="tl-time">14:38</span><span class="tl-dot" aria-hidden="true"></span>
+        <div class="card stack" style="padding:12px;gap:8px;margin-bottom:8px">
+          <p class="tiny muted">Pregunta 1 de 2</p>
+          <h3 id="q3h" class="h" style="font-size:19px">¿En qué rama?</h3>
+          <div role="radiogroup" aria-labelledby="q3h" class="stack" style="gap:6px">
+            <button class="opt" role="radio" aria-checked="true" type="button" style="background:var(--surface)"><span class="mark"></span><span><b>release/0.1</b><span>La rama de esta versión</span></span></button>
+            <button class="opt" role="radio" aria-checked="false" type="button" style="background:var(--surface)"><span class="mark"></span><span><b>main</b><span>Fusionar directo en main</span></span></button></div>
+          <button class="btn pri" type="button">Siguiente</button>
+          <p class="tiny muted">Después: «¿Qué corro después de fusionar?» · Elegí una o más</p></div></li>
+        <li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:02</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Leyó 4 notas de la reunión</span></div></li></ol></section>
+    <section class="tg" aria-labelledby="g3-claude"><div class="row tg-h"><span class="halo" data-r="sun" style="width:48px;height:48px" ><span class="koda" data-koda="espera" data-scale="1.25" role="img" aria-label="Koda, esperando tu sí" style="width:40px;height:40px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><div class="t"><b id="g3-claude">Claude Code</b><span class="clip">kenai</span></div><span class="chip solid" data-r="sun"><i></i>Espera tu sí</span></div>
+  <ol class="tl-list"><li class="tl" data-kind="need" data-r="sun"><span class="tl-time">14:40</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Quiere ejecutar un comando</span><button class="btn sm pri" type="button">Revisar</button></div></li><li class="tl" data-kind="did" data-r="faint"><span class="tl-time">14:31</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Editó 2 archivos · +15 −1</span></div></li><li class="tl" data-kind="done" data-r="go"><span class="tl-time">14:12</span><span class="tl-dot" aria-hidden="true"></span><div class="tl-body"><span>Terminó: el build pasó y arregló dos avisos de lint</span></div></li></ol></section>
+  </div><nav class="nav" aria-label="Secciones"><a href="#" aria-current="page" aria-label="Hoy, 2 esperándote"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M9 7H20M9 12H20M9 17H20M4.5 7V7.1M4.5 12V12.1M4.5 17V17.1"/></svg>Hoy<span class="badge" aria-hidden="true">2</span></a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg>Chat</a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>4 · Modo calma</figcaption><div class="phone" role="group" aria-label="Modo calma" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr">
+  <div class="island keep-dark" data-r="faint" role="status" ><span class="koda" data-koda="reposo" data-scale="1.25" role="img" aria-label="Koda, durmiendo" style="width:40px;height:40px" ></span><span class="t"><b class="clip">Horas de silencio hasta las 8:00</b><span class="clip">Los pedidos y las preguntas siguen llegando</span></span><span class="icbtn" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M19.5 14.5A8 8 0 1 1 9.5 4.5a6.3 6.3 0 0 0 10 10z"/></svg></span></div>
+  <div class="scroll stack" style="gap:14px">
+    <section style="display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:6px 8px 0" aria-labelledby="calm-h">
+      <span class="halo" data-r="faint" style="width:112px;height:112px" ><span class="koda" data-koda="reposo" data-scale="2.75" role="img" aria-label="Koda, durmiendo" style="width:88px;height:88px" ></span></span>
+      <h2 id="calm-h" class="h" style="font-size:22px;margin-top:4px">Todo en calma</h2>
+      <p class="muted">Kenai no suena por lo que termina. Si alguien necesita tu sí, te avisa igual.</p></section>
+    <section class="card" aria-labelledby="calm-d" style="padding:6px 0">
+      <h3 id="calm-d" class="sec" style="padding:10px 14px 0">Desde las 23:00 · 0 te esperan</h3>
+      <div class="item"><span class="halo" data-r="go" style="width:44px;height:44px" ><span class="koda" data-koda="termino" data-scale="1.1" role="img" aria-label="Koda, terminó" style="width:35.2px;height:35.2px" ></span><span class="dot" style="background:var(--id-codex)" aria-hidden="true"></span></span><div class="t"><b>Codex terminó</b><span class="clip">npm test pasó · kenai-desktop · 23:42</span></div></div>
+      <div class="item" style="box-shadow:inset 0 1px 0 var(--line-faint)"><span class="halo" data-r="go" style="width:44px;height:44px" ><span class="koda" data-koda="termino" data-scale="1.1" role="img" aria-label="Koda, terminó" style="width:35.2px;height:35.2px" ></span><span class="dot" style="background:var(--id-claude)" aria-hidden="true"></span></span><div class="t"><b>Claude Code terminó</b><span class="clip">Build de kenai listo · 00:15</span></div></div>
+      </section>
+    </div>
+  <div class="row2" style="padding:6px 14px 0"><button class="btn" type="button">Ver el día</button><button class="btn ghost" type="button">Terminar el silencio</button></div><nav class="nav" aria-label="Secciones"><a href="#" aria-current="page" ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M9 7H20M9 12H20M9 17H20M4.5 7V7.1M4.5 12V12.1M4.5 17V17.1"/></svg>Hoy</a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg>Chat</a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure><figure><figcaption>5 · Ajustes · Avisos</figcaption><div class="phone" role="group" aria-label="Ajustes · Avisos" ><div class="sbar" aria-hidden="true"><span>14:41</span><span>5G<i></i><i style="width:18px"></i></span></div><div class="scr">
+  <div class="row" style="padding:0 8px 0 4px;gap:4px"><button class="icbtn" type="button" aria-label="Atrás"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M14.5 6L8.5 12L14.5 18"/></svg></button><h2 class="h" style="font-size:20px">Avisos</h2></div>
+  <div class="scroll stack" style="gap:12px;padding-top:6px">
+    <section aria-labelledby="s-av"><h3 id="s-av" class="sec">Durante el día</h3><div class="card">
+      <div class="setrow"><div class="t"><b id="sw-15-58">Resumen del día <span class="chip" data-r="live" style="min-height:20px;font-size:11px;padding:0 8px;margin-left:4px"><i></i>Nuevo</span></b><span>A las 18:00, un aviso con lo que hicieron tus agentes hoy.</span></div><button class="sw" type="button" role="switch" aria-checked="true" aria-labelledby="sw-15-58"></button></div>
+      <div class="setrow"><div class="t"><b id="sw-32-65">Cuando un agente termina o falla</b><span>Un aviso discreto. Los pedidos y las preguntas siempre te avisan.</span></div><button class="sw" type="button" role="switch" aria-checked="true" aria-labelledby="sw-32-65"></button></div>
+      <div class="setrow"><div class="t"><b id="sw-6-88">Vibrar</b><span>Una vibración corta cuando llega un pedido o una pregunta, incluso en horas de silencio.</span></div><button class="sw" type="button" role="switch" aria-checked="true" aria-labelledby="sw-6-88"></button></div></div></section>
+    <section aria-labelledby="s-qh"><h3 id="s-qh" class="sec">Horas de silencio</h3><div class="card">
+      <div class="setrow"><div class="t"><b id="sw-17-44">Horas de silencio</b><span>Sin sonido cuando un agente termina o falla.</span></div><button class="sw" type="button" role="switch" aria-checked="true" aria-labelledby="sw-17-44"></button></div>
+      <div class="setrow"><button class="btn sm" type="button" style="flex:1">Desde 23:00</button><button class="btn sm" type="button" style="flex:1">Hasta 08:00</button></div>
+      <div class="setrow"><div class="t"><b id="sw-20-52">Modo calma en Inicio <span class="chip" data-r="live" style="min-height:20px;font-size:11px;padding:0 8px;margin-left:4px"><i></i>Nuevo</span></b><span>Inicio muestra solo lo que te necesita y un resumen.</span></div><button class="sw" type="button" role="switch" aria-checked="true" aria-labelledby="sw-20-52"></button></div></div></section>
+    <p class="tiny muted" style="padding:0 4px">El historial se guarda solo en este teléfono y nunca se envía a ningún lado.</p>
+  </div><nav class="nav" aria-label="Secciones"><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M9 7H20M9 12H20M9 17H20M4.5 7V7.1M4.5 12V12.1M4.5 17V17.1"/></svg>Hoy</a><a href="#"  ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/></svg>Chat</a><a href="#" aria-current="page" ><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ><path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>Ajustes</a></nav></div><div class="gest" aria-hidden="true"></div></div></figure></main>
+<section class="better" aria-labelledby="better-h"><h2 id="better-h">Qué mejora frente a la app de hoy</h2><div class="cols">
+<div data-r="go"><h3><i></i>UI</h3><ul><li>Línea de tiempo con hora, punto de color de rol y texto; cada agente agrupado con su Koda en un halo del color de su estado y su color de identidad.</li><li>Resumen de hoy en tres cifras que se pueden tocar (terminadas, decisiones, uso del plan) en lugar de paneles sueltos.</li></ul></div>
+<div data-r="live"><h3><i></i>UX</h3><ul><li>Filtros Todo / Te necesitan / Terminó / Errores, con estado vacío real («Ningún agente tuvo errores hoy»).</li><li>El pedido trae «Lo que hizo antes» para decidir con contexto; las preguntas se responden dentro del hilo, sin cambiar de pantalla.</li></ul></div>
+<div data-r="sun"><h3><i></i>CX</h3><ul><li>Al volver al escritorio ya sabés qué pasó: el día cuenta una historia, no un estado suelto.</li><li>Modo calma de noche que no esconde pedidos, resumen diario opcional y la privacidad del historial dicha a la vista.</li></ul></div>
+<div class="trade" data-r="red"><h3><i></i>Compromiso</h3><p>Más para leer: con muchos agentes el feed crece y hay que desplazarse; decidir un pedido cuesta dos toques (Revisar → Permitir) en vez de uno.</p><p>Los pasos y archivos dependen de «Mostrar los detalles de la sesión en el teléfono» en la computadora; sin eso el hilo queda corto. El resumen del día y el modo calma son ajustes nuevos.</p></div>
+</div></section>
+<script>
+const KODA={"s32":"data:image/png;base64,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","s24":"data:image/png;base64,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","seq":{"reposo":{"row":0,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,0,0,1,1,1,1,0,0,2,2,0,0,3,0,0,1,1,1,1],"fps":8},"escucha":{"row":1,"seq":[0,0,0,0,1,1,1,1,0,0,0,0,0,2,2,0,0,0,0,1,1,1,3,3,0,0],"fps":8},"piensa":{"row":2,"seq":[0,0,0,0,0,1,1,1,1,1,0,0,0,2,2,3,3,3,3,1,1,1,1,0,0,0],"fps":8},"trabaja":{"row":3,"seq":[0,0,1,1,2,2,3,3],"fps":8},"espera":{"row":4,"seq":[0,0,0,1,2,2,3,3,0,1,2,3,3,0,0,0],"fps":8},"termino":{"row":5,"seq":[0,0,0,0,0,0,1,1,2,2,2,2,3,3,0,0,0,0,0,0],"fps":8},"error":{"row":6,"seq":[0,0,0,0,0,1,1,2,2,3,3,2,3,2,3,0,0,0,0,1,1],"fps":8}}};
+const LBL={"reposo":"durmiendo","escucha":"escuchando","piensa":"pensando","trabaja":"trabajando","espera":"esperando tu sí","termino":"terminó","error":"con un error"};
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ticks=new WeakMap();
+function paint(el,f){const s=+el.dataset.scale,st=KODA.seq[el.dataset.koda];
+  el.style.backgroundImage='url('+KODA.s32+')';el.style.backgroundSize=(128*s)+'px '+(224*s)+'px';
+  el.style.backgroundPosition='-'+(f*32*s)+'px -'+(st.row*32*s)+'px';}
+function koda(el,pose){el.dataset.koda=pose;el.setAttribute('aria-label','Koda, '+LBL[pose]);ticks.set(el,0);paint(el,KODA.seq[pose].seq[0]);}
+$$('[data-koda]').forEach(el=>{ticks.set(el,0);paint(el,KODA.seq[el.dataset.koda].seq[0]);});
+if(!reduce)setInterval(()=>{$$('[data-koda]').forEach(el=>{const st=KODA.seq[el.dataset.koda];
+  const t=((ticks.get(el)||0)+1)%st.seq.length;ticks.set(el,t);paint(el,st.seq[t]);});},125);
+$('#theme').addEventListener('click',e=>{const d=document.documentElement;const n=d.dataset.theme==='dark'?'light':'dark';
+  d.dataset.theme=n;e.currentTarget.setAttribute('aria-pressed',String(n==='light'));e.currentTarget.textContent=n==='light'?'Tema: claro':'Tema: oscuro';});
+$('#narrow').addEventListener('click',e=>{const on=!document.body.hasAttribute('data-narrow');document.body.toggleAttribute('data-narrow',on);
+  e.currentTarget.setAttribute('aria-pressed',String(on));e.currentTarget.textContent=on?'Ancho: 320 dp':'Ancho: 360 dp';});
+/* expiry countdown: text keeps updating with reduced motion; only the bar transition is motion */
+setInterval(()=>{$$('[data-countdown]').forEach(el=>{let s=Math.max(0,+el.dataset.countdown-1);el.dataset.countdown=s;
+  el.textContent='Caduca en '+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');});
+  $$('[data-countbar]').forEach(b=>{const s=+$('[data-countdown]').dataset.countdown;b.style.width=(s/300*100)+'%';});},1000);
+/* radio and checkbox rows, switches */
+$$('[role=radiogroup]').forEach(g=>$$('[role=radio]',g).forEach(o=>o.addEventListener('click',()=>{$$('[role=radio]',g).forEach(x=>x.setAttribute('aria-checked',String(x===o)));})));
+$$('[role=checkbox],[role=switch]').forEach(o=>o.addEventListener('click',()=>o.setAttribute('aria-checked',String(o.getAttribute('aria-checked')!=='true'))));
+
+function filter(f){$$('.fchip').forEach(c=>c.setAttribute('aria-pressed',String(c.dataset.f===f)));let any=false;
+  $$('#tl .tg').forEach(g=>{let vis=0;$$('.tl',g).forEach(e=>{const show=f==='all'||e.dataset.kind===f;e.hidden=!show;if(show)vis++;});g.hidden=!vis;if(vis)any=true;});
+  $('#tl-empty').hidden=any;}
+$$('[data-f]').forEach(c=>c.addEventListener('click',()=>filter(c.dataset.f)));
+</script></body></html>
