@@ -55,7 +55,7 @@ class GlanceTile : TileService() {
             val g: Glance = (tile.applicationContext as KenaiApp).model.glance()
             t.label = "Kenai"
             // Over the lock screen it names no agent, like the notifications' public versions.
-            t.subtitle = TilePlan.subtitle(g, tile.isLocked) { n -> tile.getString(R.string.tile_waiting, n) }
+            t.subtitle = TilePlan.subtitle(g) { n -> tile.getString(R.string.tile_waiting, n) }
             t.state = if (g.connected) Tile.STATE_ACTIVE else Tile.STATE_INACTIVE
             t.updateTile()
         }

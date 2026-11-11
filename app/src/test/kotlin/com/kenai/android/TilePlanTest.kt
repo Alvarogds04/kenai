@@ -23,7 +23,7 @@ class TilePlanTest {
         sessions: List<SessionInfo> = emptyList(), approvals: Int = 0, link: LinkState = LinkState.CONNECTED, paired: Boolean = true,
     ): Glance = GlanceBuilder.build(paired, link, "Léa's PC", sessions, approvals) { names[it] ?: "An agent" }
     private val waiting: (Int) -> String = { "$it waiting" }
-    private fun sub(g: Glance, locked: Boolean = false) = TilePlan.subtitle(g, locked, waiting)
+    private fun sub(g: Glance) = TilePlan.subtitle(g, waiting)
     private fun approval(pill: String, fp: String) = ApprovalRequest(pill, fp, "Bash", "rm -rf build/", 0L)
     private fun question(pill: String, fp: String) = QuestionRequest(pill, fp, emptyList(), 0L)
 
@@ -57,24 +57,24 @@ class TilePlanTest {
         assertEquals("Not paired", sub(glance(paired = false)))
     }
 
-    @Test fun onTheLockScreenNoAgentIsNamed() {
-        // Like the notifications' public versions: a count or a state word, never who.
-        assertEquals("1 waiting", sub(glance(listOf(s("b", BotState.APPROVAL)), approvals = 1), locked = true))
-        assertEquals("2 waiting", sub(glance(listOf(s("a", BotState.QUESTION), s("b", BotState.QUESTION))), locked = true))
-        assertEquals("Stopped on an error", sub(glance(listOf(s("a", BotState.WORKING), s("b", BotState.ERROR))), locked = true))
-        assertEquals("Working", sub(glance(listOf(s("b", BotState.WORKING))), locked = true))
-        assertEquals("Connected", sub(glance(), locked = true))
-        assertEquals("Not connected", sub(glance(link = LinkState.DISCONNECTED), locked = true))
-        val all = listOf(BotState.APPROVAL, BotState.QUESTION, BotState.WORKING, BotState.ERROR, BotState.FINISHED, BotState.IDLE)
-        for (state in all) for (n in 1..2) {
-            val text = sub(glance(listOf(s("a", state), s("b", BotState.WORKING)).take(n), approvals = if (state == BotState.APPROVAL) 1 else 0), locked = true)
-            for (name in names.values) assertFalse("$state/$n names $name: $text", text.contains(name))
-        }
+    @Test fun onTheLockScreenTheLineIsTheSameAsUnlocked() {
+        // Decided by the human (L17, option b): the locked tile names the agent too; still never a command or a file.
+        val cases = listOf(
+            glance(listOf(s("b", BotState.APPROVAL)), approvals = 1),
+            glance(listOf(s("a", BotState.QUESTION), s("b", BotState.QUESTION))),
+            glance(listOf(s("a", BotState.WORKING), s("b", BotState.ERROR))),
+            glance(listOf(s("b", BotState.WORKING))),
+            glance(),
+            glance(link = LinkState.DISCONNECTED),
+        )
+        for (g in cases) assertFalse(sub(g), sub(g).isBlank())
+        val one = glance(listOf(s("b", BotState.APPROVAL)), approvals = 1)
+        assertTrue(sub(one), names.values.any { sub(one).contains(it) })
     }
 
     @Test fun neverACommandOrAFile() {
         val sessions = listOf(s("a", BotState.APPROVAL), s("b", BotState.WORKING))
-        for (locked in listOf(false, true)) for (text in listOf(sub(glance(sessions, approvals = 1), locked), sub(glance(sessions.drop(1)), locked))) {
+        for (text in listOf(sub(glance(sessions, approvals = 1)), sub(glance(sessions.drop(1))))) {
             assertFalse(text, text.contains("rm -rf"))
             assertFalse(text, text.contains("secret.txt"))
         }
@@ -112,7 +112,7 @@ class TilePlanTest {
         assertTrue(tile.contains("TilePlan.subtitle("))
         assertTrue(tile.contains("TilePlan.target("))
         assertTrue(tile.contains("R.string.tile_waiting"))
-        assertTrue("on the lock screen it hides names", tile.contains("isLocked"))
+        assertFalse("the locked tile shows the same line (L17 option b)", tile.contains("isLocked"))
         assertFalse("its second line is no longer the bare headline", tile.contains("subtitle = g.headline"))
     }
 

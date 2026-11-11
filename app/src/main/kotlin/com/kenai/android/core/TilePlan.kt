@@ -25,18 +25,17 @@ object TilePlan {
 
     /**
      * The tile's second line. Not connected: the glance's own word. More than one waiting: "N waiting" ([waiting] formats it).
-     * Otherwise the most urgent agent and its state, which is the waiting one when one waits. On the lock screen: the count,
-     * or the state word without the agent.
+     * Otherwise the most urgent agent and its state, which is the waiting one when one waits. The lock screen shows the same
+     * line (decided L17, option b): the agent's name and a state word, never a command or a file.
      */
-    fun subtitle(g: Glance, locked: Boolean, waiting: (Int) -> String): String {
+    fun subtitle(g: Glance, waiting: (Int) -> String): String {
         if (!g.connected) return g.headline
         val top = g.lines.firstOrNull()
         return when {
-            g.waiting > 1 || (locked && g.waiting > 0) -> waiting(g.waiting)
+            g.waiting > 1 -> waiting(g.waiting)
             // A request with no session in a waiting state yet: never pin the wait on an agent that is only working.
             g.waiting == 1 && (top == null || top.state !in WAITS) -> g.headline
             top == null -> g.headline
-            locked -> top.text
             else -> "${top.agent} · ${top.text}"
         }
     }
