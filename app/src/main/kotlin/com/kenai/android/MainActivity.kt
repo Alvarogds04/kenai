@@ -150,6 +150,13 @@ class MainActivity : ComponentActivity() {
     private var confirming = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Recreated (light/dark switch, rotation, language, or the process ended in the background): the same screen and sheets.
+        savedInstanceState?.let { saved ->
+            detailPill = saved.getString(KEY_SESSION)
+            closedApproval = saved.getString(KEY_CLOSED_APPROVAL)
+            questionPill = saved.getString(KEY_QUESTION)
+            screen = Nav.restore(saved.getString(KEY_SCREEN), detailPill)
+        }
         enableEdgeToEdge()
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
@@ -229,6 +236,15 @@ class MainActivity : ComponentActivity() {
             }
         }
         handle(intent)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Only names and fingerprints: nothing about a command or an answer is kept here.
+        outState.putString(KEY_SCREEN, screen.name)
+        outState.putString(KEY_SESSION, detailPill)
+        outState.putString(KEY_CLOSED_APPROVAL, closedApproval)
+        outState.putString(KEY_QUESTION, questionPill)
     }
 
     override fun onStart() {
@@ -335,6 +351,13 @@ class MainActivity : ComponentActivity() {
             onSuccess = { confirming = false; model.decide(r.fingerprint, allow = true) },
             onFail = { confirming = false; if (it.isNotBlank()) model.message = it },
         )
+    }
+
+    private companion object {
+        const val KEY_SCREEN = "screen"
+        const val KEY_SESSION = "session"
+        const val KEY_CLOSED_APPROVAL = "closedApproval"
+        const val KEY_QUESTION = "question"
     }
 }
 

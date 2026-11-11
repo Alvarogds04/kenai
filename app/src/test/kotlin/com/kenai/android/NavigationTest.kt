@@ -55,4 +55,21 @@ class NavigationTest {
     @Test fun everyTabLeadsToItsOwnScreen() {
         for (t in Tab.entries) assertEquals(t, Nav.tabOf(Nav.screenOf(t)))
     }
+
+    @Test fun aRecreatedActivityReopensTheScreenThatWasOpen() {
+        // S4: a light/dark switch, a rotation or a language change must not send the user back to Home.
+        assertEquals(Screen.SETTINGS, Nav.restore(Screen.SETTINGS.name, sessionPill = null))
+        for (s in Screen.entries) assertEquals("$s", s, Nav.restore(s.name, sessionPill = "pill-1"))
+    }
+
+    @Test fun nothingOrSomethingUnknownSavedOpensHome() {
+        assertEquals(Screen.HOME, Nav.restore(null, null))
+        assertEquals(Screen.HOME, Nav.restore("", null))
+        assertEquals(Screen.HOME, Nav.restore("PLANETS", null)) // a screen of an older or newer version
+        assertEquals(Screen.HOME, Nav.restore("settings", null))
+    }
+
+    @Test fun aSessionPageWithoutItsSessionOpensHome() {
+        assertEquals(Screen.HOME, Nav.restore(Screen.SESSION.name, sessionPill = null))
+    }
 }

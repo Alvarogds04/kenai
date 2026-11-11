@@ -39,4 +39,14 @@ object Nav {
         Screen.CHAT, Screen.SETTINGS, Screen.SESSION, Screen.SCAN -> Screen.HOME
         Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES -> Screen.SETTINGS
     }
+
+    /**
+     * The screen a recreated activity reopens (a light/dark switch, a rotation, a language or font change, or the
+     * process ended in the background): the one saved by name. Home when nothing valid was saved, or for a session
+     * page that lost its session.
+     */
+    fun restore(saved: String?, sessionPill: String?): Screen {
+        val screen = Screen.entries.firstOrNull { it.name == saved } ?: return Screen.HOME
+        return if (screen == Screen.SESSION && sessionPill == null) Screen.HOME else screen
+    }
 }
