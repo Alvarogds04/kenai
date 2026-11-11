@@ -12,13 +12,13 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - S3: No Coucou name, Mochi, icon or sounds (NOTICE.md). Nothing on the desktop side is touched in this repo.
 
 ## Tasks
-- [~] T1 (S1) Functional canvas replica of today's app under `design/kenai-app-replica/` · split (L5): T1a phone screens + sheets + demo loop; T1b widget panel + Playwright check
-- [x] T1a (S1) Phone: every screen, sheets, demo loop, fake data · worker · check-phone.cjs 39 checks ok, 0 errors (parent re-ran); commit with T1b
-- [ ] T1b (S1) Widget panel wired to the phone + Playwright check · worker, after T1a
+- [x] T1 (S1) Functional canvas replica of today's app under `design/kenai-app-replica/` · split (L5) · 5c6f7ee
+- [x] T1a (S1) Phone: every screen, sheets, demo loop, fake data · worker · 5c6f7ee (check-phone.cjs 39 checks, 0 errors)
+- [x] T1b (S1) Widget panel wired to the phone + Playwright check · worker · 5c6f7ee (check-widgets.cjs 112 checks, 0 errors)
 - [x] T2 (S2.5) Light theme · worker · e3e7f63 (722 tests, 0 failures)
 - [ ] T3 (S2.6) Spanish strings and the end of the English-only rule · last, so it translates the strings T4/T5 add
 - [x] T4 (S2.7a) Vibration on an arriving approval or question · worker · 87cb0d8 (740 tests, 0 failures)
-- [ ] T5 (S2.7b) Quick settings tile actions
+- [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
 ## Log
 - L1: «si sacalo, quiero una maqueta de canvas que sea funcional igual a la app de verdad, que funciones tiene coucou que podamos agregar?» (HANDOFF removed in beb41a8).
@@ -28,3 +28,5 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L5: «dale» — accepts the proposal: relaunch the replica split in two (T1a, T1b); 1a light theme follows the system; 2a Spanish by phone language; 3a vibrate also during quiet hours; 4 a+b tile subtitle + opens what is pending. Order: T1a ∥ T2, then T1b, T4, T5, T3 last (T4/T5 add strings T3 translates; app-strings.json is shared, so they are not parallel).
 - L6: T2 done in e3e7f63: follows the system theme; island, sheets, scan and hero stay dark; parent re-ran the suite: 722 tests, 0 failures. Open (pre-existing, not fixed): the bottom bar draws over the Pairing paste sheet and likely the Home address sheet, hiding their buttons; a light strip under dark sheets in light mode (cosmetic).
 - L7: T4 done in 87cb0d8: "Vibrate" switch (on by default) in Settings > Sound; buzzes for questions and for approvals not shown as heads-up, also in quiet hours; one buzz per request/question (same agent within 15 s = same question). Parent re-ran the suite: 740 tests, 0 failures. Known: with the switch off, a heads-up approval still vibrates through its notification channel (Android setting).
+- L8: T1b done; parent changed Finished today to count only when paired, as the real app (AppModel.onSessions); both checks re-run: 39 + 112 checks, 0 errors. Replica committed in 5c6f7ee.
+- L9: T5 done in 6d9ee67: tile subtitle = "N waiting" or the most urgent agent + state; tap opens the pending approval, else the oldest question, else Home, through LaunchActivity; never decides. Parent re-ran the suite: 758 tests, 0 failures. Open decision for the human: on the lock screen the tile names no agent ("N waiting" or a state word), mirroring the notifications' lock-screen versions; before, it showed names.
