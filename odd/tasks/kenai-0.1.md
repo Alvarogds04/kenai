@@ -13,6 +13,7 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - S5: «veo que el diseño tiene referencias visuales de abito cambiado eso por koda en la app» → every place the app draws Abito's green clay character (sheets, pairing, gallery, island, widgets and their previews, launcher icon) shows Koda instead. Wire IDs (`abito://pair`, `_abito._tcp`) stay until K2-12.
 - S6: «todo en espaól» → on a Spanish phone everything is Spanish: the Koda desktop menus quoted in Spanish stay; the demo's status texts and the copied diagnostics report are Spanish too.
 - S7: «si arreglalo» → the bottom bar must not cover the buttons of the Pairing "Paste the link" sheet and the Home address sheet.
+- S8: «podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras» → (a) the canvas replica draws Koda wherever it still draws the clay mascot (sheets, pairing, chat, session, gallery, widgets); (b) a new design `design/kenai-mejoras/` with 3 clearly different improvement directions for UI, UX and CX, Koda everywhere, Spanish, tokens of design/system.md.
 - S3: No Coucou name, Mochi, icon or sounds (NOTICE.md). Nothing on the desktop side is touched in this repo.
 
 ## Tasks
@@ -29,6 +30,8 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - [x] T8 (S5) Koda instead of Abito's clay character everywhere in the app · worker · a7e5951
 - [x] T9 (S7) Bottom bar never covers a sheet's buttons · worker · 85f5187
 - [x] T10 (S6) Demo texts and diagnostics report in Spanish · worker · 01ad329
+- [ ] T11 (S8a) Replica: Koda instead of the clay mascot · worker
+- [ ] T12 (S8b) Three improvement directions under design/kenai-mejoras/ · worker, parallel
 - [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
 ## Log
@@ -49,3 +52,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L15: «todo en espaól, veo que el diseño tiene referencias visuales de abito cambiado eso por koda en la app, si arreglalo» — answers: 1 Koda menus in Spanish (and everything else Spanish too: S6); new S5 Koda instead of Abito's clay character; 3 fix the bar over the sheets (S7). The tile lock-screen question got no answer: it keeps hiding agent names. T8, T9, T10 run in parallel on disjoint files.
 - L16: T8 a7e5951 (Koda drawn by CharacterEngine/CharacterView/CharacterBitmap, widget previews, launcher and notification icons; parent removed the unused ClayModel.kt and switched Home's hero to CharacterView so taps show), T9 85f5187 (paste and address sheets drawn above the bar; the bar hides while any sheet is open; sheets reach the bottom edge), T10 01ad329 (demo statuses and the copied report through Words). Parent re-ran the suite: 803 tests, 0 failures; installed the committed APK on the emulator: Koda on Home, Gallery and approval sheet, Spanish everywhere checked, Deny round trip, no crash. Open: the Gallery's state labels (idle, working…) are internal names in English.
 - L17: «Si a español» → the Gallery names its states and emotes in the phone language (698469f). «B» → the tile on the lock screen shows the same line as unlocked: agent name + state word ("Claude Code · Esperando tu aprobación"); never a command or a file, never a decision from the tile.
+- L18: T5 lock-screen change bc83094 (805 tests, 0 failures). «podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras» → T11 (replica with Koda) and T12 (3 directions), parallel, disjoint folders.
