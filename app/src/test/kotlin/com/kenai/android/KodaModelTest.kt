@@ -1,5 +1,6 @@
 package com.kenai.android
 
+import com.kenai.android.character.BotEmote
 import com.kenai.android.character.BotState
 import com.kenai.android.character.KodaPose
 import com.kenai.android.character.KodaRole
@@ -17,6 +18,19 @@ class KodaModelTest {
         assertEquals(KodaPose.ESPERA, KodaPose.of(BotState.APPROVAL))
         assertEquals(KodaPose.TERMINO, KodaPose.of(BotState.FINISHED))
         assertEquals(KodaPose.ERROR, KodaPose.of(BotState.ERROR))
+    }
+
+    @Test fun everyEmoteHasTheNearestPose() {
+        // A pet (love) and a wink: the attentive, content cat; happy and proud: the done pose; surprised: the "?" pose;
+        // a yawn: asleep; a slap (annoyed): the flat-eared error pose.
+        val expected = mapOf(
+            BotEmote.LOVE to KodaPose.ESCUCHA, BotEmote.WINK to KodaPose.ESCUCHA,
+            BotEmote.HAPPY to KodaPose.TERMINO, BotEmote.PROUD to KodaPose.TERMINO,
+            BotEmote.SURPRISED to KodaPose.ESPERA, BotEmote.YAWN to KodaPose.REPOSO, BotEmote.ANNOYED to KodaPose.ERROR,
+        )
+        assertEquals(BotEmote.entries.toSet(), expected.keys)
+        for ((e, p) in expected) assertEquals(e.name, p, KodaPose.of(e))
+        assertEquals("dizzy shows the error pose", KodaPose.ERROR, KodaPose.of(BotState.DIZZY))
     }
 
     @Test fun framesStayInTheFourColumnsOfTheSheet() {

@@ -33,7 +33,7 @@ class SoloWidget : AppWidgetProvider() {
             val large = size == WidgetHub.Size.LARGE
             val small = size == WidgetHub.Size.SMALL
 
-            v.setImageViewBitmap(R.id.solo_character, CharacterBitmap.of(c.mood, WidgetHub.px(context, if (large) 150 else if (small) 72 else 104), glow = true, tone = c.look))
+            v.setImageViewBitmap(R.id.solo_character, CharacterBitmap.of(context, c.mood, WidgetHub.px(context, if (large) 150 else if (small) 72 else 104), glow = true, tone = c.look))
             val word = top?.stateWord ?: c.headline
             v.setContentDescription(R.id.solo_character, context.getString(R.string.widget_character_description, word.lowercase()))
 

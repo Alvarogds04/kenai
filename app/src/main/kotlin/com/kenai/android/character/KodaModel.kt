@@ -38,6 +38,19 @@ enum class KodaPose(
                 BotState.FINISHED -> TERMINO
                 BotState.ERROR, BotState.DIZZY -> ERROR
             }
+
+        /**
+         * The nearest pose for a short reaction (S5): a pet or a wink is the attentive, content cat; happy and proud the done
+         * pose; surprised the "?" pose; a yawn asleep; a slap (annoyed) the flat-eared error pose.
+         */
+        fun of(emote: BotEmote): KodaPose =
+            when (emote) {
+                BotEmote.LOVE, BotEmote.WINK -> ESCUCHA
+                BotEmote.HAPPY, BotEmote.PROUD -> TERMINO
+                BotEmote.SURPRISED -> ESPERA
+                BotEmote.YAWN -> REPOSO
+                BotEmote.ANNOYED -> ERROR
+            }
     }
 }
 

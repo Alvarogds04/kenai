@@ -5,18 +5,12 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.random.Random
 
-/** Kenai's clay character, ported from the desktop's clay-engine.js (HU-049 T6). */
+/** The app's character engine (S5): Koda's pose and frame for a state or a reaction, with the slaps and emotes of HU-049 T6. */
 class CharacterEngineTest {
     private var ms = 0.0
 
-    private fun engine(
-        seed: Int = 7,
-        state: BotState = BotState.IDLE,
-    ) = CharacterEngine({ ms }, Random(seed)).apply { setState(state, force = true) }
+    private fun engine(state: BotState = BotState.IDLE) = CharacterEngine({ ms }).apply { setState(state, force = true) }
 
     private fun CharacterEngine.run(seconds: Double): CharacterEngine {
         repeat((seconds * 60).toInt()) {
@@ -26,101 +20,64 @@ class CharacterEngineTest {
         return this
     }
 
-    /** Shoelace area of the body outline. */
-    private fun area(g: Clay.Geometry): Double {
-        var a = 0.0
-        for (i in g.pts.indices) {
-            val p = g.pts[i]
-            val q = g.pts[(i + 1) % g.pts.size]
-            a += p[0] * q[1] - q[0] * p[1]
-        }
-        return abs(a) / 2
+    @Test fun everyStateShowsItsKodaPose() {
+        for (s in BotState.entries) assertEquals("$s", KodaPose.of(s), engine(s).run(.5).pose())
     }
 
-    @Test fun everyStateHasAPoseAndEveryEmoteAnAnimation() {
-        assertEquals(BotState.entries.toSet(), Clay.POSES.keys)
-        assertEquals(BotEmote.entries.toSet(), Clay.EMOTES.keys)
+    @Test fun theFrameFollowsThePoseSequenceAndHoldsTheFirstWithReducedMotion() {
+        val e = engine(BotState.WORKING)
+        val seen = (0 until 60).map { e.run(1.0 / 60).frame() }.toSet()
+        assertTrue("the working pose animates", seen.size > 1)
+        assertTrue(seen.all { it in 0..3 })
+        e.run(.37)
+        assertEquals(KodaPose.TRABAJA.sequence[0], e.frame(reduceMotion = true))
     }
 
-    @Test fun theSameSeedGivesTheSamePicture() {
-        val a = engine(seed = 3, state = BotState.WORKING).run(2.0).geometry()
-        ms = 0.0
-        val b = engine(seed = 3, state = BotState.WORKING).run(2.0).geometry()
-        assertTrue(a.pts.indices.all { a.pts[it].contentEquals(b.pts[it]) })
-        assertEquals(a.eyes, b.eyes)
+    @Test fun aNewStateStartsItsPoseFromTheFirstFrame() {
+        val e = engine(BotState.IDLE).run(2.3)
+        e.setState(BotState.FINISHED)
+        assertEquals(KodaPose.TERMINO, e.pose())
+        assertEquals(KodaPose.TERMINO.sequence[0], e.frame())
+        // The same state again (forced or not) does not restart it.
+        e.run(.8)
+        val f = e.frame()
+        e.setState(BotState.FINISHED, force = true)
+        assertEquals(f, e.frame())
     }
 
-    @Test fun theBodyKeepsItsSizeInEveryState() {
-        val expected = PI * Clay.R0 * Clay.R0
-        for (s in BotState.entries) {
-            val a = area(engine(state = s).run(3.0).geometry())
-            assertEquals("$s area", 1.0, a / expected, .04)
-        }
-    }
-
-    @Test fun asleepTheEyesAreClosedWaitingForADecisionTheyAreOpen() {
-        val sleeping = engine(state = BotState.SLEEPING).run(4.0).geometry()
-        assertTrue(sleeping.eyes.all { it.upper > .85 })
-        val approval = engine(state = BotState.APPROVAL).run(4.0)
-        val lids =
-            (0 until 120).map {
-                approval
-                    .run(1.0 / 60)
-                    .geometry()
-                    .eyes
-                    .maxOf { it.upper }
-            }
-        assertTrue("open most of the time", lids.count { it < .05 } > 100)
-    }
-
-    @Test fun aNewStateIsReachedGraduallyNotInOneFrame() {
-        val e = engine(state = BotState.IDLE).run(3.0)
-        val before = e.geometry().eyes[0].upper
-        e.setState(BotState.SLEEPING)
-        val next =
-            e
-                .run(1.0 / 60)
-                .geometry()
-                .eyes[0]
-                .upper
-        assertTrue("one frame moves a little", next - before < .1)
-        assertTrue(
-            "then it gets there",
-            e
-                .run(4.0)
-                .geometry()
-                .eyes[0]
-                .upper > .85,
-        )
-    }
-
-    @Test fun anEmotePlaysOnceAndEnds() {
-        val e = engine().run(1.0)
+    @Test fun anEmotePlaysOnceOverTheStateAndEnds() {
+        val e = engine(BotState.WORKING).run(1.0)
         assertTrue(e.triggerEmote(BotEmote.SURPRISED))
         assertFalse("one at a time, never queued", e.triggerEmote(BotEmote.HAPPY))
         assertEquals(BotEmote.SURPRISED, e.currentEmote())
+        assertEquals(KodaPose.ESPERA, e.pose())
         e.run(1.1)
         assertNull(e.currentEmote())
+        assertEquals("back to the state's pose", KodaPose.TRABAJA, e.pose())
         assertTrue(e.triggerEmote(BotEmote.HAPPY))
     }
 
-    @Test fun loveSendsMotesUpExceptOnASmallCharacter() {
-        val big =
-            engine()
-                .run(1.0)
-                .apply { triggerEmote(BotEmote.LOVE) }
-                .run(.4)
-                .geometry()
-        assertTrue(big.motes.isNotEmpty())
-        val mini =
-            engine()
-                .run(1.0)
-                .apply {
-                    isMini = true
-                    triggerEmote(BotEmote.LOVE)
-                }.run(.4)
-                .geometry()
-        assertTrue(mini.motes.isEmpty())
+    @Test fun aPetIsTheContentCatForItsLength() {
+        val e = engine().run(1.0)
+        e.triggerEmote(BotEmote.LOVE)
+        assertEquals(KodaPose.ESCUCHA, e.run(1.5).pose())
+        assertEquals(KodaPose.REPOSO, e.run(.5).pose())
+    }
+
+    @Test fun aNewStateCancelsTheReaction() {
+        val e = engine().run(1.0)
+        e.triggerEmote(BotEmote.LOVE)
+        e.setState(BotState.APPROVAL)
+        assertNull(e.currentEmote())
+        assertEquals(KodaPose.ESPERA, e.pose())
+    }
+
+    @Test fun aPermanentEmoteNeverEnds() {
+        val e = engine().apply { setPermanentEmote(BotEmote.YAWN) }.run(5.0)
+        assertEquals(BotEmote.YAWN, e.currentEmote())
+        assertEquals(KodaPose.REPOSO, e.pose())
+        e.setPermanentEmote(BotEmote.ANNOYED)
+        assertEquals(KodaPose.ERROR, e.pose())
     }
 
     @Test fun threeQuickSlapsMakeItDizzyButSlowOnesDoNot() {
@@ -138,27 +95,35 @@ class CharacterEngineTest {
         assertEquals(1, dizzy)
     }
 
-    @Test fun aSlapAnnoysItForAMoment() {
-        val e = engine().run(1.0)
+    @Test fun aSlapAnnoysItForAMomentWithTheFlatEars() {
+        val sounds = mutableListOf<String>()
+        val e = CharacterEngine({ ms }, sound = { sounds += it }).apply { setState(BotState.IDLE, force = true) }.run(1.0)
         e.slap()
+        assertEquals(listOf("slap"), sounds)
         assertEquals(BotEmote.ANNOYED, e.currentEmote())
+        assertEquals(KodaPose.ERROR, e.pose())
         e.run(1.0)
         assertNull(e.currentEmote())
+        assertEquals(KodaPose.REPOSO, e.pose())
     }
 
-    @Test fun itIsKenaisGreenUnlessItWearsItsAgentsColour() {
-        val e = engine()
-        assertEquals(CharacterEngine.KENAI_GREEN, e.color())
+    @Test fun dizzyIsTheErrorPose() {
+        assertEquals(KodaPose.ERROR, engine(BotState.DIZZY).pose())
+    }
+
+    @Test fun itGlowsInItsAgentsColourElseItsStatesRoleColour() {
+        val e = engine(BotState.WORKING)
+        val live = KodaRole.LIVE
+        assertEquals(Rgb(((live shr 16) and 0xFF) / 255.0, ((live shr 8) and 0xFF) / 255.0, (live and 0xFF) / 255.0), e.color())
         val blue = Rgb(.2, .4, 1.0)
         e.bodyColor = blue
         assertEquals(blue, e.color())
     }
 
     @Test fun aLongPauseDoesNotJump() {
-        val e = engine(state = BotState.IDLE).run(3.0)
-        val before = e.geometry().eyes[0].upper
-        e.setState(BotState.SLEEPING)
+        val e = engine().run(1.0)
+        e.triggerEmote(BotEmote.ANNOYED) // 0.8 s
         e.update(10.0) // the screen was away: one capped step, not ten seconds at once
-        assertTrue(e.geometry().eyes[0].upper - before < .2)
+        assertEquals(BotEmote.ANNOYED, e.currentEmote())
     }
 }

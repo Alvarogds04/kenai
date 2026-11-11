@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The placeholder Kenai character in the "working" state with its glow behind it, as the Widget picker shows it (vectors only). -->
+<!-- Koda in the "working" state with its glow behind it, as the Widget picker shows it (vectors only). -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@drawable/preview_glow_working" />
     <item android:drawable="@drawable/preview_face_working" />

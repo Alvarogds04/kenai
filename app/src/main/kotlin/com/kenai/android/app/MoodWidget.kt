@@ -20,7 +20,7 @@ class MoodWidget : AppWidgetProvider() {
         fun views(context: Context, c: WidgetContent): RemoteViews {
             val v = RemoteViews(context.packageName, R.layout.widget_mood)
             WidgetHub.paint(v, R.id.mood_root, R.id.mood_tint, c.look)
-            v.setImageViewBitmap(R.id.mood_face, CharacterBitmap.of(c.mood, WidgetHub.px(context, 64), glow = true, tone = c.look))
+            v.setImageViewBitmap(R.id.mood_face, CharacterBitmap.of(context, c.mood, WidgetHub.px(context, 64), glow = true, tone = c.look))
             v.setContentDescription(R.id.mood_face, context.getString(R.string.widget_character_description, (c.top?.stateWord ?: c.headline).lowercase()))
             v.setViewVisibility(R.id.mood_offline, if (c.connected) View.GONE else View.VISIBLE)
             val top = c.top

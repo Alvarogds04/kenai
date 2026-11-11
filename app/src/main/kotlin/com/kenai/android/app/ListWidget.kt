@@ -47,7 +47,7 @@ class ListWidget : AppWidgetProvider() {
                 v.setViewVisibility(R.id.list_header, View.GONE)
                 v.setViewVisibility(R.id.list_rows, View.GONE)
                 v.setViewVisibility(R.id.list_empty, View.VISIBLE)
-                v.setImageViewBitmap(R.id.list_empty_face, CharacterBitmap.of(c.mood, WidgetHub.px(context, 96), glow = true, tone = c.look))
+                v.setImageViewBitmap(R.id.list_empty_face, CharacterBitmap.of(context, c.mood, WidgetHub.px(context, 96), glow = true, tone = c.look))
                 v.setContentDescription(R.id.list_empty_face, context.getString(R.string.widget_character_description, c.mood.key))
                 v.setImageViewResource(R.id.list_empty_icon, if (c.connected) R.drawable.widget_dot else R.drawable.ic_widget_offline)
                 v.setInt(R.id.list_empty_icon, "setColorFilter", c.look.argb)
@@ -82,7 +82,7 @@ class ListWidget : AppWidgetProvider() {
                 }
                 v.setViewVisibility(r.row, View.VISIBLE)
                 v.setInt(r.stripe, "setColorFilter", tile.tone.argb)
-                v.setImageViewBitmap(r.face, CharacterBitmap.of(tile.state, face))
+                v.setImageViewBitmap(r.face, CharacterBitmap.of(context, tile.state, face))
                 v.setContentDescription(r.face, context.getString(R.string.widget_character_description, tile.stateWord.lowercase()))
                 v.setTextViewText(r.name, tile.name)
                 v.setTextViewText(r.state, tile.stateWord)

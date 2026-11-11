@@ -168,7 +168,7 @@ class WidgetPreviewTest {
         assertTrue(preview("alert").contains("""android:textColor="@color/widget_tone_attention_text""""))
     }
 
-    // ── The vector Kenai ───────────────────────────────────────────────────────────────────────────
+    // ── The vector Koda ────────────────────────────────────────────────────────────────────────────
 
     private val states = mapOf("working" to WidgetTone.WORKING, "waiting" to WidgetTone.ATTENTION, "done" to WidgetTone.DONE, "idle" to WidgetTone.MUTED)
     private fun hex(t: WidgetTone) = t.argb.toUInt().toString(16).uppercase().padStart(8, '0').substring(2)
@@ -183,8 +183,10 @@ class WidgetPreviewTest {
             assertTrue("$state glow colour", glow.contains(hex(tone)))
             assertTrue("$state glow fades out", glow.contains("""android:type="radial"""") && Regex("""android:color="#00${hex(tone)}"""").containsMatchIn(glow))
             assertTrue(character.indexOf("preview_glow_$state") in 0 until character.indexOf("preview_face_$state"))
-            // The placeholder character is in its state's colour, so the picker and the widget agree.
-            assertTrue("$state face colour", face.contains("#" + hex(tone)))
+            // The face is Koda drawn from the sprite sheet (KodaEverywhereTest checks it pixel by pixel), so the picker and the
+            // widget agree; the state's colour is the glow's.
+            assertTrue("$state face is Koda", face.contains("koda_chibi.png") && face.contains("#3B3647"))
+            assertFalse("$state face is not a disc in the state colour", face.contains("#" + hex(tone)))
             for (d in listOf(face, glow)) {
                 assertTrue(d.contains("""android:viewportWidth="120"""") && d.contains("""android:viewportHeight="120""""))
             }

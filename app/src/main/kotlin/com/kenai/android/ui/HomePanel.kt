@@ -40,6 +40,7 @@ import com.kenai.android.link.SessionInfo
 import com.kenai.android.character.BotState
 import com.kenai.android.character.StateColors
 import com.kenai.android.character.CharacterEngine
+import com.kenai.android.character.CharacterView
 import com.kenai.android.character.KodaRole
 import com.kenai.android.character.KodaView
 import com.kenai.android.character.Rgb
@@ -101,13 +102,13 @@ fun HeroCard(
             }
             if (focus == null) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    KodaView(state, Modifier.size(128.dp).then(touch), stringResource(R.string.koda_description))
+                    CharacterView(engine, Modifier.size(128.dp).then(touch), stringResource(R.string.koda_description))
                     Text(stringResource(R.string.home_empty_title), style = TypeScale.TITLE.style(white))
                     Text(stringResource(R.string.home_empty_hint), style = TypeScale.SECONDARY.style(dim), maxLines = 3)
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    KodaView(state, Modifier.size(96.dp).then(touch), stringResource(R.string.koda_description))
+                    CharacterView(engine, Modifier.size(96.dp).then(touch), stringResource(R.string.koda_description))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         val pillName = Pills.byId(focus.pillId)?.name.orEmpty()
                         val name = focus.agent.ifBlank { pillName }.ifBlank { stringResource(R.string.app_name) }

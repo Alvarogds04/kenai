@@ -10,17 +10,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import com.kenai.android.R
-
-private const val CELL = 32
+import com.kenai.android.character.CharacterPainter.drawKoda
 
 /**
  * Koda drawn from the sprite sheet at a whole-number scale (crisp pixels), centred in its box. With "remove animations"
@@ -51,17 +47,5 @@ fun KodaView(
         }
     }
     val sem = if (description != null) Modifier.semantics { contentDescription = description } else Modifier
-    Canvas(modifier.then(sem)) {
-        val scale = (minOf(size.width, size.height) / CELL).toInt().coerceAtLeast(1)
-        val side = CELL * scale
-        val dst = IntOffset(((size.width - side) / 2).toInt(), ((size.height - side) / 2).toInt())
-        drawImage(
-            sheet,
-            srcOffset = IntOffset(pose.frameAt(t, reduce) * CELL, pose.row * CELL),
-            srcSize = IntSize(CELL, CELL),
-            dstOffset = dst,
-            dstSize = IntSize(side, side),
-            filterQuality = FilterQuality.None,
-        )
-    }
+    Canvas(modifier.then(sem)) { drawKoda(sheet, pose, pose.frameAt(t, reduce)) }
 }
