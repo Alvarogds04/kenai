@@ -1,5 +1,5 @@
 {
-  "_about": "English source for the Android app (English only). Edit this file, then run: node android/scripts/gen-strings.mjs . Placeholders are %1$s style.",
+  "_about": "English source for the Android app, and its default language. Every translation (app-strings.es.json) must have exactly these keys and the same placeholders. Edit this file and the translations, then run: node scripts/gen-strings.mjs . Placeholders are %1$s style.",
   "strings": {
     "app_name": "Kenai",
     "koda_description": "Koda, Kenai's cat",

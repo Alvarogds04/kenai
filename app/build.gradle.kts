@@ -24,8 +24,8 @@ android {
         targetSdk = 35
         versionCode = 2
         versionName = "0.2.0"
-        // English only: libraries' other languages are left out of the app too.
-        resourceConfigurations += listOf("en")
+        // English (the default) and Spanish, chosen by the phone's language; libraries' other languages are left out of the app too.
+        resourceConfigurations += listOf("en", "es")
     }
     signingConfigs {
         val keystore = releaseKeystore
@@ -59,6 +59,13 @@ android {
     sourceSets["main"].java.srcDirs("src/main/kotlin")
     sourceSets["debug"].java.srcDirs("src/debug/kotlin") // the Widgets preview receiver: debug builds only
     sourceSets["test"].java.srcDirs("src/test/kotlin")
+    // Unit tests run in English whatever the machine's language; a test about Spanish sets Locale itself.
+    testOptions {
+        unitTests.all {
+            it.systemProperty("user.language", "en")
+            it.systemProperty("user.country", "US")
+        }
+    }
 }
 
 dependencies {

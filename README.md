@@ -17,8 +17,10 @@ Needs JDK 17 and the Android SDK (platform 35), with `sdk.dir` in `local.propert
 
 ```bash
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew testDebugUnitTest assembleDebug
-node scripts/gen-strings.mjs --check   # res/values/strings.xml is generated from i18n/app-strings.json
+node scripts/gen-strings.mjs --check   # res/values*/strings.xml are generated from i18n/; run without --check to regenerate
 ```
+
+The app ships English (the default) and Spanish, picked by the phone's language: edit `i18n/app-strings.json` and `i18n/app-strings.es.json`, then run `node scripts/gen-strings.mjs`.
 
 Release signing reads `KENAI_KEYSTORE_FILE`, `KENAI_KEYSTORE_PASSWORD`, `KENAI_KEY_ALIAS` (and `KENAI_KEY_PASSWORD`).
 
