@@ -15,6 +15,11 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.graphics.Color
+import com.kenai.android.core.IslandSurface
+import com.kenai.android.ui.SystemBars
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -140,6 +145,8 @@ class MainActivity : ComponentActivity() {
     /** The approval the user closed without deciding (the sheet stays down for it), and the session whose question is open. */
     private var closedApproval by mutableStateOf<String?>(null)
     private var questionPill by mutableStateOf<String?>(null)
+    /** Home's list shows its black hero under the status bar (the bar icons stay light then). */
+    private var heroOnTop by mutableStateOf(true)
     private var confirming = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -150,9 +157,19 @@ class MainActivity : ComponentActivity() {
         model.resume()
         setContent {
             KenaiTheme {
-                // The app is dark only: the status bar icons are always light.
-                SideEffect { WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false }
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+                // The theme follows the system. Light bar icons over anything dark: the dark theme, the camera, the Home hero.
+                // Read here, in composition: a SideEffect does not re-run when state read only inside it changes.
+                val dark = isSystemInDarkTheme()
+                val darkStatus = SystemBars.darkStatusIcons(dark, screen, paired = model.mode != Mode.NONE, heroOnTop = heroOnTop)
+                val darkNav = SystemBars.darkNavigationIcons(dark, screen)
+                SideEffect {
+                    WindowCompat.getInsetsController(window, window.decorView).apply {
+                        isAppearanceLightStatusBars = darkStatus
+                        isAppearanceLightNavigationBars = darkNav
+                    }
+                }
+                // The camera screen is black to the bottom edge, in both themes.
+                Surface(Modifier.fillMaxSize(), color = if (screen == Screen.SCAN) Color(IslandSurface.BLACK) else MaterialTheme.colorScheme.background) {
                     Box(Modifier.fillMaxSize().windowInsetsPadding(if (screen == Screen.HOME || screen == Screen.SCAN) WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom) else WindowInsets.safeDrawing)) {
                         val tabs = Nav.tabs()
                         val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -182,6 +199,7 @@ class MainActivity : ComponentActivity() {
                                 onSession = { detailPill = it; screen = Screen.SESSION },
                                 onScan = { screen = Screen.SCAN }, onReview = { closedApproval = null }, onQuestion = { questionPill = it },
                                 onHistory = { screen = Screen.HISTORY }, onDiagnostics = { screen = Screen.DIAGNOSTICS },
+                                onHeroOnTop = { heroOnTop = it },
                             )
                         }
                         }
@@ -311,6 +329,7 @@ class MainActivity : ComponentActivity() {
 private fun Home(
     model: AppModel, onApprove: (ApprovalRequest) -> Unit, onOverlay: (Boolean) -> Unit, onSession: (String) -> Unit,
     onScan: () -> Unit, onHistory: () -> Unit, onReview: () -> Unit, onQuestion: (String) -> Unit, onDiagnostics: () -> Unit,
+    onHeroOnTop: (Boolean) -> Unit = {},
 ) {
     val engines = remember { HashMap<String, CharacterEngine>() }
     val miniEngines = remember { HashMap<String, CharacterEngine>() }
@@ -318,6 +337,8 @@ private fun Home(
     val clock = remember { { SystemClock.elapsedRealtimeNanos() / 1e6 } }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
+    // The hero is the list's first item: while it is the first one visible, it is what sits under the status bar.
+    LaunchedEffect(listState) { snapshotFlow { listState.firstVisibleItemIndex == 0 }.collect { onHeroOnTop(it) } }
     var addressOpen by rememberSaveable { mutableStateOf(false) }
 
     // Allow tapped on a notification before the link was back: open the prompt once the request is here.

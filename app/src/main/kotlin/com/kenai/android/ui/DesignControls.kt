@@ -63,7 +63,8 @@ fun KenaiSwitch(checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifie
                 .background(if (checked) t.online.c() else t.panel2.c())
                 .border(1.dp, if (checked) Color.Transparent else t.line.c(), CircleShape),
         ) {
-            Box(Modifier.offset(x = 3.dp + knobX, y = 3.dp).size(KNOB).clip(CircleShape).background(Color.White))
+            // The faint ring keeps the knob visible on the light theme's pale track.
+            Box(Modifier.offset(x = 3.dp + knobX, y = 3.dp).size(KNOB).clip(CircleShape).background(Color.White).border(1.dp, Color.Black.copy(alpha = 0.12f), CircleShape))
         }
     }
 }

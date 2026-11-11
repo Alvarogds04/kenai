@@ -12,9 +12,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The redesign's tokens: readable text on every surface it sits on, on the dark theme, and a scale that holds together. */
+/** The redesign's tokens: readable text on every surface it sits on, in the dark and the light theme, and a scale that holds together. */
 class TokensTest {
-    private val themes = mapOf("dark" to Tokens.DARK)
+    private val themes = mapOf("dark" to Tokens.DARK, "light" to Tokens.LIGHT)
     private fun c(a: Long, b: Long) = Palette.contrast(a, b)
 
     @Test fun primaryTextIsReadableOnEverySurface() {
@@ -66,7 +66,21 @@ class TokensTest {
     }
 
     @Test fun theWashIsSoft() {
-        assertTrue(Tokens.DARK.washAlpha in 0.3..0.6)
+        for ((n, t) in themes) assertTrue(n, t.washAlpha in 0.3..0.6)
+    }
+
+    @Test fun theLightThemeIsDarkTextOnALightPage() {
+        val t = Tokens.LIGHT
+        for (s in listOf(t.bg, t.panel, t.panel2)) assertTrue("light surface ${s.toString(16)}", c(s, 0xFFFFFFFF) < c(s, 0xFF000000))
+        assertTrue("light text is dark", c(t.text, 0xFF000000) < c(t.text, 0xFFFFFFFF))
+        assertTrue("the main button is dark on a light page", c(t.primaryButton, 0xFF000000) < c(t.primaryButton, 0xFFFFFFFF))
+    }
+
+    @Test fun theDarkOnlySurfacesDoNotFollowTheTheme() {
+        // The island, the sheets, the scan screen and the hero stay dark in both themes: their colours are not theme tokens.
+        assertTrue(c(IslandSurface.HERO, 0xFF000000) < 1.2 && c(IslandSurface.PANEL, 0xFF000000) < 1.2)
+        assertTrue(c(IslandSurface.ON_PRIMARY, IslandSurface.TEXT) >= 7.0)
+        assertTrue("danger on the dark sheets", c(Tokens.DARK.danger, IslandSurface.PANEL) >= 4.5)
     }
 
     @Test fun spacingIsOneScaleOnAFourPointGrid() {
@@ -93,8 +107,8 @@ class TokensTest {
         assertEquals(14, Radii.ISLAND_COMPACT)
     }
 
-    @Test fun statusDotsAreVisibleOnBlackAndDarkPanels() {
-        val surfaces = listOf(Tokens.DARK.bg, Tokens.DARK.panel, IslandSurface.HERO, IslandSurface.BLACK)
+    @Test fun statusDotsAreVisibleOnBlackDarkAndLightPanels() {
+        val surfaces = listOf(Tokens.DARK.bg, Tokens.DARK.panel, IslandSurface.HERO, IslandSurface.BLACK, Tokens.LIGHT.bg, Tokens.LIGHT.panel)
         for (c in listOf(StatusPalette.ONLINE, StatusPalette.BUSY, StatusPalette.OFFLINE)) for (s in surfaces) {
             assertTrue("${c.toString(16)} on ${s.toString(16)}", Palette.contrast(c, s) >= 3.0)
         }

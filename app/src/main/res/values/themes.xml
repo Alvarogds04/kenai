@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark only (the UI itself is Compose). -->
-    <style name="Theme.Kenai" parent="android:Theme.DeviceDefault">
+    <!-- Follows the system's dark/light mode (the UI itself is Compose, see ui/Theme.kt). -->
+    <style name="Theme.Kenai" parent="android:Theme.DeviceDefault.DayNight">
         <item name="android:windowActionBar">false</item>
         <item name="android:windowNoTitle">true</item>
     </style>

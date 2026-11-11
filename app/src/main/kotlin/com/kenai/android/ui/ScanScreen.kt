@@ -117,51 +117,53 @@ fun ScanScreen(onBack: () -> Unit, onText: (String) -> Boolean) {
     )
 
     val backLabel = stringResource(R.string.action_back)
-    // A camera screen: black, edge to edge, with light text.
-    Column(
-        Modifier.fillMaxSize().background(Color(IslandSurface.BLACK)).windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = Gutter),
-        verticalArrangement = Arrangement.spacedBy(Gap),
-    ) {
-        Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(Spacing.MIN_TOUCH.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack).semantics { contentDescription = backLabel },
-                contentAlignment = Alignment.Center,
-            ) { KenaiIcon(IconKind.BACK, tint = Color(IslandSurface.TEXT), size = 24.dp) }
-            Text(stringResource(R.string.scan_title), style = TypeScale.TITLE.style(Color(IslandSurface.TEXT)), maxLines = 1)
-        }
-        when {
-            state == ScanPermission.State.GRANTED && !cameraFailed -> {
-                Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(14.dp))) {
-                    val current by rememberUpdatedState(onText)
-                    CameraView(
-                        onFound = { text ->
-                            val accepted = current(text)
-                            if (!accepted) wrong = true
-                            accepted
-                        },
-                        onFailed = { cameraFailed = true },
+    // A camera screen: black, edge to edge, with light text, in both themes.
+    AlwaysDark {
+        Column(
+            Modifier.fillMaxSize().background(Color(IslandSurface.BLACK)).windowInsetsPadding(WindowInsets.statusBars).padding(horizontal = Gutter),
+            verticalArrangement = Arrangement.spacedBy(Gap),
+        ) {
+            Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(Spacing.MIN_TOUCH.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onBack).semantics { contentDescription = backLabel },
+                    contentAlignment = Alignment.Center,
+                ) { KenaiIcon(IconKind.BACK, tint = Color(IslandSurface.TEXT), size = 24.dp) }
+                Text(stringResource(R.string.scan_title), style = TypeScale.TITLE.style(Color(IslandSurface.TEXT)), maxLines = 1)
+            }
+            when {
+                state == ScanPermission.State.GRANTED && !cameraFailed -> {
+                    Box(Modifier.weight(1f).fillMaxWidth().clip(RoundedCornerShape(14.dp))) {
+                        val current by rememberUpdatedState(onText)
+                        CameraView(
+                            onFound = { text ->
+                                val accepted = current(text)
+                                if (!accepted) wrong = true
+                                accepted
+                            },
+                            onFailed = { cameraFailed = true },
+                        )
+                        Viewfinder()
+                    }
+                    Text(
+                        stringResource(if (wrong) R.string.scan_not_pairing else R.string.scan_hint), Modifier.fillMaxWidth().padding(bottom = Gap),
+                        style = TypeScale.BODY.style(if (wrong) Color(Tokens.DARK.danger) else Color(IslandSurface.TEXT_DIM)).copy(textAlign = TextAlign.Center),
                     )
-                    Viewfinder()
                 }
-                Text(
-                    stringResource(if (wrong) R.string.scan_not_pairing else R.string.scan_hint), Modifier.fillMaxWidth().padding(bottom = Gap),
-                    style = TypeScale.BODY.style(if (wrong) Color(Tokens.DARK.danger) else Color(IslandSurface.TEXT_DIM)).copy(textAlign = TextAlign.Center),
-                )
-            }
-            state == ScanPermission.State.GRANTED -> Message(stringResource(R.string.scan_camera_error), onBack)
-            state == ScanPermission.State.ASK -> {
-                Text(stringResource(R.string.scan_why), Modifier.padding(top = Gap), style = TypeScale.BODY.style(Color(IslandSurface.TEXT)))
-                PillButton(stringResource(R.string.scan_allow), { launcher.launch(Manifest.permission.CAMERA) }, Modifier.fillMaxWidth(), PillKind.PRIMARY, onDark = true)
-                PillButton(stringResource(R.string.scan_paste_instead), onBack, Modifier.fillMaxWidth(), onDark = true)
-            }
-            else -> {
-                Text(stringResource(R.string.scan_blocked), Modifier.padding(top = Gap), style = TypeScale.BODY.style(Color(IslandSurface.TEXT)))
-                PillButton(
-                    stringResource(R.string.scan_open_settings),
-                    { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))) },
-                    Modifier.fillMaxWidth(), PillKind.PRIMARY, onDark = true,
-                )
-                PillButton(stringResource(R.string.scan_paste_instead), onBack, Modifier.fillMaxWidth(), onDark = true)
+                state == ScanPermission.State.GRANTED -> Message(stringResource(R.string.scan_camera_error), onBack)
+                state == ScanPermission.State.ASK -> {
+                    Text(stringResource(R.string.scan_why), Modifier.padding(top = Gap), style = TypeScale.BODY.style(Color(IslandSurface.TEXT)))
+                    PillButton(stringResource(R.string.scan_allow), { launcher.launch(Manifest.permission.CAMERA) }, Modifier.fillMaxWidth(), PillKind.PRIMARY, onDark = true)
+                    PillButton(stringResource(R.string.scan_paste_instead), onBack, Modifier.fillMaxWidth(), onDark = true)
+                }
+                else -> {
+                    Text(stringResource(R.string.scan_blocked), Modifier.padding(top = Gap), style = TypeScale.BODY.style(Color(IslandSurface.TEXT)))
+                    PillButton(
+                        stringResource(R.string.scan_open_settings),
+                        { context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}"))) },
+                        Modifier.fillMaxWidth(), PillKind.PRIMARY, onDark = true,
+                    )
+                    PillButton(stringResource(R.string.scan_paste_instead), onBack, Modifier.fillMaxWidth(), onDark = true)
+                }
             }
         }
     }

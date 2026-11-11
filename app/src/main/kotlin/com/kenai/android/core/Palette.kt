@@ -4,7 +4,7 @@ import kotlin.math.pow
 
 /**
  * The app's colours as plain 0xAARRGGBB numbers, so a test can check that text stays readable on
- * its background (Theme.kt turns them into Compose colours). The app is dark only.
+ * its background (Theme.kt turns them into Compose colours). A dark and a light set: the app follows the system.
  */
 data class Palette(
     val background: Long, val card: Long, val line: Long,
@@ -14,6 +14,10 @@ data class Palette(
         val DARK = Palette(
             background = 0xFF0E0F12, card = 0xFF16171B, line = 0xFF26282E,
             text = 0xFFF3F4F6, textDim = 0xFFA1A6B0, accent = 0xFF8AB4FF, onAccent = 0xFF0E0F12, error = 0xFFFF8A80,
+        )
+        val LIGHT = Palette(
+            background = 0xFFECE4D2, card = 0xFFF7F2E7, line = 0xFFDEDAD0,
+            text = 0xFF1A1915, textDim = 0xFF5F5C54, accent = 0xFF1D4ED8, onAccent = 0xFFFFFFFF, error = 0xFFB42318,
         )
 
         private fun lin(c: Int): Double {

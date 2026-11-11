@@ -1,7 +1,8 @@
 package com.kenai.android.core
 
 /**
- * The design tokens as plain numbers, so a test can check contrast and the scale without Compose. The app is dark only.
+ * The design tokens as plain numbers, so a test can check contrast and the scale without Compose. There is a dark and a
+ * light set; the app follows the system's dark/light mode (Theme.kt). The always-dark surfaces are [IslandSurface].
  *
  * Louis Raillé's Kenai, its state colours and the pill colours are not here and are not changed.
  */
@@ -35,10 +36,17 @@ data class Tokens(
             primaryButton = 0xFFF5F6F8, onPrimaryButton = 0xFF0B0C0E, secondaryButton = 0xFF292A2D,
             danger = 0xFFFF8D97, online = 0xFF34D399, washAlpha = 0.5,
         )
+        /** The desktop's light theme (design/system.md): warm paper page, lighter cards, near-black ink and main button. */
+        val LIGHT = Tokens(
+            bg = 0xFFECE4D2, panel = 0xFFF7F2E7, panel2 = 0xFFE7E0D0, line = 0xFFDEDAD0,
+            text = 0xFF1A1915, textDim = 0xFF5F5C54, textFaint = 0xFF6B675E,
+            primaryButton = 0xFF201F1B, onPrimaryButton = 0xFFF7F4EC, secondaryButton = 0xFFE6E1D7,
+            danger = 0xFFB42318, online = 0xFF0B7A55, washAlpha = 0.35,
+        )
     }
 }
 
-/** The black surfaces: the hero panel on Home and the island over other apps. */
+/** The black surfaces, dark in both themes: the hero panel on Home, the sheets, the scan screen and the island over other apps. */
 object IslandSurface {
     const val BLACK = 0xFF000000L
     const val PANEL = 0xFF141518L
@@ -51,10 +59,10 @@ object IslandSurface {
 }
 
 /**
- * The link dot colours: each is visible (3:1 or better) on black and on the dark panels.
+ * The link dot colours: each is visible (3:1 or better) on black, on the dark panels and on the light theme's page and panels.
  */
 object StatusPalette {
-    const val ONLINE = 0xFF0F9F6EL
+    const val ONLINE = 0xFF0D8F62L
     const val BUSY = 0xFFB45309L
     const val OFFLINE = 0xFF6B7280L
 }

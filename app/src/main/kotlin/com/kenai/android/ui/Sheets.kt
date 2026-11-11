@@ -93,9 +93,11 @@ fun BottomSheetHost(onDismiss: () -> Unit, wash: Color? = null, content: @Compos
                     .pointerInput(Unit) { detectTapGestures { } }
                     .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 20.dp),
                 content = {
-                    Box(Modifier.align(Alignment.CenterHorizontally).size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.2f)))
-                    Box(Modifier.size(14.dp))
-                    content()
+                    AlwaysDark {
+                        Box(Modifier.align(Alignment.CenterHorizontally).size(width = 36.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.2f)))
+                        Box(Modifier.size(14.dp))
+                        content()
+                    }
                 },
             )
         }

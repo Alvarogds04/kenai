@@ -43,7 +43,7 @@ import com.kenai.android.core.Tokens
 import com.kenai.android.core.TypeScale
 import com.kenai.android.core.TypeStep
 
-// The app's building blocks: panels, pill buttons, the hero panel, the tokens of the (dark) theme.
+// The app's building blocks: panels, pill buttons, the hero panel, the tokens of the current (dark or light) theme.
 
 /** The tokens of the current theme; KenaiTheme provides them. */
 val LocalTokens = staticCompositionLocalOf { Tokens.DARK }
@@ -90,7 +90,7 @@ internal fun DrawScope.drawWash(color: Color, alpha: Float) {
     )
 }
 
-/** The hero panel at the top of Home: black, hanging from the screen's top edge. */
+/** The hero panel at the top of Home: black in both themes, hanging from the screen's top edge. */
 @Composable
 fun HeroPanel(modifier: Modifier = Modifier, wash: Color? = null, content: @Composable ColumnScope.() -> Unit) {
     val shape = RoundedCornerShape(bottomStart = Radii.HERO_BOTTOM.dp, bottomEnd = Radii.HERO_BOTTOM.dp)
@@ -98,14 +98,15 @@ fun HeroPanel(modifier: Modifier = Modifier, wash: Color? = null, content: @Comp
         modifier.fillMaxWidth().clip(shape).background(IslandSurface.HERO.c())
             .border(1.dp, Color.White.copy(alpha = 0.06f), shape)
             .then(if (wash != null) Modifier.drawBehind { drawWash(wash, 0.5f) } else Modifier),
-        content = content,
-    )
+    ) {
+        AlwaysDark { content() }
+    }
 }
 
 enum class PillKind { PRIMARY, SECONDARY, DANGER }
 
 /**
- * The PC's buttons: one white (dark theme) pill for the main action, grey pills for the rest, and a
+ * The PC's buttons: one white (dark theme) or near-black (light theme) pill for the main action, grey pills for the rest, and a
  * grey pill with a red label for what is destructive. 48 dp high, whatever the font size.
  */
 @Composable
@@ -121,6 +122,7 @@ fun PillButton(
         else -> t.secondaryButton
     }
     val fg = when {
+        kind == PillKind.DANGER && onDark -> Tokens.DARK.danger
         kind == PillKind.DANGER -> t.danger
         onDark -> if (kind == PillKind.PRIMARY) IslandSurface.ON_PRIMARY else IslandSurface.TEXT
         kind == PillKind.PRIMARY -> t.onPrimaryButton
