@@ -21,7 +21,29 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** A pretend desktop: real TLS with the test certificate, speaking the v1 protocol. */
+/**
+ * The pretend desktop's key and certificate, made once per test run with the JDK's keytool, so the repository never
+ * holds a private key.
+ */
+internal object TestDesktopKey {
+    const val ALIAS = "desktop"
+    const val PASSWORD = "changeit"
+
+    val keyStore: KeyStore by lazy {
+        val dir = java.nio.file.Files.createTempDirectory("kenai-desktop").toFile().apply { deleteOnExit() }
+        val file = java.io.File(dir, "$ALIAS.keystore").apply { deleteOnExit() }
+        val keytool = java.io.File(System.getProperty("java.home"), "bin/keytool").takeIf { it.canExecute() }?.path ?: "keytool"
+        val p = ProcessBuilder(
+            keytool, "-genkeypair", "-alias", ALIAS, "-keyalg", "EC", "-groupname", "secp256r1", "-dname", "CN=Test desktop",
+            "-validity", "3650", "-storetype", "PKCS12", "-keystore", file.path, "-storepass", PASSWORD, "-keypass", PASSWORD,
+        ).redirectErrorStream(true).start()
+        val output = p.inputStream.readBytes().decodeToString()
+        check(p.waitFor() == 0) { "keytool could not make the test certificate: $output" }
+        KeyStore.getInstance("PKCS12").apply { file.inputStream().use { load(it, PASSWORD.toCharArray()) } }
+    }
+}
+
+/** A pretend desktop: real TLS with a generated test certificate, speaking the v1 protocol. */
 internal class FakeDesktop(tls: Boolean) : AutoCloseable {
     val server: ServerSocket
     val certSha256: String
@@ -37,12 +59,12 @@ internal class FakeDesktop(tls: Boolean) : AutoCloseable {
     private val fp = "f".repeat(64)
 
     init {
-        val ks = KeyStore.getInstance("PKCS12")
-        javaClass.getResourceAsStream("/test-desktop.p12").use { ks.load(it, "changeit".toCharArray()) }
+        val ks = TestDesktopKey.keyStore
         certSha256 = MessageDigest.getInstance("SHA-256")
-            .digest(ks.getCertificate("desktop").encoded).joinToString("") { "%02x".format(it) }
+            .digest(ks.getCertificate(TestDesktopKey.ALIAS).encoded).joinToString("") { "%02x".format(it) }
         server = if (tls) {
-            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm()).apply { init(ks, "changeit".toCharArray()) }
+            val kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+                .apply { init(ks, TestDesktopKey.PASSWORD.toCharArray()) }
             val ctx = SSLContext.getInstance("TLS").apply { init(kmf.keyManagers, null, null) }
             (ctx.serverSocketFactory.createServerSocket(0) as SSLServerSocket)
         } else ServerSocket(0)
