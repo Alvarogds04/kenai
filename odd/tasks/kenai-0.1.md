@@ -13,11 +13,11 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 
 ## Tasks
 - [~] T1 (S1) Functional canvas replica of today's app under `design/kenai-app-replica/` · split (L5): T1a phone screens + sheets + demo loop; T1b widget panel + Playwright check
-- [ ] T1a (S1) Phone: every screen, sheets, demo loop, fake data · worker
+- [x] T1a (S1) Phone: every screen, sheets, demo loop, fake data · worker · check-phone.cjs 39 checks ok, 0 errors (parent re-ran); commit with T1b
 - [ ] T1b (S1) Widget panel wired to the phone + Playwright check · worker, after T1a
 - [x] T2 (S2.5) Light theme · worker · e3e7f63 (722 tests, 0 failures)
 - [ ] T3 (S2.6) Spanish strings and the end of the English-only rule · last, so it translates the strings T4/T5 add
-- [ ] T4 (S2.7a) Vibration on an arriving approval or question
+- [x] T4 (S2.7a) Vibration on an arriving approval or question · worker · 87cb0d8 (740 tests, 0 failures)
 - [ ] T5 (S2.7b) Quick settings tile actions
 
 ## Log
@@ -27,3 +27,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L4: T1 worker gentle-ai-worker (mwc0zom5-3-n64b) timed out ("stalled for 4 min after: write"); it left only design/kenai-app-replica/_src/app.css (22.8 KB), no HTML, no checks run. T1 is not done.
 - L5: «dale» — accepts the proposal: relaunch the replica split in two (T1a, T1b); 1a light theme follows the system; 2a Spanish by phone language; 3a vibrate also during quiet hours; 4 a+b tile subtitle + opens what is pending. Order: T1a ∥ T2, then T1b, T4, T5, T3 last (T4/T5 add strings T3 translates; app-strings.json is shared, so they are not parallel).
 - L6: T2 done in e3e7f63: follows the system theme; island, sheets, scan and hero stay dark; parent re-ran the suite: 722 tests, 0 failures. Open (pre-existing, not fixed): the bottom bar draws over the Pairing paste sheet and likely the Home address sheet, hiding their buttons; a light strip under dark sheets in light mode (cosmetic).
+- L7: T4 done in 87cb0d8: "Vibrate" switch (on by default) in Settings > Sound; buzzes for questions and for approvals not shown as heads-up, also in quiet hours; one buzz per request/question (same agent within 15 s = same question). Parent re-ran the suite: 740 tests, 0 failures. Known: with the switch off, a heads-up approval still vibrates through its notification channel (Android setting).
