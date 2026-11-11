@@ -184,6 +184,10 @@ fun SettingsScreen(model: AppModel, onHistory: () -> Unit, onGallery: () -> Unit
                         valueRange = 0f..SoundVolume.MAX, enabled = s.soundOn, label = stringResource(R.string.settings_volume),
                     )
                 }
+                RowDivider()
+                SettingSwitch(stringResource(R.string.settings_vibrate), stringResource(R.string.settings_vibrate_hint), s.vibrate) {
+                    model.updateSettings(s.copy(vibrate = it))
+                }
             }
         }
 

@@ -37,6 +37,15 @@ class UserSettingsTest {
         assertEquals(0.12f, loaded.volume, 0f)
         assertTrue(loaded.notifyDone)
         assertFalse(loaded.quiet.enabled)
+        assertTrue(loaded.vibrate) // S2.7a: on by default
+    }
+
+    @Test fun theVibrateSwitchSurvivesARestart() {
+        val disk = Memory()
+        UserSettings.save(disk, UserSettings(vibrate = false))
+        assertFalse(UserSettings.load(disk).vibrate)
+        UserSettings.save(disk, UserSettings(vibrate = true))
+        assertTrue(UserSettings.load(disk).vibrate)
     }
 
     @Test fun settingsSurviveARestart() {

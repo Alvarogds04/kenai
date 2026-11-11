@@ -152,6 +152,8 @@
     <string name="settings_title">Settings</string>
     <string name="settings_sound">Kenai\'s sounds</string>
     <string name="settings_volume">Volume</string>
+    <string name="settings_vibrate">Vibrate</string>
+    <string name="settings_vibrate_hint">A short buzz when a request or a question arrives, even in quiet hours.</string>
     <string name="notify_done">When an agent finishes or fails</string>
     <string name="notify_done_hint">A quiet notice in the notification shade, and the pill if it is on. Permission requests and questions always notify you.</string>
     <string name="quiet_hours">Quiet hours</string>

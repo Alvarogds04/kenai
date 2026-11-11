@@ -20,6 +20,9 @@ import com.kenai.android.core.OverlayChoice
 import com.kenai.android.core.StatusPolicy
 import com.kenai.android.core.UserSettings
 import com.kenai.android.core.OverlayPolicy
+import com.kenai.android.core.Arrival
+import com.kenai.android.core.BuzzMemory
+import com.kenai.android.core.VibratePolicy
 import com.kenai.android.core.WishStore
 import com.kenai.android.core.Pills
 import com.kenai.android.ui.IslandOverlay
@@ -68,6 +71,9 @@ class AppModel(private val context: Context) : LinkListener {
     private val store = SecureStore(context)
     val sounds = SoundPlayer(context)
     val notifier = Notifications(context)
+    private val haptics = Haptics(context)
+    /** What was already buzzed for, so one request or question buzzes once (see [VibratePolicy]). */
+    private val buzzMemory = BuzzMemory()
 
     /** Set only by LaunchActivity (not exported), read by MainActivity: see [com.kenai.android.core.PendingLaunch]. */
     val launch = com.kenai.android.core.PendingLaunch()
@@ -675,6 +681,8 @@ class AppModel(private val context: Context) : LinkListener {
                 if (a.sound && sound != null) sounds.play(sound)
                 if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
                 IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
+                // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
+                if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
                 // The agent moved on: the notice about the last state is stale.
                 if (prev != s.state && s.state !in NEWSWORTHY) notifier.cancelStatus(s.pillId)
             }
@@ -688,7 +696,10 @@ class AppModel(private val context: Context) : LinkListener {
             approvals = approvals.filter { it.fingerprint != request.fingerprint } + request
             // One announcement only: the island if it can show, else the heads-up notification.
             refreshIsland()
-            notifier.showApproval(request, agentName(request.pillId), OverlayPolicy.approvalAlert(overlay.isShowingRequest()))
+            val alert = OverlayPolicy.approvalAlert(overlay.isShowingRequest())
+            notifier.showApproval(request, agentName(request.pillId), alert)
+            // The heads-up already vibrates; the island (quiet channel) does not, so the phone buzzes then.
+            buzzOnArrival(Arrival.APPROVAL, request.pillId, request.fingerprint, alert)
             // Offered for 120 s from now, by this phone's clock (the notification times out then too).
             expiry.remove(request.fingerprint)?.let { main.removeCallbacks(it) }
             val gone = Runnable { removeApproval(request.fingerprint) }
@@ -700,6 +711,7 @@ class AppModel(private val context: Context) : LinkListener {
     override fun onQuestion(request: QuestionRequest) {
         main.post {
             questions = questions.filter { it.fingerprint != request.fingerprint } + request
+            buzzOnArrival(Arrival.QUESTION, request.pillId, request.fingerprint)
             // Offered for 120 s from now, like an approval; the computer drops it at 115 s.
             expiry.remove(request.fingerprint)?.let { main.removeCallbacks(it) }
             val gone = Runnable { removeQuestion(request.fingerprint) }
@@ -711,6 +723,14 @@ class AppModel(private val context: Context) : LinkListener {
     private fun removeQuestion(fingerprint: String) {
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         questions = questions.filter { it.fingerprint != fingerprint }
+    }
+
+    /** One short buzz for an arriving request or question, when the user wants it (main thread). */
+    private fun buzzOnArrival(kind: Arrival, pillId: String, fingerprint: String?, alert: OverlayPolicy.ApprovalAlert? = null) {
+        val now = android.os.SystemClock.elapsedRealtime()
+        val buzz = VibratePolicy.onArrival(kind, settings, alert, buzzMemory.alreadyBuzzed(kind, pillId, fingerprint, now))
+        buzzMemory.remember(kind, pillId, fingerprint, now)
+        if (buzz) haptics.buzz()
     }
 
     /** The question of this agent, if one waits for the phone's answer. */
