@@ -16,10 +16,10 @@ const wIcon = (k, size) => `<svg width="${size}" height="${size}" viewBox="0 0 2
 const wOffline = (size, color = W_TONE.MUTED.c) => `<svg class="kw-off" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${color}" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zM12 20c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/></svg>`;
 const wDot = (color, size = 10, style = "") => `<span class="kw-dot" style="width:${size}px;height:${size}px;background:${color};${style}"></span>`;
 const wRgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
-/** CharacterBitmap.of: Kenai still, in [state]; with a tone, the radial glow (0.55, or 0.32 for muted and idle) behind him. */
+/** CharacterBitmap.of: Koda still (the first frame of the pose for [state]); with a tone, the radial glow (0.55, or 0.32 for muted and idle) behind it. */
 function wFace(state, tone, style = "") {
   const glow = tone ? `background:radial-gradient(closest-side circle,${wRgba(W_TONE[tone].c, tone === "MUTED" || tone === "IDLE" ? 0.32 : 0.55)},rgba(0,0,0,0));` : "";
-  return `<span class="kw-face" style="${glow}${style}">${clay(state, 100)}</span>`;
+  return `<span class="kw-face" style="${glow}${style}">${kodaEl(state, "fit", null, { still: true })}</span>`;
 }
 const wBadge = (n) => (n > 0 ? `<span class="kw-badge" aria-label="${esc(fmt("widget_badge_description", n))}">${n}</span>` : "");
 const wBtn = (to, inner, cls, label, style = "") => `<button type="button" class="${cls}" data-to="${esc(to)}" aria-label="${esc(label)}" style="${style}">${inner}</button>`;

@@ -3,6 +3,8 @@
 /* Data copied from the app. Strings: res/values/strings.xml (injected verbatim by _build.mjs). */
 const S = __STRINGS__;
 const KODA = __KODA__;
+/* res/drawable/ic_launcher_fg.xml (Koda's face) as SVG, converted by _build.mjs. */
+const LAUNCHER_FG = __LAUNCHER__;
 const LICENCES = __LICENCES__;
 
 /** Android's %1$s / %2$d / %% formatting, enough for strings.xml. */
@@ -42,7 +44,11 @@ function roleOf(st) {
   if (st === "error" || st === "dizzy") return KODA_ROLE.RED;
   return KODA_ROLE.FAINT;
 }
+/* KodaPose.of(BotEmote): the nearest pose for a reaction (the Gallery shows each emote). */
+const EMOTE_POSE = { love: "escucha", wink: "escucha", happy: "termino", proud: "termino", surprised: "espera", yawn: "reposo", annoyed: "error" };
+/** KodaPose.of(BotState), or of an emote's name. */
 function poseOf(st) {
+  if (EMOTE_POSE[st]) return EMOTE_POSE[st];
   if (st === "idle" || st === "sleeping") return "reposo";
   if (st === "thinking" || st === "searching") return "piensa";
   if (st === "working") return "trabaja";

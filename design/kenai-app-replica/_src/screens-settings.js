@@ -89,7 +89,8 @@ ACT.clearHistory = () => { st.decisions = []; changed(); };
 
 /* ---------- Gallery: every state, then every emote, 3 columns ---------- */
 function galleryScreen() {
-  const cell = (k) => `<div style="display:flex;flex-direction:column;align-items:center">${clay(k, 98)}<span style="font-size:11px;line-height:16px;font-weight:500">${k}</span></div>`;
+  // GalleryCell: every Koda live, no light behind it; named in the phone language (stateLabel, R.string.emote_*).
+  const cell = (k) => `<div style="display:flex;flex-direction:column;align-items:center">${kodaEl(k, 98)}<span style="font-size:11px;line-height:16px;font-weight:500">${esc(S["emote_" + k] || stateLabel(k))}</span></div>`;
   return `<div class="scr gut">${screenTitle(S.gallery, "back")}<div style="height:12px"></div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${STATES.map(cell).join("")}${EMOTES.map(cell).join("")}</div><div style="height:16px"></div></div>`;
 }
@@ -141,7 +142,7 @@ function sessionScreen() {
   const name = s.agent || (PILLS[s.pill] || {}).name || "";
   const busy = BUSY.includes(s.state);
   const items = [screenTitle(name, "back"),
-    panel(`<div style="display:flex;align-items:center;gap:16px;padding:16px">${clay(s.state, 96, s.color)}<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p class="t-head clamp3">${esc(homeLine(s) || stateLabel(s.state))}</p>${s.project ? `<span class="chip"><span class="ell">${esc(fmt("session_project", s.project))}</span></span>` : ""}</div></div>`, STATE_COLOR[s.state])];
+    panel(`<div style="display:flex;align-items:center;gap:16px;padding:16px">${kodaEl(s.state, 96, null, { glow: s.color })}<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p class="t-head clamp3">${esc(homeLine(s) || stateLabel(s.state))}</p>${s.project ? `<span class="chip"><span class="ell">${esc(fmt("session_project", s.project))}</span></span>` : ""}</div></div>`, STATE_COLOR[s.state])];
   if (s.finalLine) items.push(heading(S.session_last), panel(`<p class="t-body" style="padding:16px">${esc(s.finalLine)}</p>`, STATE_COLOR.finished));
   if (s.files && s.files.length) {
     items.push(heading(S.files_heading), panel([...s.files].reverse().map((f, i) => (i > 0 ? divider() : "") +

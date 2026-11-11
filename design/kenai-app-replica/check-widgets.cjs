@@ -57,6 +57,26 @@ const SIZES = { big: [4, 4], list: [4, 3], alert: [2, 2], ring: [2, 2], pill: [4
     ok(`${id} is ${cw}×${ch} cells`, Math.abs(b.width - (cw * 94 - 8)) < 1.5 && Math.abs(b.height - (ch * 106 - 8)) < 1.5, [b.width, b.height]);
   }
 
+  /* ---------- Koda in the widgets (S8a): a still picture, the pose for the state, the glow kept, no clay ---------- */
+  const POSE = { idle: "reposo", sleeping: "reposo", thinking: "piensa", searching: "piensa", working: "trabaja", approval: "espera", question: "espera", ratelimit: "espera", finished: "termino", error: "error", dizzy: "error" };
+  const faces = () => page.evaluate(() => [...document.querySelectorAll("#widgets .kw-face")].map((f) => {
+    const i = f.querySelector(".koda i[data-pose]");
+    return i && { wid: f.closest("[data-wid]").dataset.wid, pose: i.dataset.pose, still: "still" in i.dataset, pos: i.style.backgroundPosition, first: `-${KODA.seq[i.dataset.pose].seq[0] * 32 * +i.dataset.scale}px -${KODA.seq[i.dataset.pose].row * 32 * +i.dataset.scale}px`.replace(/(^| )-0px/g, "$10px"), w: i.offsetWidth, box: Math.min(f.clientWidth, f.clientHeight), glow: f.style.background.includes("radial-gradient") };
+  }));
+  for (let i = 0; i < 3; i++) await step(); // step 3: an approval, agents in several states
+  const f1 = await faces();
+  ok("koda: every widget face is Koda", f1.length >= 9 && f1.every(Boolean), f1.length);
+  ok("koda: no clay left on the page", (await page.locator("svg.clay").count()) === 0);
+  ok("koda: still, first frame of the pose", f1.every((f) => f.still && f.pos === f.first), f1.filter((f) => f.pos !== f.first));
+  ok("koda: whole-number scale inside its face", f1.every((f) => f.w % 32 === 0 && f.w <= Math.max(32, f.box)), f1.map((f) => [f.wid, f.w, f.box]));
+  const moodNow = (await content()).mood;
+  ok("koda: Mood shows the pose for its state", f1.find((f) => f.wid === "mood").pose === POSE[moodNow], [moodNow, f1.find((f) => f.wid === "mood").pose]);
+  ok("koda: the glow stays behind it", f1.find((f) => f.wid === "mood").glow && f1.find((f) => f.wid === "solo").glow);
+  await page.waitForTimeout(500);
+  const f2 = await faces();
+  ok("koda: does not animate", f2.every((f, i) => f.pos === f1[i].pos), f2.map((f) => f.pos));
+  await open("demo");
+
   /* ---------- Demo mode: the 8 steps ---------- */
   console.log("mode: Demo mode");
   await open("demo");

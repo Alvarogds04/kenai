@@ -78,6 +78,7 @@ function drawWidgets() {
       <div class="kw-tint"></div><button type="button" class="kw-hit" id="kw-${key}-0" data-to="${esc(r.open)}" aria-label="${esc(name + (r.label ? ": " + r.label : ""))}"></button>${inner}</div></div>`;
   }).join("");
   setHTML($("#kw-grid"), html);
+  paintKoda($("#kw-grid")); // still pictures: scale to the face's box, first frame of the pose
   if (focus) { const el = document.getElementById(focus); if (el) el.focus(); }
   $("#kw-clock").textContent = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }

@@ -37,7 +37,7 @@ function bubble(m) {
 function chatEmpty(state) {
   const btn = state === "NOT_PAIRED" ? pill(S.chat_go_pair, "tab", { kind: "pri", w: true, arg: "HOME" }) : state === "NOT_CONNECTED" ? pill(S.chat_go_settings, "tab", { kind: "pri", w: true, arg: "SETTINGS" }) : "";
   return `<div class="gut" style="height:100%;display:flex;flex-direction:column">${screenTitle(S.chat_title)}
-    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px">${clay("sleeping", 120)}
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px">${kodaEl("sleeping", 120)}
     <p class="t-title center" style="padding-top:16px">${esc(S[STATE_TITLE[state]])}</p><p class="t-body dim center" style="padding:8px 0 20px">${esc(S[STATE_BODY[state]])}</p>${btn}</div></div>`;
 }
 

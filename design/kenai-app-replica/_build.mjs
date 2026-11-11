@@ -1,5 +1,5 @@
 // Builds design/kenai-app-replica/01-app-replica.html from _src/ (run: node design/kenai-app-replica/_build.mjs).
-// Reads, never writes, the app's licence assets and the Koda sprite crop in design/_build/koda.json.
+// Reads, never writes, the app's licence assets, its launcher icon and the Koda sprite crop in design/_build/koda.json.
 import fs from "node:fs";
 
 const here = new URL("./", import.meta.url);
@@ -8,6 +8,11 @@ const read = (u) => fs.readFileSync(u, "utf8");
 const JS = ["data.js", "ui.js", "model.js", "screens-home.js", "screens-settings.js", "screens-chat.js", "sheets.js", "main.js", "widgets-data.js", "widgets-render.js", "widgets.js"];
 
 const koda = read(new URL("design/_build/koda.json", repo)).trim();
+// The launcher foreground (Koda's face): the vector's group and paths as SVG (Android pathData is SVG path syntax).
+const fg = read(new URL("app/src/main/res/drawable/ic_launcher_fg.xml", repo));
+const g = (k) => (fg.match(new RegExp(`android:${k}="([^"]+)"`)) || [, "0"])[1];
+const launcher = `<g transform="translate(${g("translateX")} ${g("translateY")}) scale(${g("scaleX")} ${g("scaleY")})">` +
+  [...fg.matchAll(/android:fillColor="([^"]+)" android:pathData="([^"]+)"/g)].map((m) => `<path fill="${m[1]}" d="${m[2]}"/>`).join("") + "</g>";
 const lic = ["NOTICES.txt", "MIT.txt", "Apache-2.0.txt"].map((f) => read(new URL("app/src/main/assets/licenses/" + f, repo))).join("\n\n");
 // Every English text of the app, verbatim from res/values/strings.xml.
 const strings = {};
@@ -19,6 +24,7 @@ const js = JS.filter((f) => fs.existsSync(new URL("_src/" + f, here)))
   .map((f) => `/* ---- ${f} ---- */\n` + read(new URL("_src/" + f, here)))
   .join("\n")
   .replace("__KODA__", () => koda)
+  .replace("__LAUNCHER__", () => JSON.stringify(launcher))
   .replace("__LICENCES__", () => JSON.stringify(lic))
   .replace("__STRINGS__", () => JSON.stringify(strings));
 

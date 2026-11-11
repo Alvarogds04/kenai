@@ -23,6 +23,19 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
     console.log("  ok  ", what); return true;
   };
   const screen = () => page.evaluate(() => window.kenai.state.screen);
+  /** Koda where the app draws it (S8a): painted from the sprite, in [pose] (null: the pose for the open session), with the
+   *  agent's light behind it or not, and no clay character anywhere. */
+  const koda = async (what, sel, pose, glow) => {
+    const r = await page.evaluate(([s, p]) => {
+      const el = document.querySelector("#phone " + s);
+      const i = el && el.querySelector("i[data-pose]");
+      if (!i) return null;
+      const want = p || poseOf(window.kenai.derived.sessions().find((x) => x.pill === window.kenai.state.detailPill).state);
+      return { pose: i.dataset.pose, want, painted: !!i.style.backgroundImage, glow: el.style.background.includes("radial-gradient"), clay: document.querySelectorAll("svg.clay").length };
+    }, [sel, pose]);
+    if (r && r.pose === r.want && r.painted && r.glow === glow && r.clay === 0) { console.log("  ok  ", what); return; }
+    failed.push(what); console.log("  FAIL", what, JSON.stringify(r));
+  };
   const open = async (mode) => {
     await page.goto(FILE + "?mode=" + mode);
     await page.waitForTimeout(200);
@@ -52,6 +65,7 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   console.log("mode: Not paired");
   await open("none");
   await expect("pairing headline", "text=Connect to your computer");
+  await koda("pairing: Koda asleep, no light", "#content .koda", "reposo", false);
   await snap("none-pairing");
   await act("openPaste");
   await ph("#f-paste").fill("https://example.com/pair?v=1");
@@ -90,11 +104,13 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   await tabs("demo");
   await tap('[data-tab="CHAT"]');
   await expect("demo chat says not paired", "text=Pair your computer first, then you can chat through it.");
+  await koda("chat empty: Koda asleep, no light", "#content .koda", "reposo", false);
   await tap('[data-tab="HOME"]');
   await subPages("demo", ["HISTORY", "GALLERY", "LICENCES"]);
   await tap('[data-tab="HOME"]');
   await steps(2); // step 3: the approval
   await expect("approval sheet", "text=Wants to run a command");
+  await koda("approval sheet: Koda waiting, the agent's light", "#layer .shead .koda", "espera", true);
   await page.waitForTimeout(650); // taps ignored for 600 ms
   await act("toggleCmd");
   await expect("exact command", ".cmd >> text=npm run build");
@@ -119,6 +135,7 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   await expect("question button (demo: see)", "text=See the question");
   await act("openQuestion");
   await expect("question sheet without options", "text=Answer it on your computer.");
+  await koda("question sheet: Koda waiting, the agent's light", "#layer .shead .koda", "espera", true);
   await snap("demo-question");
   await act("notNow");
 
@@ -131,6 +148,7 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   await snap("paired-home");
   await act("details", "integration_claude");
   await expect("session details", "text=Steps");
+  await koda("session: Koda in the state's pose, the agent's light", "#content .panel .koda", null, true);
   await snap("paired-session");
   await act("openDiff", "app/build.gradle.kts");
   await expect("diff sheet", ".drow");
@@ -171,6 +189,8 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   await tap('[data-tab="SETTINGS"]');
   await act("overlay");
   await expect("overlay permission page", "text=Display over other apps");
+  const lnch = await page.locator("#phone .sysp .app svg.lnch path").count();
+  if (lnch >= 5) console.log("  ok   app icon is the launcher's Koda face"); else failed.push("app icon is the launcher's Koda face");
   await act("sysOverlay");
   await act("sysClose");
   await page.selectOption("#linksel", "notfound");
@@ -185,6 +205,26 @@ const VALID = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "ab".repeat(
   await act("saveAddress");
   await snap("paired-address-saved");
   await act("sysBack");
+
+  // Gallery: every state, then every emote, as KodaPose.of; live, and still with reduced motion.
+  await page.evaluate(() => window.kenai.go("GALLERY"));
+  await page.waitForFunction(() => document.querySelectorAll("#content .koda i").length === 18); // render is on the next frame
+  const GALLERY = ["reposo", "trabaja", "piensa", "piensa", "espera", "espera", "error", "termino", "espera", "reposo", "error", // states
+    "escucha", "espera", "termino", "escucha", "reposo", "termino", "error"]; // love surprised proud wink yawn happy annoyed
+  const cells = () => page.evaluate(() => [...document.querySelectorAll("#content .koda i")].map((i) => [i.dataset.pose, i.style.backgroundPosition]));
+  const g1 = await cells();
+  if (g1.map((c) => c[0]).join() === GALLERY.join()) console.log("  ok   gallery poses"); else { failed.push("gallery poses"); console.log("  FAIL gallery poses", JSON.stringify(g1)); }
+  await expect("gallery names its states and emotes", "text=Loving");
+  await page.waitForTimeout(700);
+  if ((await cells())[1][1] !== g1[1][1]) console.log("  ok   gallery animates"); else failed.push("gallery animates");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.waitForTimeout(200);
+  const r1 = await cells();
+  await page.waitForTimeout(700);
+  const r2 = await cells();
+  const first = await page.evaluate(() => [...document.querySelectorAll("#content .koda i")].every((i) => i.style.backgroundPosition === `-${KODA.seq[i.dataset.pose].seq[0] * 32 * +i.dataset.scale}px -${KODA.seq[i.dataset.pose].row * 32 * +i.dataset.scale}px`.replace(/(^| )-0px/g, "$10px")));
+  if (first && r1.join() === r2.join()) console.log("  ok   reduced motion: first frame, still"); else failed.push("reduced motion: first frame, still");
+  await page.emulateMedia({ reducedMotion: null });
 
   // Every screen through the API, for T1b.
   for (const s of ["HOME", "CHAT", "SETTINGS", "HISTORY", "GALLERY", "DIAGNOSTICS", "LICENCES", "SESSION", "SCAN"]) {

@@ -4,7 +4,7 @@
 
 function pairingScreen() {
   return `<div class="scr"><div class="pairing">
-  <div style="height:48px"></div>${clay("sleeping", 132)}<div style="height:24px"></div>
+  <div style="height:48px"></div>${kodaEl("sleeping", 132)}<div style="height:24px"></div>
   <h1 class="t-display center">${esc(S.pairing_headline)}</h1>
   <p class="t-body dim center" style="padding:10px 0 28px">${esc(S.pairing_help)}</p>
   ${st.message ? messagePanel(st.message) + '<div style="height:12px"></div>' : ""}
@@ -75,7 +75,7 @@ function heroCard(focus, list) {
     const pillName = (PILLS[focus.pill] || {}).name || "";
     const name = focus.agent || pillName || S.app_name;
     const sub = pillName && pillName !== name ? pillName : S.agent_kind;
-    who = `<div class="who">${kodaEl(state, 96, S.koda_description)}<div><p class="t-title white clamp2">${esc(name)}</p><p class="t-sec dim ell">${esc(sub)}</p><p class="t-head white clamp3" style="padding-top:4px">${esc(homeLine(focus) || stateLabel(state))}</p></div></div>`;
+    who = `<div class="who">${kodaEl(state, 96, S.koda_description, { glow: focus.color })}<div><p class="t-title white clamp2">${esc(name)}</p><p class="t-sec dim ell">${esc(sub)}</p><p class="t-head white clamp3" style="padding-top:4px">${esc(homeLine(focus) || stateLabel(state))}</p></div></div>`;
   }
   const btns = [];
   if (link !== "NONE") btns.push(pill(link === "PAIR" ? S.link_pair : S.link_approval, link === "PAIR" ? "scan" : "review", { kind: "pri", dark: true }));

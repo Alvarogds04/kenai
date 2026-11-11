@@ -23,7 +23,7 @@ function approvalSheet(r) {
   const kind = (PILLS[r.pill] || {}).name || "";
   const on = armed("a:" + r.fp);
   const cmd = st.showCommand === r.fp;
-  const inner = `<div class="shead">${clay("approval", 84, (PILLS[r.pill] || {}).color)}<div><p class="t-sec dim ell">${esc(kind && kind !== name ? name + " · " + kind : name)}</p><p class="t-title white clamp3">${esc(fmt("approval_wants", toolAction(r.tool)))}</p></div></div>
+  const inner = `<div class="shead">${kodaEl("approval", 84, null, { glow: (PILLS[r.pill] || {}).color })}<div><p class="t-sec dim ell">${esc(kind && kind !== name ? name + " · " + kind : name)}</p><p class="t-title white clamp3">${esc(fmt("approval_wants", toolAction(r.tool)))}</p></div></div>
   <p class="t-sec dim" style="padding-top:12px">${esc(S.approval_caution)}</p>
   <button type="button" class="t-sec dim u" style="min-height:48px;padding:12px 0" data-act="toggleCmd" data-arg="${esc(r.fp)}">${esc(cmd ? S.approval_hide_cmd : S.approval_show_cmd)}</button>
   ${cmd ? `<div class="cmd"><span class="t-label dim">${esc(r.tool)}</span><span class="t-mono white">${esc(r.command)}</span></div><div style="height:8px"></div>` : ""}
@@ -52,7 +52,7 @@ function questionSheet(pillId) {
   const colour = (PILLS[pillId] || {}).color;
   const req = questionFor(pillId);
   if (!req) {
-    return sheet("q0:" + pillId, `<div class="shead">${clay("question", 84, colour)}<p class="t-title white clamp3" style="flex:1">${esc(fmt("question_title", agentName(pillId)))}</p></div>
+    return sheet("q0:" + pillId, `<div class="shead">${kodaEl("question", 84, null, { glow: colour })}<p class="t-title white clamp3" style="flex:1">${esc(fmt("question_title", agentName(pillId)))}</p></div>
       <p class="t-body dim" style="padding:12px 0 16px">${esc(S.question_body)}</p>${pill_(S.question_ok, "notNow")}`, wash);
   }
   if (!st.qflow || st.qflow.fp !== req.fp) st.qflow = { fp: req.fp, index: 0, picks: req.questions.map(() => []) };
@@ -70,7 +70,7 @@ function questionSheet(pillId) {
   if (isLast) nav.push(pill(S.question_send, "qSend", { kind: "pri", dark: true, disabled: !(on && complete), icon: "LOCK", iconSize: 18 }));
   else nav.push(pill(S.question_next, "qNext", { kind: "pri", dark: true, disabled: f.picks[f.index].length === 0 }));
   const position = req.questions.length > 1 ? `<p class="t-label dim">${esc(fmt("question_position", f.index + 1, req.questions.length))}</p>` : "";
-  const inner = `<div class="shead">${clay("question", 84, colour)}<div><p class="t-sec dim clamp2">${esc(fmt("question_title", agentName(pillId)))}</p>${position}</div></div>
+  const inner = `<div class="shead">${kodaEl("question", 84, null, { glow: colour })}<div><p class="t-sec dim clamp2">${esc(fmt("question_title", agentName(pillId)))}</p>${position}</div></div>
   <p class="t-head white" style="padding-top:12px">${esc(q.question)}</p>
   ${q.multiSelect ? `<p class="t-sec dim" style="padding-top:2px">${esc(S.question_pick_many)}</p>` : ""}
   <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px">${opts}</div>
@@ -218,7 +218,7 @@ function sysLayer() {
       ? `<div class="opt2"><span>Allow display over other apps</span><span style="margin-left:auto">${switchEl(on, "sysOverlay", "Allow display over other apps")}</span></div>`
       : `<button type="button" class="opt2" data-act="sysClose"><span class="radio on"></span>Unrestricted</button><button type="button" class="opt2" data-act="sysClose"><span class="radio"></span>Optimised</button><button type="button" class="opt2" data-act="sysClose"><span class="radio"></span>Restricted</button>`;
     return { key: st.sys, html: `<div class="sysp"><div class="top"><button type="button" aria-label="Back" data-act="sysClose">${icon("BACK", 24, "#e8eaed")}</button><h2>${overlay ? "Display over other apps" : "App battery usage"}</h2></div>
-      <div class="app">${kodaEl("idle", 40)}<span>Kenai</span></div>${opts}<p class="note">Android settings, simulated by the canvas.</p></div>` };
+      <div class="app">${launcherIcon(40)}<span>Kenai</span></div>${opts}<p class="note">Android settings, simulated by the canvas.</p></div>` };
   }
   return null;
 }
