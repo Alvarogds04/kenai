@@ -1,0 +1,49 @@
+/* The Android home screen with Kenai's 9 widgets (T1b). Values from res/values/colors.xml (dark, the default),
+   res/values-notnight/colors.xml (light), res/values/dimens.xml (widget_*) and res/layout/widget_*.xml; 1 dp = 1 px here. */
+.col-home{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.kw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;height:20px}
+.kw-theme{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#8a8f98}
+.kw-theme .seg button{min-height:24px;padding:0 10px;font-size:11.5px}
+.kw-home{position:relative;display:flex;flex-direction:column;gap:10px;padding:12px 26px 10px;border-radius:30px;height:770px;
+  background:radial-gradient(90% 70% at 15% 0%,#2a2f4a 0%,rgba(42,47,74,0) 60%),radial-gradient(70% 60% at 100% 100%,#3a2433 0%,rgba(58,36,51,0) 60%),#101218}
+.kw-sbar{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#e8e9ec;padding:0 6px;opacity:.85}
+.kw-grid{position:relative;display:grid;grid-template-columns:repeat(10,94px);grid-template-rows:repeat(6,106px)}
+.kw-cell{padding:4px;min-width:0;min-height:0}
+.kw-legend{font-size:11px;color:#8a8f98;line-height:1.45;max-width:900px;padding:0 6px}
+.kw-legend b{color:#b6bac2;font-weight:600}
+
+/* widget_card + widget_tint_<tone>: the card, a 1 dp border in the tone and a 315° gradient of the tint. */
+#widgets{--w-card:#17181C;--w-text:#FFFFFF;--w-soft:rgba(255,255,255,.85);--w-sec:rgba(255,255,255,.70);--w-btn:rgba(255,255,255,.12);--w-att-text:#F5A524;--w-on-tone:#1C1C1E}
+#widgets.kw-light{--w-card:#F7F7FA;--w-text:#1C1C1E;--w-soft:rgba(28,28,30,.85);--w-sec:rgba(28,28,30,.70);--w-btn:rgba(0,0,0,.08);--w-att-text:#A4570A}
+.kw{position:relative;width:100%;height:100%;border-radius:24px;background:var(--w-card);box-shadow:inset 0 0 0 1px var(--kw-border),0 2px 10px rgba(0,0,0,.25);overflow:hidden;color:var(--w-text);font-family:var(--font);line-height:1.25}
+.kw>.kw-tint{position:absolute;inset:1px;border-radius:23px;background:linear-gradient(135deg,var(--kw-tint),rgba(0,0,0,0));pointer-events:none}
+.kw>.kw-hit{position:absolute;inset:0;border-radius:24px;cursor:pointer}
+.kw>.kw-in{position:absolute;inset:0;display:flex;pointer-events:none}
+.kw button:not(.kw-hit){pointer-events:auto;cursor:pointer}
+.kw-hit:hover~.kw-in{filter:brightness(1.04)}
+.kw-col{flex-direction:column;align-items:center}
+.kw-face{position:relative;display:flex;align-items:center;justify-content:center;min-height:0}
+.kw-face>svg{width:100%;height:100%}
+.kw .clay *{animation:none!important} /* a widget is a still picture (CharacterBitmap) */
+.kw .clay .z{opacity:1}
+.kw-ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kw-name{font-size:16px;font-weight:700;color:var(--w-text)}
+.kw-state{font-size:13px;color:var(--w-sec)}
+.kw-sec{font-size:12px;color:var(--w-sec)}
+.kw-note{font-size:14px;font-weight:700;color:var(--w-soft)}
+.kw-dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.kw-badge{min-width:22px;padding:1px 6px;border-radius:10px;background:#F5A524;color:var(--w-on-tone);font-size:12px;font-weight:700;text-align:center;flex:none}
+.kw-row{display:flex;align-items:center;min-width:0}
+.kw-off{flex:none;display:block}
+/* widget_button_bg / widget_tile_bg(_attention) */
+.kw-rb{width:36px;height:36px;border-radius:50%;background:var(--w-btn);margin-left:6px;padding:8px;flex:none;color:var(--w-text)}
+.kw-rb svg,.kw-tile svg{display:block}
+.kw-tile{flex:1;height:52px;margin:0 3px;border-radius:16px;background:var(--w-btn);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--w-text);font-size:12px;min-width:0}
+.kw-tile.att{background:rgba(245,165,36,.25);box-shadow:inset 0 0 0 1px #F5A524}
+.kw-lrow{display:flex;align-items:center;height:48px;width:100%;text-align:left;border-radius:10px}
+.kw-lrow:hover{background:var(--w-btn)}
+.kw-right{display:flex;flex-direction:column;justify-content:center;text-align:left;border-radius:12px;min-width:0}
+.kw-right:hover{background:var(--w-btn)}
+.kw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:2px;overflow:hidden}
+.kw-bar i{display:block;height:100%;border-radius:3px;min-width:6px}
+.kw button:focus-visible{outline:2px solid var(--w-text);outline-offset:-2px}

@@ -1,0 +1,13 @@
+{
+  "title": "Kenai for Android · functional replica of today's app",
+  "brief": "A live, clickable copy of the real Kenai Android app as it is today (English texts from strings.xml, the current dark look from Tokens.DARK), not a new direction. Every screen is reachable (Pairing, Scan, Home, Chat, Settings, History, Gallery, Diagnostics, Licences, Session details), the approval, question and diff sheets work with a simulated fingerprint, and the demo loop of DemoLink.kt runs every 2.5 s. Three modes: Not paired, Demo mode, and Paired with fake data for what the desktop does not serve yet (chat, question options, diffs, plan usage, services, session details). On the right, an Android home screen (10 x 6 cells) shows the 9 Kenai widgets at the grid size of their widget_info (Big status 4x4, All your agents 4x3, Agents summary 3x2, One-line status 4x1, At a glance, Approvals waiting, Plan usage and Finished today 2x2, Agents' mood 1x1), redrawn from window.kenai on every change with the texts and rules of core/Glance.kt and core/WidgetData.kt, so they follow the 8-step loop, the not-connected states and the fake plan usage; every card and button opens the phone like the real PendingIntents, and a 'Widgets: dark / light' switch shows their day/night look.",
+  "artboards": [
+    {
+      "file": "01-app-replica.html",
+      "title": "Kenai today · live phone",
+      "tradeoff": "Faithful to today's app and fully clickable, so it is the baseline to compare the light theme, Spanish and the new features against; the character is drawn approximately (the clay engine is not ported) and Android's own screens (fingerprint, permissions, settings) are stand-ins. The widgets are HTML, not RemoteViews bitmaps: same layouts, sizes, colours and texts, but Kenai is the same approximate clay drawing (still, with its glow), the launcher grid is a fixed 94 x 106 dp cell, and Finished today counts only in Paired mode, as the real app does.",
+      "width": 1440,
+      "height": 900
+    }
+  ]
+}

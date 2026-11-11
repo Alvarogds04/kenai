@@ -1,0 +1,1969 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>Kenai for Android · replica of today's app</title>
+<style>/* Kenai for Android, replica of today's app. Values from app/src/main/kotlin/com/kenai/android/core/Tokens.kt
+   (Tokens.DARK, IslandSurface, StatusPalette, Spacing, Radii, TypeScale), ui/Theme.kt and res/values/colors.xml. */
+:root{
+  --bg:#000;--panel:#141518;--panel2:#1D1F23;--line:#26282D;
+  --text:#F5F6F8;--dim:#9398A1;--faint:#6E737C;
+  --pri:#F5F6F8;--onpri:#0B0C0E;--sec:#292A2D;--danger:#FF8D97;--sw-on:#34D399;
+  --online:#0F9F6E;--busy:#B45309;--offline:#6B7280;
+  --hero:#0E0F12;--isl-panel:#141518;--isl-btn:#2A2B2E;
+  --m3-primary:#8AB4FF;--m3-dialog:#2B2930;
+  --font:Roboto,"Google Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"Roboto Mono","DejaVu Sans Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{width:1440px;height:900px;overflow:hidden;background:#0a0b0e;color:#e8e9ec;font:14px/1.4 var(--font);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer;text-align:inherit}
+button:disabled{cursor:default}
+input,textarea,select{font:inherit}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+
+/* ---------- canvas chrome (not part of the app) ---------- */
+.tbar{position:absolute;left:0;right:0;top:0;height:64px;display:flex;align-items:center;gap:18px;padding:0 24px;border-bottom:1px solid #1c1d22;background:#0d0e12}
+.brand{display:flex;flex-direction:column;min-width:0;margin-right:auto}
+.brand b{font-size:15px;font-weight:600;color:#f1f2f4}
+.brand span{font-size:12px;color:#8a8f98}
+.seg{display:flex;padding:3px;border-radius:999px;background:#17181d;border:1px solid #23252b}
+.seg button,.cb{min-height:36px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:600;color:#a3a8b1}
+.seg button[aria-pressed=true]{background:#2a2c33;color:#fff}
+.cb{background:#17181d;border:1px solid #23252b;color:#e3e5e9}
+.cb:hover,.seg button:hover{color:#fff}
+.ctl{display:flex;align-items:center;gap:8px;font-size:12px;color:#8a8f98}
+.ctl select{background:#17181d;color:#e3e5e9;border:1px solid #23252b;border-radius:8px;height:32px;padding:0 6px;font-size:12px}
+.ctl[hidden]{display:none}
+#stepinfo{min-width:220px;font-variant-numeric:tabular-nums;color:#c9ccd2}
+#stepinfo i{font-style:normal;color:#8a8f98}
+.stage{position:absolute;left:0;right:0;top:64px;bottom:0;display:flex;gap:28px;padding:16px 24px 0 28px}
+.col-phone{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cap{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#7d828b}
+.hint{font-size:11.5px;color:#6f747d;max-width:380px;text-align:center}
+
+/* ---------- the phone ---------- */
+.phone{position:relative;width:360px;height:760px;border-radius:38px;background:#000;overflow:hidden;box-shadow:0 0 0 7px #16171b,0 0 0 8px #2b2d33,0 24px 60px rgba(0,0,0,.6);color:var(--text);flex:none}
+.phone.flash{animation:flash .5s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 7px #16171b,0 0 0 8px #8ab4ff,0 24px 60px rgba(0,0,0,.6)}100%{box-shadow:0 0 0 7px #16171b,0 0 0 8px #2b2d33,0 24px 60px rgba(0,0,0,.6)}}
+.sbar{position:absolute;left:0;right:0;top:0;height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 22px 0 26px;font-size:13px;font-weight:600;color:#F5F6F8;z-index:70;pointer-events:none}
+.sbar .cam{position:absolute;left:50%;top:8px;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:#050506;box-shadow:inset 0 0 0 2px #15161a}
+.sbar .r{display:flex;gap:5px;align-items:center}
+.sbar .r i{display:inline-block;width:14px;height:9px;border-radius:2px;background:#F5F6F8}
+.sbar .r i.w{width:20px;height:10px;border-radius:3px;background:none;box-shadow:inset 0 0 0 1.5px #F5F6F8;position:relative}
+.sbar .r i.w::after{content:"";position:absolute;left:2px;top:2px;bottom:2px;width:11px;background:#F5F6F8;border-radius:1px}
+.gbar{position:absolute;left:0;right:0;bottom:0;height:20px;display:flex;align-items:center;justify-content:center;z-index:70;background:#000}
+.gbar button{width:140px;height:20px;display:flex;align-items:center;justify-content:center}
+.gbar button::after{content:"";width:108px;height:4px;border-radius:2px;background:#F5F6F8;opacity:.9}
+.screen{position:absolute;left:0;right:0;top:0;bottom:20px;overflow:hidden;background:var(--bg)}
+.scr{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none}
+.scr::-webkit-scrollbar{display:none}
+.ptop{padding-top:28px}
+.gut{padding-left:16px;padding-right:16px}
+.col{display:flex;flex-direction:column;gap:12px}
+.clear{height:96px;flex:none} /* BarClearance */
+
+/* type scale (core/TypeScale) */
+.t-display{font-size:28px;line-height:34px;font-weight:700}
+.t-title{font-size:20px;line-height:26px;font-weight:700}
+.t-head{font-size:16px;line-height:22px;font-weight:600}
+.t-body{font-size:15px;line-height:22px;font-weight:400}
+.t-sec{font-size:13px;line-height:18px;font-weight:400}
+.t-label{font-size:12px;line-height:16px;font-weight:600}
+.t-mono{font-family:var(--mono);font-size:12px;line-height:18px}
+.dim{color:var(--dim)}.faint{color:var(--faint)}.white{color:#F5F6F8}.dang{color:var(--danger)}
+.center{text-align:center}
+.u{text-decoration:underline}
+p{margin:0}h1,h2{margin:0;font:inherit}
+.ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* building blocks (ui/DesignSystem.kt) */
+.panel{position:relative;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.wash{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle var(--wr,279px) at 50% 130%,var(--wash),rgba(0,0,0,0))}
+.panel>*:not(.wash),.hero>*:not(.wash),.sheet>*:not(.wash){position:relative}
+.pb{min-height:48px;border-radius:999px;padding:0 22px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:15px;line-height:22px;font-weight:600;background:var(--sec);color:var(--text);white-space:nowrap;overflow:hidden;min-width:0}
+.pb span{overflow:hidden;text-overflow:ellipsis}
+.pb.pri{background:var(--pri);color:var(--onpri)}
+.pb.dan{color:var(--danger)}
+.pb.dk{background:var(--isl-btn);color:#F5F6F8}
+.pb.dk.pri{background:#F5F6F8;color:#0B0C0E}
+.pb:disabled{opacity:.4}
+.pb.wide{width:100%}
+.row2{display:flex;gap:12px;width:100%}.row2.g8{gap:8px}.row2.g10{gap:10px}
+.row2>.pb{flex:1}
+.dot{width:8px;height:8px;border-radius:50%;flex:none;display:inline-block}
+.div{height:1px;background:var(--line);width:100%}
+.lr{display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 16px;width:100%;text-align:left}
+.lr-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.lr-t b{font-size:15px;line-height:22px;font-weight:600}
+.lr-t span{font-size:13px;line-height:18px;color:var(--dim)}
+.sh{font-size:12px;line-height:16px;font-weight:600;color:var(--dim);padding:8px 0 0 4px}
+.chip{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;background:var(--panel2);font-size:12px;line-height:16px;font-weight:600;max-width:100%}
+.ic{flex:none;display:block}
+/* switch and slider (ui/DesignControls.kt) */
+.sw{min-width:52px;min-height:48px;display:flex;align-items:center;justify-content:center;flex:none}
+.sw i{position:relative;width:52px;height:30px;border-radius:15px;background:var(--panel2);border:1px solid var(--line);display:block}
+.sw i::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .28s cubic-bezier(.3,1.35,.5,1)}
+.sw i{border-width:0;box-shadow:inset 0 0 0 1px var(--line)}
+.sw.on i{background:var(--sw-on);box-shadow:none}
+.sw.on i::after{transform:translateX(22px)}
+.sw:disabled{opacity:.4}
+.slider{-webkit-appearance:none;appearance:none;width:100%;height:48px;background:transparent;margin:0;--f:60%}
+.slider::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--text) var(--f),var(--panel2) var(--f))}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.25);margin-top:-9px}
+.slider:disabled{opacity:.4}
+.step{width:48px;height:48px;border-radius:50%;background:var(--sec);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;flex:none}
+.step:disabled{opacity:.4}
+
+/* screen titles (ui/SettingsScreens.kt ScreenTitle) */
+.st-root{display:flex;align-items:center;padding:16px 0 4px}
+.st-root h1{flex:1;padding-left:4px}
+.st-back{display:flex;align-items:center;padding-top:8px;gap:0}
+.st-back h1{flex:1;font-size:22px;line-height:28px;font-weight:700;min-width:0}
+.tbtn{min-height:40px;padding:0 12px;border-radius:20px;color:var(--m3-primary);font-size:14px;font-weight:500;letter-spacing:.01em;flex:none}
+.tlink{min-height:48px;padding:14px 12px;font-size:12px;line-height:16px;font-weight:600;color:var(--dim);flex:none}
+
+/* bottom bar (ui/BottomBar.kt) */
+.bbar{position:absolute;left:24px;right:24px;bottom:16px;height:64px;border-radius:999px;background:var(--panel);border:1px solid var(--line);padding:5px;display:flex;gap:4px;z-index:20}
+.bbar button{flex:1;border-radius:999px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;color:var(--dim);font-size:12px;line-height:16px;font-weight:600}
+.bbar button[aria-selected=true]{background:var(--panel2);color:var(--text)}
+.bbar .alert{position:absolute;top:4px;left:calc(50% + 6.5px);width:9px;height:9px;border-radius:50%;background:#F5A524;box-shadow:0 0 0 2px var(--panel)}
+
+/* Home hero (ui/HomePanel.kt HeroCard + HeroPanel) */
+.hero{position:relative;background:var(--hero);border-radius:0 0 30px 30px;box-shadow:inset 0 -1px 0 rgba(255,255,255,.06),inset 1px 0 0 rgba(255,255,255,.06),inset -1px 0 0 rgba(255,255,255,.06);overflow:hidden;padding:40px 16px 18px;display:flex;flex-direction:column;gap:8px;--wr:306px}
+.hero .lk{display:flex;align-items:center;gap:8px;font-size:12px;line-height:16px;font-weight:600;color:#9398A1}
+.hero .lk .ell{flex:1;min-width:0}
+.hero .who{display:flex;align-items:center;gap:14px}
+.hero .who>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.hero .btns{display:flex;gap:8px;flex-wrap:nowrap}
+.hero .btns .pb{padding:0 18px}
+.hero .empty{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.clamp2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.clamp3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+
+/* Koda sprite (character/KodaView.kt) */
+.koda{display:inline-flex;align-items:center;justify-content:center;flex:none}
+.koda i{display:block;width:var(--s);height:var(--s);image-rendering:pixelated;background-repeat:no-repeat}
+/* clay character (character/CharacterPainter.kt, approximated) */
+.clay{display:block;flex:none;overflow:visible}
+.clay .cbody{transform-origin:100px 160px;animation:breathe 3.4s ease-in-out infinite}
+.clay .eyes{transform-origin:100px 98px}
+.clay.blink .eyes{animation:blink 4.2s infinite}
+.clay.st-approval .cbody,.clay.em-happy .cbody{animation:hop 1.1s ease-in-out infinite}
+.clay.st-question .cbody{animation:tilt 2.6s ease-in-out infinite}
+.clay.st-searching .eyes{animation:look 2.2s ease-in-out infinite}
+.clay.st-thinking .cbody{animation:sway 3s ease-in-out infinite}
+.clay.st-working .cbody{animation:breathe 1.1s ease-in-out infinite}
+.clay.st-dizzy .cbody{animation:tilt 1.2s ease-in-out infinite}
+.clay.st-error .cbody{animation:shake 2.6s ease-in-out infinite}
+.clay .z{animation:zz 2.4s ease-in-out infinite;opacity:0}
+.clay .z.b{animation-delay:1.2s}
+@keyframes breathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.025,.975)}}
+@keyframes blink{0%,46%,50%,100%{transform:scaleY(1)}48%{transform:scaleY(.08)}}
+@keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-7px) scale(.98,1.03)}60%{transform:translateY(0) scale(1.03,.97)}}
+@keyframes tilt{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes sway{0%,100%{transform:translateX(-2px)}50%{transform:translateX(2px)}}
+@keyframes look{0%,100%{transform:translateX(-5px)}50%{transform:translateX(5px)}}
+@keyframes shake{0%,80%,100%{transform:translateX(0)}84%{transform:translateX(-3px)}88%{transform:translateX(3px)}92%{transform:translateX(-2px)}96%{transform:translateX(2px)}}
+@keyframes zz{0%{opacity:0;transform:translate(0,0)}30%{opacity:.9}100%{opacity:0;transform:translate(10px,-22px)}}
+
+/* rows on Home */
+.arow{display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 16px;width:100%;text-align:left}
+.arow>div{flex:1;min-width:0}
+.arow b{display:block;font-size:15px;line-height:22px;font-weight:600}
+.arow span{display:block;font-size:13px;line-height:18px;color:var(--dim)}
+.rrow{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 16px;width:100%;text-align:left}
+.bar8{height:8px;border-radius:4px;background:var(--sec);overflow:hidden}
+.bar8 i{display:block;height:100%;border-radius:4px}
+
+/* pairing / scan */
+.pairing{display:flex;flex-direction:column;align-items:center;padding:28px 24px 0}
+.scan{position:absolute;inset:0;background:#000;padding:28px 16px 0;display:flex;flex-direction:column;gap:12px}
+.cam{position:relative;flex:1;border-radius:14px;overflow:hidden;background:radial-gradient(120% 90% at 30% 20%,#3a3d44,#16171a 60%,#0b0b0d)}
+.cam .desk{position:absolute;left:50%;top:50%;width:190px;height:150px;transform:translate(-50%,-55%) perspective(500px) rotateX(8deg);background:#d9dbe0;border-radius:6px;box-shadow:0 0 0 7px #2b2d33,0 14px 30px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;filter:blur(.3px)}
+.cam .vf{position:absolute;inset:0;pointer-events:none}
+.simbtns{display:flex;gap:8px;position:absolute;left:10px;right:10px;bottom:10px}
+.simbtns button{flex:1;min-height:34px;border-radius:10px;border:1px dashed rgba(255,255,255,.4);background:rgba(0,0,0,.55);font-size:11.5px;color:#dfe2e7;padding:0 6px}
+
+/* sheets (ui/Sheets.kt BottomSheetHost) */
+.host{position:absolute;inset:0;z-index:30}
+.scrim{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--isl-panel);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 1px 0 0 rgba(255,255,255,.08),inset -1px 0 0 rgba(255,255,255,.08);border-radius:28px 28px 0 0;padding:10px 20px 20px;max-height:94%;overflow-y:auto;scrollbar-width:none;--wr:306px;color:#F5F6F8}
+.sheet.enter{animation:sheetIn .45s cubic-bezier(.2,1.25,.4,1)}
+@keyframes sheetIn{from{transform:translateY(100%);opacity:0}to{transform:none;opacity:1}}
+.grab{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.2);margin:0 auto 14px}
+.shead{display:flex;align-items:center;gap:14px}
+.shead>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cmd{border-radius:12px;background:rgba(255,255,255,.07);padding:12px;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow:auto;word-break:break-all}
+.later{min-height:48px;padding:14px 0;font-size:13px;line-height:18px;color:#9398A1;display:block}
+.opt{display:flex;align-items:center;gap:12px;min-height:48px;padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px transparent;width:100%;text-align:left}
+.opt[aria-checked=true]{background:rgba(255,255,255,.16);box-shadow:inset 0 0 0 1px rgba(245,246,248,.7)}
+.opt .mk{width:22px;height:22px;border-radius:50%;border:1.5px solid #9398A1;display:flex;align-items:center;justify-content:center;flex:none}
+.opt.multi .mk{border-radius:6px}
+.opt[aria-checked=true] .mk{background:#F5F6F8;border-color:#F5F6F8}
+.opt>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.field{width:100%;min-height:56px;border-radius:14px;border:1px solid rgba(255,255,255,.25);background:transparent;color:#F5F6F8;padding:0 16px;font-size:16px;outline:none}
+.field:focus{border:2px solid #F5F6F8;padding:0 15px}
+.field::placeholder{color:#6E737C}
+.drow{display:flex;gap:8px;padding:1px 6px;font-family:var(--mono);font-size:12px;line-height:18px;white-space:pre-wrap;word-break:break-all}
+.drow b{font-weight:400;flex:none;width:8px}
+.dlist{max-height:420px;overflow:auto;border-radius:8px;scrollbar-width:thin}
+
+/* Material 3 dialog (PairConfirm, Clear chat) */
+.dhost{position:absolute;inset:0;z-index:45;background:rgba(0,0,0,.32);display:flex;align-items:center;justify-content:center}
+.dlg{width:304px;background:var(--m3-dialog);border-radius:28px;padding:24px 24px 18px;color:#F5F6F8;animation:dlgIn .22s ease-out}
+@keyframes dlgIn{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
+.dlg h2{font-size:24px;line-height:32px;font-weight:400;margin-bottom:16px}
+.dlg p{font-size:14px;line-height:20px;color:#9398A1;white-space:pre-line}
+.dlg .acts{display:flex;justify-content:flex-end;gap:8px;margin-top:24px}
+.menu{position:absolute;z-index:46;background:#2B2930;border-radius:4px;padding:8px 0;min-width:200px;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.menu button{display:block;width:100%;min-height:48px;padding:0 16px;font-size:14px;color:#F5F6F8;text-align:left}
+.menu button:hover{background:rgba(255,255,255,.08)}
+
+/* Android system surfaces: biometric prompt, heads-up, permission dialog, settings page */
+.bio-host{position:absolute;inset:0;z-index:60;background:rgba(0,0,0,.45)}
+.bio{position:absolute;left:8px;right:8px;bottom:8px;background:#202124;border-radius:28px;padding:22px 22px 14px;text-align:center;animation:sheetIn .3s ease-out;color:#e8eaed}
+.bio .app{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:#bdc1c6;margin-bottom:10px}
+.bio h2{font-size:22px;line-height:28px;font-weight:400}
+.bio .sub{font-size:14px;color:#bdc1c6;margin-top:6px;word-break:break-all}
+.bio .fp{width:72px;height:72px;border-radius:50%;margin:20px auto 8px;display:flex;align-items:center;justify-content:center;background:rgba(138,180,248,.12);color:#8ab4f8}
+.bio .fp.ok{background:rgba(52,211,153,.18);color:#34d399}
+.bio .fpt{font-size:13px;color:#bdc1c6}
+.bio .acts{display:flex;justify-content:space-between;margin-top:14px}
+.hu{position:absolute;top:34px;left:8px;right:8px;background:#2a2c31;border-radius:22px;padding:12px 14px 4px;z-index:55;box-shadow:0 10px 30px rgba(0,0,0,.55);animation:huIn .35s cubic-bezier(.2,1.2,.4,1);color:#e8eaed}
+@keyframes huIn{from{transform:translateY(-120%)}to{transform:none}}
+.hu .h{display:flex;align-items:center;gap:6px;font-size:12px;color:#bdc1c6}
+.hu .body{display:block;width:100%;text-align:left;padding:6px 0 2px}
+.hu .body b{display:block;font-size:15px;font-weight:500;color:#e8eaed}
+.hu .body span{font-size:14px;color:#bdc1c6}
+.hu .acts{display:flex;gap:4px}
+.hu .acts button{min-height:40px;padding:0 12px;color:#8ab4f8;font-size:14px;font-weight:500}
+.sysd{position:absolute;inset:0;z-index:62;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center}
+.sysd .box{width:300px;background:#2d2e31;border-radius:28px;padding:24px;text-align:center;color:#e8eaed}
+.sysd .box p{font-size:18px;line-height:24px;margin:10px 0 18px}
+.sysd .box button{display:block;width:100%;min-height:44px;border-radius:22px;background:#3c4043;color:#8ab4f8;font-size:14px;font-weight:500;margin-top:8px}
+.sysp{position:absolute;inset:0;z-index:62;background:#121316;padding:28px 0 0;color:#e8eaed}
+.sysp .top{display:flex;align-items:center;gap:8px;padding:8px 8px 16px}
+.sysp .top button{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.sysp .top h2{font-size:22px;font-weight:400}
+.sysp .app{display:flex;align-items:center;gap:14px;padding:8px 24px 18px;font-size:16px}
+.sysp .opt2{display:flex;align-items:center;gap:16px;width:100%;min-height:64px;padding:0 24px;text-align:left;font-size:16px}
+.sysp .note{padding:10px 24px;font-size:13px;color:#9aa0a6}
+.radio{width:20px;height:20px;border-radius:50%;border:2px solid #9aa0a6;flex:none;position:relative}
+.radio.on{border-color:#8ab4f8}.radio.on::after{content:"";position:absolute;inset:3px;border-radius:50%;background:#8ab4f8}
+
+/* The Android home screen with the widgets: widgets.css (T1b). */
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* chat typing dots (ui/ChatScreen.kt TypingDots: 1.2 s, one lit at a time) */
+.typing i{width:8px;height:8px;border-radius:50%;background:var(--dim);opacity:.35;animation:tdot 1.2s steps(1) infinite}
+.typing i:nth-child(2){animation-delay:.4s}.typing i:nth-child(3){animation-delay:.8s}
+@keyframes tdot{0%{opacity:1}33.3%,100%{opacity:.35}}
+textarea.field:focus{padding:15px}
+.st-back .tbtn{margin-left:-12px}
+.tbar>*{flex:none}.tbar .brand{flex:1 1 auto}
+.brand b,.brand span,.seg button,#stepinfo{white-space:nowrap}
+#stepinfo{width:330px;overflow:hidden;text-overflow:ellipsis}
+
+/* The Android home screen with Kenai's 9 widgets (T1b). Values from res/values/colors.xml (dark, the default),
+   res/values-notnight/colors.xml (light), res/values/dimens.xml (widget_*) and res/layout/widget_*.xml; 1 dp = 1 px here. */
+.col-home{display:flex;flex-direction:column;gap:6px;flex:1;min-width:0}
+.kw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;height:20px}
+.kw-theme{display:flex;align-items:center;gap:6px;font-size:11.5px;color:#8a8f98}
+.kw-theme .seg button{min-height:24px;padding:0 10px;font-size:11.5px}
+.kw-home{position:relative;display:flex;flex-direction:column;gap:10px;padding:12px 26px 10px;border-radius:30px;height:770px;
+  background:radial-gradient(90% 70% at 15% 0%,#2a2f4a 0%,rgba(42,47,74,0) 60%),radial-gradient(70% 60% at 100% 100%,#3a2433 0%,rgba(58,36,51,0) 60%),#101218}
+.kw-sbar{display:flex;justify-content:space-between;font-size:12px;font-weight:600;color:#e8e9ec;padding:0 6px;opacity:.85}
+.kw-grid{position:relative;display:grid;grid-template-columns:repeat(10,94px);grid-template-rows:repeat(6,106px)}
+.kw-cell{padding:4px;min-width:0;min-height:0}
+.kw-legend{font-size:11px;color:#8a8f98;line-height:1.45;max-width:900px;padding:0 6px}
+.kw-legend b{color:#b6bac2;font-weight:600}
+
+/* widget_card + widget_tint_<tone>: the card, a 1 dp border in the tone and a 315° gradient of the tint. */
+#widgets{--w-card:#17181C;--w-text:#FFFFFF;--w-soft:rgba(255,255,255,.85);--w-sec:rgba(255,255,255,.70);--w-btn:rgba(255,255,255,.12);--w-att-text:#F5A524;--w-on-tone:#1C1C1E}
+#widgets.kw-light{--w-card:#F7F7FA;--w-text:#1C1C1E;--w-soft:rgba(28,28,30,.85);--w-sec:rgba(28,28,30,.70);--w-btn:rgba(0,0,0,.08);--w-att-text:#A4570A}
+.kw{position:relative;width:100%;height:100%;border-radius:24px;background:var(--w-card);box-shadow:inset 0 0 0 1px var(--kw-border),0 2px 10px rgba(0,0,0,.25);overflow:hidden;color:var(--w-text);font-family:var(--font);line-height:1.25}
+.kw>.kw-tint{position:absolute;inset:1px;border-radius:23px;background:linear-gradient(135deg,var(--kw-tint),rgba(0,0,0,0));pointer-events:none}
+.kw>.kw-hit{position:absolute;inset:0;border-radius:24px;cursor:pointer}
+.kw>.kw-in{position:absolute;inset:0;display:flex;pointer-events:none}
+.kw button:not(.kw-hit){pointer-events:auto;cursor:pointer}
+.kw-hit:hover~.kw-in{filter:brightness(1.04)}
+.kw-col{flex-direction:column;align-items:center}
+.kw-face{position:relative;display:flex;align-items:center;justify-content:center;min-height:0}
+.kw-face>svg{width:100%;height:100%}
+.kw .clay *{animation:none!important} /* a widget is a still picture (CharacterBitmap) */
+.kw .clay .z{opacity:1}
+.kw-ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.kw-name{font-size:16px;font-weight:700;color:var(--w-text)}
+.kw-state{font-size:13px;color:var(--w-sec)}
+.kw-sec{font-size:12px;color:var(--w-sec)}
+.kw-note{font-size:14px;font-weight:700;color:var(--w-soft)}
+.kw-dot{width:10px;height:10px;border-radius:50%;flex:none;display:inline-block}
+.kw-badge{min-width:22px;padding:1px 6px;border-radius:10px;background:#F5A524;color:var(--w-on-tone);font-size:12px;font-weight:700;text-align:center;flex:none}
+.kw-row{display:flex;align-items:center;min-width:0}
+.kw-off{flex:none;display:block}
+/* widget_button_bg / widget_tile_bg(_attention) */
+.kw-rb{width:36px;height:36px;border-radius:50%;background:var(--w-btn);margin-left:6px;padding:8px;flex:none;color:var(--w-text)}
+.kw-rb svg,.kw-tile svg{display:block}
+.kw-tile{flex:1;height:52px;margin:0 3px;border-radius:16px;background:var(--w-btn);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:var(--w-text);font-size:12px;min-width:0}
+.kw-tile.att{background:rgba(245,165,36,.25);box-shadow:inset 0 0 0 1px #F5A524}
+.kw-lrow{display:flex;align-items:center;height:48px;width:100%;text-align:left;border-radius:10px}
+.kw-lrow:hover{background:var(--w-btn)}
+.kw-right{display:flex;flex-direction:column;justify-content:center;text-align:left;border-radius:12px;min-width:0}
+.kw-right:hover{background:var(--w-btn)}
+.kw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:2px;overflow:hidden}
+.kw-bar i{display:block;height:100%;border-radius:3px;min-width:6px}
+.kw button:focus-visible{outline:2px solid var(--w-text);outline-offset:-2px}
+</style></head>
+<body>
+<header class="tbar" id="tbar"></header>
+<main class="stage">
+  <div class="col-phone">
+    <div class="cap">Kenai for Android · today</div>
+    <div class="phone" id="phone"></div>
+    <div class="hint" id="hint">The phone is live: tap it like the real app.</div>
+  </div>
+  <section id="widgets" class="col-home" aria-label="Home screen widgets"></section>
+</main>
+<script>
+/* ---- data.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* Data copied from the app. Strings: res/values/strings.xml (injected verbatim by _build.mjs). */
+const S = {"app_name":"Kenai","koda_description":"Koda, Kenai's cat","about_unofficial":"Kenai for Android. Part of its code comes from Coucou for Android by Rhytam Biswas (MIT License).","about_repo":"github.com/Alvarogds04/kenai","licences_title":"Licences","licences_intro":"Kenai's code is MIT-licensed; part of it comes from Coucou for Android (MIT). The libraries are listed with their licence.","about_assets":"Kenai does not use Coucou's name, the Mochi character, Coucou's icon or its sounds, which are © Louis Raillé. The code taken from Coucou for Android is © Rhytam Biswas, released under the MIT License.","action_allow":"Allow","action_deny":"Deny","action_close":"Close","widget_description":"Who is working and what waits for you.","widget_glance_label":"Agents summary","widget_solo_label":"At a glance","widget_list_label":"All your agents","widget_solo_description":"Kenai and your most urgent agent.","widget_list_description":"Every agent and what it is doing.","widget_character_description":"Kenai, %1$s","widget_badge_description":"%1$d waiting for you","widget_big_label":"Big status","widget_big_description":"Kenai, your plan usage and quick buttons.","widget_pill_label":"One-line status","widget_pill_description":"Your most urgent agent on one line.","widget_alert_label":"Approvals waiting","widget_alert_description":"Calm, until an agent needs your approval.","widget_ring_label":"Plan usage","widget_ring_description":"How much of your Claude or Codex plan is used.","widget_today_label":"Finished today","widget_today_description":"Agent tasks finished today.","widget_mood_label":"Agents' mood","widget_mood_description":"Just Kenai's face, in your agents' mood.","widget_today_unit":"done today","widget_usage_off":"Turn on plan usage in the app","widget_big_usage_off":"Plan usage is off","widget_big_usage_off_line":"Turn it on in the app","widget_big_not_connected":"Not connected","widget_ring_cd":"%1$s plan usage, %2$d percent used","widget_today_cd":"%1$d agent tasks finished today","tile_waiting":"%1$d waiting","widget_pill_cd":"%1$s, %2$s","widget_initial_title":"Kenai","widget_initial_line":"Waiting for your agents","widget_initial_count":"0","widget_btn_home":"Home","widget_btn_chat":"Chat","widget_btn_settings":"Settings","widget_btn_recent":"Recent","widget_btn_session":"Top agent","widget_btn_pair":"Pair again","widget_btn_home_cd":"Open Kenai","widget_btn_chat_cd":"Open Chat","widget_btn_settings_cd":"Open Settings","widget_btn_recent_cd":"Open recent decisions","widget_btn_session_cd":"Open the top agent","widget_btn_pair_cd":"Pair again with your computer","widget_sample_claude":"Claude Code","widget_sample_claude_short":"Claude","widget_sample_codex":"Codex","widget_sample_gemini":"Gemini CLI","widget_sample_approval":"Waiting for your approval","widget_sample_working":"Working","widget_sample_finished":"Finished","widget_sample_header":"Waiting for you","widget_sample_one":"1","widget_sample_two_waiting":"2 waiting","widget_sample_ring_pct":"68%","widget_sample_ring_label":"Claude · 5 h","widget_sample_pct_a":"68%","widget_sample_pct_b":"41%","widget_sample_codex_week":"Codex · week","widget_sample_today":"5","widget_sample_two_agents":"2 agents working","widget_sample_thinking":"Thinking","widget_sample_idle":"Idle","widget_sample_waiting":"Waiting","status_connected":"Connected","status_connecting":"Connecting…","status_not_connected":"Not connected","demo_mode":"Demo mode","demo_try":"Try demo mode","pair_button":"Pair","approval_title":"Approval needed","action_unpair":"Disconnect this computer","demo_leave":"Leave demo mode","gallery":"Kenai gallery","pair_paste_short":"Paste the link","pairing_headline":"Connect to your computer","pairing_help":"On your computer open Koda, then Settings, Android phone, and scan the code it shows.","pairing_footer":"Kenai for Android.","pairing_about":"About","paste_title":"Paste the pairing link","paste_hint":"Copy it from Koda on your computer (Settings, Android phone).","approval_later":"Not now","approval_wants":"Wants to %1$s","approval_too_long":"Command is longer than shown","approval_on_computer":"Answer this request on your computer. Allow is not offered here, because the whole command cannot be shown on the phone.","approval_caution":"Allow only if you asked for this.","approval_show_cmd":"Show exact command","approval_hide_cmd":"Hide exact command","question_title":"%1$s has a question","question_body":"Answer it on your computer. To answer here, turn on \"Let the phone answer Claude Code's questions\" in Koda on your computer (Settings > Android phone).","question_see_answer":"Answer the question","question_position":"Question %1$d of %2$d","question_pick_many":"Pick one or more","question_next":"Next","question_back":"Back","question_send":"Send answer","question_confirm_title":"Send your answer","question_sent":"Answer sent","question_not_sent":"The answer could not be sent. Your computer may have answered already.","question_see":"See the question","question_ok":"OK","home_running":"%1$d running","home_empty_title":"Nothing is running","home_empty_hint":"Start an agent on your computer and it shows up here.","recent_title":"Recent","recent_all":"See all","status_looking":"Looking for your computer…","discovery_title":"Can't find your computer","discovery_body":"Is the phone on the same Wi-Fi as the computer? Is the computer awake, with Koda running and the phone link on, and does Windows allow Koda on private networks? Some hotspots and guest networks block devices from finding each other (client isolation).","discovery_pair_again":"Pair again","discovery_enter_address":"Enter address manually","address_title":"Computer address","address_hint":"For example 192.168.1.20 or 192.168.1.20:47821. Your pairing stays as it is: only the address changes.","address_save":"Use this address","address_bad":"That is not a valid address.","chat_off_not_paired_title":"Not connected","chat_off_not_paired_body":"Pair your computer first, then you can chat through it.","chat_off_offline_title":"Not connected","chat_off_offline_body":"Your computer cannot be reached right now. Check that it is on, with Koda running, on the same Wi-Fi.","chat_off_title":"Chat is off on your computer","chat_nomodel_title":"Your computer has no model allowed for the phone yet","chat_off_hint":"On your computer open Koda > Settings > Android phone, turn on \"Let the phone chat with my AI providers\" and tick a model.","chat_go_pair":"Connect to your computer","chat_go_settings":"Open Settings","tab_home":"Home","tab_chat":"Chat","tab_settings":"Settings","design_note":"The building blocks of the new look. No other screen uses them yet.","pair_clipboard":"Paste from clipboard","notif_unlock":"Unlock to see the request","msg_not_pending":"That request is no longer pending.","msg_bad_link":"That is not a Kenai pairing link.","msg_rejected":"The desktop rejected this phone. Pair again.","msg_link_error":"Link error","msg_need_lock":"Set a screen lock to approve from your phone.","approval_hint":"Allow on the phone asks for the fingerprint or the screen lock. Deny does not.","overlay_title":"Show Kenai over other apps","overlay_hint":"An island drops from the top of the screen while an agent works, then goes back up.","msg_overlay_permission":"Allow “display over other apps” for Kenai, then come back.","settings_title":"Settings","settings_sound":"Kenai's sounds","settings_volume":"Volume","settings_vibrate":"Vibrate","settings_vibrate_hint":"A short buzz when a request or a question arrives, even in quiet hours.","notify_done":"When an agent finishes or fails","notify_done_hint":"A quiet notice in the notification shade, and the pill if it is on. Permission requests and questions always notify you.","quiet_hours":"Quiet hours","quiet_hint":"No sound and no pill for finished or failed agents. Requests and questions still come through.","quiet_from":"From","quiet_to":"To","history_title":"Activity","history_empty":"Your decisions will appear here. They stay on this phone.","history_today":"Today","history_yesterday":"Yesterday","history_clear":"Clear history","history_note":"Kept only on this phone, never sent anywhere.","action_back":"Back","notif_finished":"Finished","notif_error":"Stopped on an error","notif_question":"Has a question","notif_ratelimit":"Hit a usage limit","island_answer_on_pc":"Tap to open Kenai, or answer on your computer","state_ready":"Ready","state_working":"Working","state_thinking":"Thinking","state_searching":"Searching","state_approval":"Waiting for your OK","state_question":"Has a question","state_error":"Error","state_finished":"Finished","state_ratelimit":"Limit reached","state_sleeping":"Sleeping","state_dizzy":"Dizzy","agent_kind":"Agent","link_pair":"Pair with your computer","link_approval":"Review request","overlay_missing":"Allow “display over other apps” so the island can show.","overlay_allow":"Allow","settings_section_computer":"Computer","settings_section_sound":"Sound","settings_section_notices":"Notices","settings_section_display":"Display","settings_section_more":"More","settings_section_about":"About","settings_computer_none":"No computer connected yet. You can pair one from the Home screen.","action_cancel":"Cancel","chat_title":"Chat","chat_note":"Uses your computer's API key. Your computer sends your messages to the provider you pick; the key never reaches this phone.","chat_empty":"Ask anything. Your message goes to the model you pick above the box.","chat_placeholder":"Ask me anything…","chat_send":"Send","chat_stop":"Stop","chat_clear":"Clear","chat_clear_title":"Clear this chat?","chat_clear_body":"This removes the conversation from this phone and tells your computer to forget it.","chat_model":"Model: %1$s","chat_count":"%1$d / %2$d","chat_ref_too_long":"That message is too long.","chat_ref_no_model":"Pick a model first.","chat_ref_busy":"Wait for the answer to finish, or stop it.","chat_ref_offline":"Not connected to your computer.","chat_err_off":"Chat is turned off on your computer.","chat_err_not_allowed":"That model is not allowed for the phone.","chat_err_busy":"Another answer is still being written.","chat_err_rate":"Too many messages. Try again in a few minutes.","chat_err_too_long":"The message is too long.","chat_err_empty":"Nothing to send.","chat_err_no_key":"Your computer has no key for that provider.","chat_err_unreachable":"Your computer could not reach the provider.","chat_err_auth":"The provider refused your computer's key.","chat_err_provider":"The provider returned an error.","chat_err_canceled":"Stopped.","chat_err_internal":"Something went wrong.","chat_err_connection":"The connection to your computer was lost.","chat_err_interrupted":"Stopped when the app closed.","session_details":"Details","session_last":"Last message","session_steps":"Steps","session_step_working":"Working","session_step_done":"Step done","session_no_steps":"No steps yet.","session_hint":"Turn on “Show session details on the phone” in your computer's Settings to see the steps and the last message here.","session_ended":"This session is no longer running.","session_project":"Project: %1$s","scan_button":"Scan QR code","scan_title":"Scan QR code","scan_hint":"Point the camera at the code in your computer's Settings → Android phone.","scan_not_pairing":"That is not a Kenai pairing code","scan_why":"Kenai uses the camera only on this screen, to read the pairing code. Nothing is saved or sent.","scan_allow":"Allow camera","scan_blocked":"The camera is off for Kenai. Turn it on in Android's settings, or paste the link instead.","scan_open_settings":"Open settings","scan_paste_instead":"Paste the link instead","scan_camera_error":"The camera could not start. Paste the link instead.","pair_confirm_title":"Pair with %1$s?","pair_confirm_body":"%1$s:%2$d on your network. Only pair with a computer you own.","pair_confirm_replace":"This replaces the computer you are connected to now.","pair_confirm_ok":"Pair","files_heading":"Files changed","files_counts":"+%1$d −%2$d","files_new":"New file","file_loading":"Loading the changes…","file_failed":"Could not load this change. Check the connection and try again.","file_gone":"This change is no longer available on your computer.","file_too_large":"This change is too large to show line by line.","file_truncated":"Only the first 200 lines are shown.","file_empty":"Nothing to show.","file_close":"Close","file_summary":"+%1$d added, −%2$d removed","usage_title":"Plan usage","usage_claude":"Claude","usage_codex":"Codex","usage_five_hours":"5 hours","usage_week":"Week","usage_pct":"%1$d%%","usage_resets_now":"Resetting…","usage_resets_hm":"Resets in %1$d h %2$d","usage_resets_m":"Resets in %1$d min","usage_resets_week":"Resets %1$s","usage_credits":"%1$d free resets available","usage_desc":"%1$s, %2$s: %3$d percent used","services_title":"Services","diag_title":"Can't connect?","diag_intro":"These checks find where the connection breaks. Nothing secret is shown or copied: the report hides the pairing code, the fingerprint, the computer's name and its full address.","diag_run":"Check again","diag_running":"Checking…","diag_copy":"Copy report","diag_copied":"Report copied","diag_ok":"OK","diag_problem":"Problem","diag_skipped":"Not checked","battery_title":"Keep the connection while the screen is off","battery_body":"Android pauses background apps to save battery. If requests stop reaching you when the phone is locked, let Kenai run without restrictions. This is only a suggestion.","battery_open":"Open settings","battery_not_now":"Not now"};
+const KODA = {"s32": "data:image/png;base64,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", "s24": "data:image/png;base64,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", "seq": {"reposo": {"row": 0, "seq": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 2, 2, 0, 0, 3, 0, 0, 1, 1, 1, 1], "fps": 8}, "escucha": {"row": 1, "seq": [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 1, 1, 1, 3, 3, 0, 0], "fps": 8}, "piensa": {"row": 2, "seq": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 0, 0, 0], "fps": 8}, "trabaja": {"row": 3, "seq": [0, 0, 1, 1, 2, 2, 3, 3], "fps": 8}, "espera": {"row": 4, "seq": [0, 0, 0, 1, 2, 2, 3, 3, 0, 1, 2, 3, 3, 0, 0, 0], "fps": 8}, "termino": {"row": 5, "seq": [0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0], "fps": 8}, "error": {"row": 6, "seq": [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 2, 3, 2, 3, 0, 0, 0, 0, 1, 1], "fps": 8}}};
+const LICENCES = "KENAI FOR ANDROID: LICENCES AND NOTICES\n\nKenai for Android (https://github.com/Alvarogds04/kenai) is free, has no ads and no analytics.\n\n1. The code\n\nPart of the code of this app comes from Coucou for Android (https://github.com/Louis-CFM/coucou), Copyright (c) 2026 Rhytam Biswas, released under the MIT License. The full text is below (\"MIT License\").\n\n2. What is not taken from Coucou\n\nThe names \"Coucou\" and \"Mochi\", the Mochi character (its design, look, expressions and animations), Coucou's app icon and its sounds are Copyright (c) 2026 Louis Raillé and are NOT covered by the MIT License (see LICENSE-ASSETS.md in https://github.com/Louis-CFM/coucou). Kenai does not use them: it has its own name, character, icon and sounds.\n\n3. ZXing\n\nThe pairing QR code is read with ZXing Core 3.5.3 (\"Zebra Crossing\", https://github.com/zxing/zxing), Copyright ZXing authors. It is licensed under the Apache License, Version 2.0, the full text of which is below (\"Apache License\"). The library is used unmodified; it makes no network connection.\n\n4. AndroidX, Jetpack Compose, CameraX and Kotlin\n\nThe user interface, the camera preview and the language runtime come from AndroidX (Jetpack Compose, Material 3, Activity, Lifecycle, CameraX), Copyright The Android Open Source Project, and the Kotlin standard library, Copyright JetBrains s.r.o. and Kotlin Programming Language contributors. They are licensed under the Apache License, Version 2.0, the full text of which is below. They are used unmodified.\n\nNo warranty: the software is provided \"as is\", as the licences below say.\n\n------------------------------\nMIT License\n------------------------------\n\n\nMIT License\n\nCopyright (c) 2026 Rhytam Biswas\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.\n\nThe name \"Coucou\", the Mochi character, the icon and the sounds are (c) Louis Raillé and are not covered by this\nlicence; see ../LICENSE-ASSETS.md and PERMISSION.md.\n\n\n------------------------------\nApache License\n------------------------------\n\n                              Apache License\n                        Version 2.0, January 2004\n                     http://www.apache.org/licenses/\n\nTERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\n\n1. Definitions.\n\n   \"License\" shall mean the terms and conditions for use, reproduction,\n   and distribution as defined by Sections 1 through 9 of this document.\n\n   \"Licensor\" shall mean the copyright owner or entity authorized by\n   the copyright owner that is granting the License.\n\n   \"Legal Entity\" shall mean the union of the acting entity and all\n   other entities that control, are controlled by, or are under common\n   control with that entity. For the purposes of this definition,\n   \"control\" means (i) the power, direct or indirect, to cause the\n   direction or management of such entity, whether by contract or\n   otherwise, or (ii) ownership of fifty percent (50%) or more of the\n   outstanding shares, or (iii) beneficial ownership of such entity.\n\n   \"You\" (or \"Your\") shall mean an individual or Legal Entity\n   exercising permissions granted by this License.\n\n   \"Source\" form shall mean the preferred form for making modifications,\n   including but not limited to software source code, documentation\n   source, and configuration files.\n\n   \"Object\" form shall mean any form resulting from mechanical\n   transformation or translation of a Source form, including but\n   not limited to compiled object code, generated documentation,\n   and conversions to other media types.\n\n   \"Work\" shall mean the work of authorship, whether in Source or\n   Object form, made available under the License, as indicated by a\n   copyright notice that is included in or attached to the work\n   (an example is provided in the Appendix below).\n\n   \"Derivative Works\" shall mean any work, whether in Source or Object\n   form, that is based on (or derived from) the Work and for which the\n   editorial revisions, annotations, elaborations, or other modifications\n   represent, as a whole, an original work of authorship. For the purposes\n   of this License, Derivative Works shall not include works that remain\n   separable from, or merely link (or bind by name) to the interfaces of,\n   the Work and Derivative Works thereof.\n\n   \"Contribution\" shall mean any work of authorship, including\n   the original version of the Work and any modifications or additions\n   to that Work or Derivative Works thereof, that is intentionally\n   submitted to Licensor for inclusion in the Work by the copyright owner\n   or by an individual or Legal Entity authorized to submit on behalf of\n   the copyright owner. For the purposes of this definition, \"submitted\"\n   means any form of electronic, verbal, or written communication sent\n   to the Licensor or its representatives, including but not limited to\n   communication on electronic mailing lists, source code control systems,\n   and issue tracking systems that are managed by, or on behalf of, the\n   Licensor for the purpose of discussing and improving the Work, but\n   excluding communication that is conspicuously marked or otherwise\n   designated in writing by the copyright owner as \"Not a Contribution.\"\n\n   \"Contributor\" shall mean Licensor and any individual or Legal Entity\n   on behalf of whom a Contribution has been received by Licensor and\n   subsequently incorporated within the Work.\n\n2. Grant of Copyright License. Subject to the terms and conditions of\n   this License, each Contributor hereby grants to You a perpetual,\n   worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n   copyright license to reproduce, prepare Derivative Works of,\n   publicly display, publicly perform, sublicense, and distribute the\n   Work and such Derivative Works in Source or Object form.\n\n3. Grant of Patent License. Subject to the terms and conditions of\n   this License, each Contributor hereby grants to You a perpetual,\n   worldwide, non-exclusive, no-charge, royalty-free, irrevocable\n   (except as stated in this section) patent license to make, have made,\n   use, offer to sell, sell, import, and otherwise transfer the Work,\n   where such license applies only to those patent claims licensable\n   by such Contributor that are necessarily infringed by their\n   Contribution(s) alone or by combination of their Contribution(s)\n   with the Work to which such Contribution(s) was submitted. If You\n   institute patent litigation against any entity (including a\n   cross-claim or counterclaim in a lawsuit) alleging that the Work\n   or a Contribution incorporated within the Work constitutes direct\n   or contributory patent infringement, then any patent licenses\n   granted to You under this License for that Work shall terminate\n   as of the date such litigation is filed.\n\n4. Redistribution. You may reproduce and distribute copies of the\n   Work or Derivative Works thereof in any medium, with or without\n   modifications, and in Source or Object form, provided that You\n   meet the following conditions:\n\n   (a) You must give any other recipients of the Work or\n       Derivative Works a copy of this License; and\n\n   (b) You must cause any modified files to carry prominent notices\n       stating that You changed the files; and\n\n   (c) You must retain, in the Source form of any Derivative Works\n       that You distribute, all copyright, patent, trademark, and\n       attribution notices from the Source form of the Work,\n       excluding those notices that do not pertain to any part of\n       the Derivative Works; and\n\n   (d) If the Work includes a \"NOTICE\" text file as part of its\n       distribution, then any Derivative Works that You distribute must\n       include a readable copy of the attribution notices contained\n       within such NOTICE file, excluding those notices that do not\n       pertain to any part of the Derivative Works, in at least one\n       of the following places: within a NOTICE text file distributed\n       as part of the Derivative Works; within the Source form or\n       documentation, if provided along with the Derivative Works; or,\n       within a display generated by the Derivative Works, if and\n       wherever such third-party notices normally appear. The contents\n       of the NOTICE file are for informational purposes only and\n       do not modify the License. You may add Your own attribution\n       notices within Derivative Works that You distribute, alongside\n       or as an addendum to the NOTICE text from the Work, provided\n       that such additional attribution notices cannot be construed\n       as modifying the License.\n\n   You may add Your own copyright statement to Your modifications and\n   may provide additional or different license terms and conditions\n   for use, reproduction, or distribution of Your modifications, or\n   for any such Derivative Works as a whole, provided Your use,\n   reproduction, and distribution of the Work otherwise complies with\n   the conditions stated in this License.\n\n5. Submission of Contributions. Unless You explicitly state otherwise,\n   any Contribution intentionally submitted for inclusion in the Work\n   by You to the Licensor shall be under the terms and conditions of\n   this License, without any additional terms or conditions.\n   Notwithstanding the above, nothing herein shall supersede or modify\n   the terms of any separate license agreement you may have executed\n   with Licensor regarding such Contributions.\n\n6. Trademarks. This License does not grant permission to use the trade\n   names, trademarks, service marks, or product names of the Licensor,\n   except as required for reasonable and customary use in describing the\n   origin of the Work and reproducing the content of the NOTICE file.\n\n7. Disclaimer of Warranty. Unless required by applicable law or\n   agreed to in writing, Licensor provides the Work (and each\n   Contributor provides its Contributions) on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\n   implied, including, without limitation, any warranties or conditions\n   of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\n   PARTICULAR PURPOSE. You are solely responsible for determining the\n   appropriateness of using or redistributing the Work and assume any\n   risks associated with Your exercise of permissions under this License.\n\n8. Limitation of Liability. In no event and under no legal theory,\n   whether in tort (including negligence), contract, or otherwise,\n   unless required by applicable law (such as deliberate and grossly\n   negligent acts) or agreed to in writing, shall any Contributor be\n   liable to You for damages, including any direct, indirect, special,\n   incidental, or consequential damages of any character arising as a\n   result of this License or out of the use or inability to use the\n   Work (including but not limited to damages for loss of goodwill,\n   work stoppage, computer failure or malfunction, or any and all\n   other commercial damages or losses), even if such Contributor\n   has been advised of the possibility of such damages.\n\n9. Accepting Warranty or Additional Liability. While redistributing\n   the Work or Derivative Works thereof, You may choose to offer,\n   and charge a fee for, acceptance of support, warranty, indemnity,\n   or other liability obligations and/or rights consistent with this\n   License. However, in accepting such obligations, You may act only\n   on Your own behalf and on Your sole responsibility, not on behalf\n   of any other Contributor, and only if You agree to indemnify,\n   defend, and hold each Contributor harmless for any liability\n   incurred by, or claims asserted against, such Contributor by reason\n   of your accepting any such warranty or additional liability.\n\nEND OF TERMS AND CONDITIONS\n\nAPPENDIX: How to apply the Apache License to your work.\n\n   To apply the Apache License to your work, attach the following\n   boilerplate notice, with the fields enclosed by brackets \"[]\"\n   replaced with your own identifying information. (Don't include\n   the brackets!)  The text should be enclosed in the appropriate\n   comment syntax for the file format. We also recommend that a\n   file or class name and description of purpose be included on the\n   same \"printed page\" as the copyright notice for easier\n   identification within third-party archives.\n\nCopyright [yyyy] [name of copyright owner]\n\nLicensed under the Apache License, Version 2.0 (the \"License\");\nyou may not use this file except in compliance with the License.\nYou may obtain a copy of the License at\n\n\thttp://www.apache.org/licenses/LICENSE-2.0\n\nUnless required by applicable law or agreed to in writing, software\ndistributed under the License is distributed on an \"AS IS\" BASIS,\nWITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\nSee the License for the specific language governing permissions and\nlimitations under the License.\n";
+
+/** Android's %1$s / %2$d / %% formatting, enough for strings.xml. */
+function fmt(key, ...args) {
+  return S[key].replace(/%(\d)\$[sd]/g, (_, i) => String(args[+i - 1])).replace(/%%/g, "%");
+}
+
+/* core/IconSpec.kt: 24 grid, stroke 1.9, round caps and joins. */
+const ICON = {
+  HOME: '<path d="M4 11.5L12 5L20 11.5"/><path d="M6 10.5V19H18V10.5"/>',
+  CHAT: '<rect x="3.5" y="5.5" width="17" height="12" rx="2"/><path d="M11 17.5L7 20.5V17.5"/>',
+  SLIDERS: '<path d="M4 7H13M17 7H20M4 17H7M11 17H20"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  BACK: '<path d="M14.5 6L8.5 12L14.5 18"/>',
+  SEND: '<path d="M12 19V6"/><path d="M6.5 11.5L12 6L17.5 11.5"/>',
+  LOCK: '<rect x="5.5" y="10.5" width="13" height="9" rx="2.5"/><path d="M8.5 10.5V8M15.5 10.5V8"/><path d="M8.5 8A3.5 3.5 0 0 1 15.5 8"/>',
+  SCAN: '<path d="M4 8V6L6 4H8M16 4H18L20 6V8M20 16V18L18 20H16M8 20H6L4 18V16M8 12H16"/>',
+  CHEVRON: '<path d="M9.5 6L15.5 12L9.5 18"/>',
+  CHECK: '<path d="M5.5 12.5L9.7 16.7L18.5 7.5"/>',
+  CLOSE: '<path d="M7 7L17 17M17 7L7 17"/>',
+};
+
+/* character/CharacterTypes.kt BotState, StateColors; character/KodaModel.kt KodaRole and KodaPose. */
+const STATES = ["idle", "working", "thinking", "searching", "approval", "question", "error", "finished", "ratelimit", "sleeping", "dizzy"];
+const EMOTES = ["love", "surprised", "proud", "wink", "yawn", "happy", "annoyed"];
+const rgb = (r, g, b) => `rgb(${Math.round(r * 255)},${Math.round(g * 255)},${Math.round(b * 255)})`;
+const STATE_COLOR = {
+  idle: rgb(0.902, 0.914, 0.933), working: rgb(0.231, 0.62, 1.0), thinking: rgb(0.545, 0.361, 0.965),
+  searching: rgb(0.388, 0.396, 0.949), approval: rgb(0.961, 0.647, 0.141), question: rgb(0.133, 0.827, 0.933),
+  error: rgb(0.957, 0.314, 0.369), finished: rgb(0.204, 0.831, 0.6), ratelimit: rgb(0.984, 0.573, 0.235),
+  sleeping: rgb(0.58, 0.635, 0.722), dizzy: rgb(0.957, 0.447, 0.714),
+};
+const KODA_ROLE = { GO: "#B8FF2E", SUN: "#FFE100", LIVE: "#2EB4FF", RED: "#FF5C75", FAINT: "#6F6D66" };
+function roleOf(st) {
+  if (st === "approval" || st === "question" || st === "ratelimit") return KODA_ROLE.SUN;
+  if (st === "working" || st === "thinking" || st === "searching") return KODA_ROLE.LIVE;
+  if (st === "finished") return KODA_ROLE.GO;
+  if (st === "error" || st === "dizzy") return KODA_ROLE.RED;
+  return KODA_ROLE.FAINT;
+}
+function poseOf(st) {
+  if (st === "idle" || st === "sleeping") return "reposo";
+  if (st === "thinking" || st === "searching") return "piensa";
+  if (st === "working") return "trabaja";
+  if (st === "approval" || st === "question" || st === "ratelimit") return "espera";
+  if (st === "finished") return "termino";
+  return "error";
+}
+/* ui/HomePanel.kt stateLabel */
+const STATE_LABEL = {
+  idle: "state_ready", working: "state_working", thinking: "state_thinking", searching: "state_searching",
+  approval: "state_approval", question: "state_question", error: "state_error", finished: "state_finished",
+  ratelimit: "state_ratelimit", sleeping: "state_sleeping", dizzy: "state_dizzy",
+};
+const stateLabel = (st) => S[STATE_LABEL[st]];
+/* ui/HomePanel.kt stateColor */
+const stateColor = (st) => (st === "idle" ? "#0F9F6E" : STATE_COLOR[st] || "#6B7280");
+
+/* core/Pills.kt (the pills the demo uses, plus the services) */
+const PILLS = {
+  integration_claude: { name: "Claude Code", color: "#F5F6F8" },
+  agent_codex: { name: "Codex", color: "#2DD4BF" },
+  agent_gemini: { name: "Gemini CLI", color: "#8AB4F8" },
+  integration_github: { name: "GitHub", color: "#F4505E" },
+  integration_vercel: { name: "Vercel", color: "#7C5CFF" },
+};
+
+/* core/HomePanel.kt URGENCY */
+const URGENCY = ["approval", "question", "error", "ratelimit", "dizzy", "working", "searching", "thinking", "finished", "sleeping", "idle"];
+
+/* core/ToolLabels.kt (the tools this replica meets) */
+const TOOL_KNOWN = {
+  askuserquestion: "Asking a question", bash: "Running a command", shell: "Running a command", read: "Reading files",
+  edit: "Editing files", multiedit: "Editing files", write: "Editing files", grep: "Searching files", glob: "Searching files",
+  ls: "Looking at files", websearch: "Searching the web", webfetch: "Reading a web page", task: "Running a sub-agent", todowrite: "Planning",
+};
+const TOOL_ACTION = {
+  askuserquestion: "ask a question", bash: "run a command", shell: "run a command", read: "read files", edit: "edit files",
+  multiedit: "edit files", write: "edit files", grep: "search files", glob: "search files", ls: "look at files",
+  websearch: "search the web", webfetch: "read a web page", task: "run a sub-agent",
+};
+const toolKey = (s) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+const toolClean = (n) => { const c = n.replace(/[_\-.:]+/g, " ").replace(/([a-z0-9])(?=[A-Z])/g, "$1 ").trim().toLowerCase(); return c.charAt(0).toUpperCase() + c.slice(1); };
+function toolAction(tool) { const n = tool.trim(); return n ? TOOL_ACTION[toolKey(n)] || toolClean(n).toLowerCase() : "do something"; }
+/** ToolLabels.label: a tool name in plain words; free text ("Reading the project") gives "" so the screen shows the state. */
+function toolLabel(raw) {
+  const text = raw.trim().replace(/·$/, "").trim();
+  if (!text) return "";
+  const at = text.indexOf(" · ");
+  const head = at > 0 ? text.slice(0, at).trim() : text;
+  const rest = at > 0 ? text.slice(at + 3).trim() : "";
+  if (!/^[A-Za-z0-9_\-.:]+$/.test(head)) return "";
+  const known = TOOL_KNOWN[toolKey(head)];
+  const plausible = head.length <= 40 && !/[0-9]{3,}/.test(head) && (head.length <= 24 || /[_\-.:]/.test(head));
+  if (!known && !plausible) return "";
+  const tool = known || toolClean(head);
+  // SafeText.requestLabel keeps only the program's name of a shell command.
+  const program = rest && TOOL_ACTION[toolKey(head)] === "run a command" ? rest.split(/\s+/)[0].split("/").pop() : "";
+  return program ? tool + " · " + program : tool;
+}
+/** SafeText.prose: words that look like a path, an address or a key become "…". */
+const prose = (t) => t.trim().split(/\s+/).map((w) => { const c = w.replace(/^[.,;:!?"'()[\]]+|[.,;:!?"'()[\]]+$/g, ""); return /[\/\\@=]|:\/\//.test(c) || c.length > 32 ? "…" : w; }).join(" ");
+
+/* core/HomeText.kt */
+const BUSY = ["working", "thinking", "searching"];
+function homeLine(s) {
+  if (s.state === "finished" && s.finalLine) { const p = prose(s.finalLine); if (p && p !== "…") return p; }
+  return toolLabel(s.text) || null;
+}
+const recentText = (allowed, tool) => (allowed ? "Allowed: " : "Denied: ") + toolAction(tool);
+const decisionText = (allowed, agent, tool) => `You ${allowed ? "allowed" : "denied"} ${agent || "an agent"} to ${toolAction(tool)}`;
+
+/* link/LinkHealth.kt, BatteryHint (not Samsung) and link/Diagnostics.kt texts */
+const LINK_LOST = ["Connection lost 2 min ago, reconnecting", "The computer stopped answering. This is usual after the phone slept."];
+const BATTERY_STEPS = ["Open the app's battery setting and choose Unrestricted (or Don't optimise)."];
+const DIAG_OK = [
+  ["Phone network", "ok", "Wi-Fi is connected"],
+  ["Saved address answers", "ok", "Answers in 38 ms at 192.168.x.x"],
+  ["Computer announces itself", "ok", "Found, same address as the saved one"],
+  ["Secure connection (pinned certificate)", "ok", "The computer's certificate is the one you paired with"],
+  ["Pairing code and version", "ok", "Pairing code accepted, protocol version 1"],
+];
+const DIAG_DOWN = [
+  ["Phone network", "ok", "Wi-Fi is connected"],
+  ["Saved address answers", "problem", "No answer from 192.168.x.x", "Is the computer on and Kenai running with the Phone link switched on? Same Wi-Fi? A guest network or client isolation blocks it."],
+  ["Computer announces itself", "problem", "The computer is not announcing itself here", "Some networks block this. If the saved address answers, you can ignore it; otherwise type the address in Home."],
+  ["Secure connection (pinned certificate)", "skipped", "Needs the address to answer"],
+  ["Pairing code and version", "skipped", "Needs the secure connection"],
+];
+
+/* Fake desktop for "Paired (fake data)": what the computer would send with its switches on. */
+const DESKTOP = { name: "Alvaro's PC", host: "192.168.1.20", port: 47821 };
+const SAMPLE_LINK = "abito://pair?v=1&host=192.168.1.20&port=47821&fp=" + "3f".repeat(32) + "&token=demo-token-1234567890&name=Alvaro%27s%20PC";
+const FAKE = {
+  details: {
+    integration_claude: {
+      project: "kenai", finalLine: "Build passed. I fixed two lint warnings and updated the README.",
+      steps: ["Read · app/build.gradle.kts", "Grep", "Edit", "Bash · npm run build", "Write"],
+      files: [
+        { name: "app/build.gradle.kts", added: 3, removed: 1, isNew: false },
+        { name: "docs/RELEASE.md", added: 12, removed: 0, isNew: true },
+      ],
+    },
+    agent_codex: { project: "kenai-desktop", steps: ["Glob", "Read", "Bash · npm test"], files: [] },
+    agent_gemini: { project: "notes", steps: [], files: [] },
+  },
+  questions: [
+    { question: "Which branch?", multiSelect: false, options: [
+      { label: "release/0.1", description: "The branch of this release" },
+      { label: "main", description: "Merge straight into main" } ] },
+    { question: "What should I run after the merge?", multiSelect: true, options: [
+      { label: "Unit tests", description: "./gradlew test" },
+      { label: "Lint", description: "ktlint and Android lint" },
+      { label: "Nothing", description: "" } ] },
+  ],
+  diff: [
+    "@@ -12,7 +12,9 @@ android {", " defaultConfig {", '     applicationId = "com.kenai.android"', "-    versionCode = 9",
+    "+    versionCode = 10", '+    versionName = "0.1.0"', "+    resourceConfigurations += listOf(\"en\")", "     minSdk = 29", " }",
+  ],
+  usage: {
+    claude: { plan: "Max", five: { pct: 68, resetMin: 134 }, week: { pct: 41, day: "Monday" } },
+    codex: { plan: "Plus", five: { pct: 22, resetMin: 47 }, week: { pct: 86, day: "Thursday" }, credits: 2 },
+  },
+  services: [
+    { title: "GitHub", reason: "2 to review", headline: "3 pull requests open", items: [{ label: "Light theme", detail: "#41" }, { label: "Spanish strings", detail: "#42" }] },
+    { title: "Vercel", reason: null, headline: "Last deploy ready", items: [{ label: "kenai-site", detail: "4 min ago" }] },
+  ],
+  models: [{ id: "claude-sonnet", label: "Claude Sonnet" }, { id: "gpt-mini", label: "GPT-5 mini" }],
+  reply: "Sure. To build the release:\n\n- run **./gradlew assembleRelease**\n- the APK lands in `app/build/outputs/apk/release`\n\n```\n./gradlew assembleRelease\n```\nWant me to sign it too?",
+};
+
+/* ---- ui.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* Building blocks, after ui/DesignSystem.kt, ui/DesignControls.kt, ui/DesignIcons.kt, character/KodaView.kt and character/CharacterPainter.kt. */
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const attr = (o) => Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== false).map(([k, v]) => (v === true ? k : `${k}="${esc(v)}"`)).join(" ");
+
+function icon(kind, size = 24, color = "currentColor") {
+  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[kind]}</svg>`;
+}
+
+/** KodaView: the 32x32 sprite at a whole-number scale, centred in a box of [box] px. The pose follows the state. */
+function kodaEl(state, box, label) {
+  const scale = Math.max(1, Math.floor(box / 32));
+  const pose = poseOf(state);
+  const lbl = label ? `role="img" aria-label="${esc(label)}"` : 'aria-hidden="true"';
+  return `<span class="koda" style="width:${box}px;height:${box}px" ${lbl}><i data-pose="${pose}" data-scale="${scale}" style="--s:${32 * scale}px"></i></span>`;
+}
+let kodaTick = 0;
+function paintKoda(root) {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  (root || document).querySelectorAll("i[data-pose]").forEach((el) => {
+    const st = KODA.seq[el.dataset.pose];
+    const s = +el.dataset.scale;
+    const f = reduce ? st.seq[0] : st.seq[kodaTick % st.seq.length];
+    if (!el.style.backgroundImage) { el.style.backgroundImage = `url(${KODA.s32})`; el.style.backgroundSize = `${128 * s}px ${224 * s}px`; }
+    el.style.backgroundPosition = `-${f * 32 * s}px -${st.row * 32 * s}px`;
+  });
+}
+setInterval(() => { kodaTick++; paintKoda(); }, 125); // fps 8, as KodaPose
+
+/* CharacterPainter: the clay body (Kenai's green, or the agent's colour lightened and darkened), two eyes, a soft shadow. Approximated. */
+function hexMix(hex, to, t) {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.round(v + (to - v) * t));
+  return `rgb(${c.join(",")})`;
+}
+let clayId = 0;
+function clay(kind, size, color) {
+  const id = "cg" + ++clayId;
+  const skin = color ? [hexMix(color, 255, 0.22), color, hexMix(color, 0, 0.14)] : ["#ACDD96", "#8FCB78", "#78B562"];
+  const E = "#0F1D0B";
+  let eyes = `<rect x="70" y="92" width="14" height="22" rx="7" fill="${E}"/><rect x="116" y="92" width="14" height="22" rx="7" fill="${E}"/>`;
+  let extra = "";
+  const closed = `<path d="M68 104 Q77 110 86 104 M114 104 Q123 110 132 104" stroke="${E}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  const smile = `<path d="M68 106 Q77 96 86 106 M114 106 Q123 96 132 106" stroke="${E}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  if (kind === "sleeping" || kind === "yawn") {
+    eyes = closed;
+    if (kind === "sleeping") extra = `<text class="z" x="142" y="70" font-size="18" font-weight="700" fill="#F5F6F8">z</text><text class="z b" x="152" y="56" font-size="13" font-weight="700" fill="#F5F6F8">z</text>`;
+    else extra = `<ellipse cx="100" cy="130" rx="8" ry="10" fill="${E}"/>`;
+  } else if (kind === "finished" || kind === "happy" || kind === "proud") eyes = smile;
+  else if (kind === "wink") eyes = `<rect x="70" y="92" width="14" height="22" rx="7" fill="${E}"/><path d="M114 104 Q123 110 132 104" stroke="${E}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  else if (kind === "love") eyes = `<path d="M77 112 L68 102 A5 5 0 0 1 77 96 A5 5 0 0 1 86 102Z M123 112 L114 102 A5 5 0 0 1 123 96 A5 5 0 0 1 132 102Z" fill="#F4505E"/>`;
+  else if (kind === "surprised") eyes = `<circle cx="77" cy="103" r="10" fill="${E}"/><circle cx="123" cy="103" r="10" fill="${E}"/>`;
+  else if (kind === "error" || kind === "annoyed") eyes = `<rect x="70" y="100" width="14" height="12" rx="5" fill="${E}"/><rect x="116" y="100" width="14" height="12" rx="5" fill="${E}"/><path d="M66 94 L88 99 M134 94 L112 99" stroke="${E}" stroke-width="4" stroke-linecap="round"/>`;
+  else if (kind === "dizzy") eyes = `<path d="M70 96 L84 110 M84 96 L70 110 M116 96 L130 110 M130 96 L116 110" stroke="${E}" stroke-width="4.5" stroke-linecap="round"/>`;
+  else if (kind === "question") extra = `<text x="146" y="72" font-size="26" font-weight="700" fill="${STATE_COLOR.question}">?</text>`;
+  else if (kind === "approval") extra = `<text x="148" y="72" font-size="26" font-weight="700" fill="${STATE_COLOR.approval}">!</text>`;
+  const anim = ["approval", "question", "searching", "thinking", "working", "dizzy", "error"].includes(kind) ? "st-" + kind : kind === "happy" ? "em-happy" : "";
+  return `<svg class="clay blink ${anim}" width="${size}" height="${size}" viewBox="0 0 200 200" aria-hidden="true">
+<defs><radialGradient id="${id}" cx="40%" cy="32%" r="75%"><stop offset="0" stop-color="${skin[0]}"/><stop offset=".55" stop-color="${skin[1]}"/><stop offset="1" stop-color="${skin[2]}"/></radialGradient></defs>
+<ellipse cx="100" cy="182" rx="56" ry="7" fill="rgba(45,74,34,.25)"/>
+<g class="cbody"><path d="M100 50C150 50 176 96 176 138C176 168 148 176 100 176C52 176 24 168 24 138C24 96 50 50 100 50Z" fill="url(#${id})"/>
+<g class="eyes">${eyes}</g>${extra}</g></svg>`;
+}
+
+/* PillButton: PRIMARY / SECONDARY / DANGER, onDark for the always-dark sheets. */
+function pill(label, act, o = {}) {
+  const cls = ["pb", o.kind || "", o.dark ? "dk" : "", o.w ? "wide" : ""].join(" ");
+  const ic = o.icon ? icon(o.icon, o.iconSize || 20, o.kind === "pri" ? (o.dark ? "#0B0C0E" : "var(--onpri)") : "currentColor") : "";
+  return `<button type="button" class="${cls}" ${attr({ "data-act": act, "data-arg": o.arg, disabled: o.disabled, style: o.style, "aria-label": o.aria })}>${ic}<span>${esc(label)}</span></button>`;
+}
+const panel = (inner, wash, style) => `<div class="panel" ${style ? `style="${style}"` : ""}>${wash ? `<div class="wash" style="--wash:${wash};opacity:.5"></div>` : ""}${inner}</div>`;
+const divider = () => '<div class="div"></div>';
+const heading = (t) => `<div class="sh ell">${esc(t)}</div>`;
+const dot = (c, style = "") => `<span class="dot" style="background:${c};${style}"></span>`;
+function listRow(title, o = {}) {
+  const tag = o.act ? "button" : "div";
+  return `<${tag} ${o.act ? 'type="button"' : ""} class="lr" ${attr({ "data-act": o.act, "data-arg": o.arg })}><span class="lr-t"><b>${esc(title)}</b>${o.hint ? `<span>${esc(o.hint)}</span>` : ""}</span>${o.trailing || ""}</${tag}>`;
+}
+const chevron = () => icon("CHEVRON", 20, "var(--dim)");
+/** KenaiSwitch: 52 x 30 track, the "online" colour when on. */
+const switchEl = (on, act, label, disabled) =>
+  `<button type="button" role="switch" class="sw ${on ? "on" : ""}" ${attr({ "aria-checked": String(!!on), "aria-label": label, "data-act": act, disabled })}><i></i></button>`;
+/** ScreenTitle: tabs get the plain title; sub-pages get a text "Back" button first. */
+function screenTitle(title, backAct, trailing = "") {
+  if (!backAct) return `<div class="st-root"><h1 class="t-title ell">${esc(title)}</h1>${trailing}</div>`;
+  return `<div class="st-back"><button type="button" class="tbtn" data-act="${backAct}">${esc(S.action_back)}</button><h1 class="ell">${esc(title)}</h1>${trailing}</div>`;
+}
+/** MessagePanel: a notice with Close. */
+const messagePanel = (text) =>
+  panel(`<div style="display:flex;align-items:center;padding-left:16px"><p class="t-body" style="flex:1;padding:12px 0">${esc(text)}</p><button type="button" class="tlink" style="color:var(--dim)" data-act="closeMessage">${esc(S.action_close)}</button></div>`);
+
+/* ---- model.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* The app's state (app/AppModel.kt, reduced), the demo script (link/DemoLink.kt) and the router (core/Navigation.kt). */
+
+const st = {
+  mode: "none", // Mode.NONE | DEMO | PAIRED; "paired" here is the fake desktop
+  link: "connected", // paired only: connected | lost | notfound (DiscoveryState.NOT_FOUND)
+  screen: "HOME",
+  playing: true, cursor: 0, step: -1,
+  sessions: [], approvals: [], questions: {},
+  selected: null, detailPill: null, closedApproval: null, questionPill: null,
+  decisions: [], message: null,
+  settings: { overlayWished: false, overlayPermission: false, soundOn: true, volume: 0.12, notifyDone: true, quiet: { enabled: false, from: 1320, to: 480 } },
+  batterySnoozed: false,
+  chat: { messages: [], busy: false, model: "claude-sonnet", text: "", refusal: null, menu: false, confirmClear: false },
+  diff: null, paste: null, address: null, pairRequest: null,
+  camera: "ask", cameraAsked: false, scanWrong: false,
+  sys: null, bio: null, diag: { running: false, results: [] },
+};
+const NOW = Date.now();
+st.decisions = [
+  { agent: "Claude Code", tool: "Edit", allowed: true, at: NOW - 26 * 3600e3 },
+  { agent: "Codex", tool: "Bash", allowed: false, at: NOW - 27 * 3600e3 },
+];
+
+/* ---------- Navigation.kt ---------- */
+const TAB_OF = { HOME: "HOME", CHAT: "CHAT", SETTINGS: "SETTINGS", HISTORY: "SETTINGS", GALLERY: "SETTINGS", DIAGNOSTICS: "SETTINGS", LICENCES: "SETTINGS", SESSION: null, SCAN: null };
+const BACK = { HOME: null, CHAT: "HOME", SETTINGS: "HOME", SESSION: "HOME", SCAN: "HOME", HISTORY: "SETTINGS", GALLERY: "SETTINGS", DIAGNOSTICS: "SETTINGS", LICENCES: "SETTINGS" };
+const barVisible = () => ["HOME", "CHAT", "SETTINGS"].includes(st.screen) && !st.keyboard;
+
+/* ---------- derived, as AppModel and ui/LinkStatus.kt ---------- */
+const connected = () => st.mode === "demo" || (st.mode === "paired" && st.link === "connected");
+const sessions = () => (connected() ? st.sessions : []);
+const approvals = () => (connected() ? st.approvals : []);
+function linkText() {
+  if (st.mode === "none") return S.status_not_connected;
+  if (st.mode === "demo") return S.demo_mode;
+  return st.link === "connected" ? `${S.status_connected} · ${DESKTOP.name}` : S.status_not_connected;
+}
+function linkDot() {
+  if (st.mode === "demo") return "#B45309";
+  if (st.mode === "paired" && st.link === "connected") return "#0F9F6E";
+  return "#6B7280";
+}
+/** core/ChatTab.kt with AppModel:186-188 (demo is not paired). */
+function chatTabState() {
+  if (st.mode !== "paired") return "NOT_PAIRED";
+  if (st.link !== "connected") return "NOT_CONNECTED";
+  return "READY";
+}
+const chatAvailable = () => chatTabState() === "READY";
+const questionFor = (pill) => (st.mode === "paired" && connected() ? st.questions[pill] || null : null);
+const agentName = (pill) => (st.sessions.find((s) => s.pill === pill) || {}).agent || (PILLS[pill] || {}).name || "An agent";
+const batteryHint = () => st.mode === "paired" && st.link !== "connected" && !st.batterySnoozed;
+function focusOf(list) {
+  return list.find((s) => s.pill === st.selected) || [...list].sort((a, b) => URGENCY.indexOf(a.state) - URGENCY.indexOf(b.state))[0] || null;
+}
+const hasDetails = (s) => !!(s.steps && s.steps.length) || !!s.finalLine || !!s.project || !!(s.files && s.files.length);
+
+/* ---------- link/DemoLink.kt: the 8-step script, every 2.5 s ---------- */
+const FINGERPRINT = "demo-fp-bash-npm-run-build";
+function session(pill, agent, state, text, i, n) {
+  const s = { pill, agent, state, text, i, n, color: PILLS[pill].color };
+  if (st.mode === "paired") {
+    // What "Show session details on the phone" adds; the steps grow with the script.
+    const d = FAKE.details[pill];
+    s.project = d.project;
+    s.steps = d.steps.slice(0, Math.max(1, Math.min(d.steps.length, i)));
+    if (pill === "agent_gemini") s.steps = [];
+    s.files = i >= 2 ? d.files : [];
+    if (state === "finished" && d.finalLine) s.finalLine = d.finalLine;
+  }
+  return s;
+}
+function step() {
+  const c = st.cursor % 8;
+  st.step = c;
+  if (c === 0) st.sessions = [session("integration_claude", "Claude Code", "thinking", "Reading the project", 1, 6)];
+  else if (c === 1) st.sessions = [session("integration_claude", "Claude Code", "working", "Editing files", 2, 6), session("agent_codex", "Codex", "searching", "Searching the code", 1, 4)];
+  else if (c === 2) {
+    if (!st.approvals.some((a) => a.fp === FINGERPRINT)) st.approvals.push({ pill: "integration_claude", fp: FINGERPRINT, tool: "Bash", command: "npm run build", truncated: false });
+    st.sessions = [session("integration_claude", "Claude Code", "approval", "Waiting for your approval", 3, 6), session("agent_codex", "Codex", "working", "Running tests", 2, 4)];
+    st.closedApproval = null;
+  } else if (c === 3) {
+    st.sessions = [session("integration_claude", "Claude Code", "working", "Building", 4, 6), session("agent_codex", "Codex", "question", "Which branch?", 3, 4)];
+    if (st.mode === "paired") st.questions.agent_codex = { fp: "q-" + st.cursor, questions: FAKE.questions };
+  } else if (c === 4) {
+    st.sessions = [session("integration_claude", "Claude Code", "finished", "Done", 6, 6), session("agent_codex", "Codex", "error", "Tests failed", 3, 4)];
+    delete st.questions.agent_codex;
+    if (st.questionPill === "agent_codex") st.questionPill = null;
+  } else if (c === 5) st.sessions = [session("agent_codex", "Codex", "ratelimit", "Rate limited", 3, 4)];
+  else if (c === 6) st.sessions = [session("agent_gemini", "Gemini CLI", "sleeping", "Idle", 0, 0)];
+  else { st.approvals = st.approvals.filter((a) => a.fp !== FINGERPRINT); st.sessions = []; }
+  st.cursor++;
+}
+let timer = null;
+function schedule() {
+  clearInterval(timer);
+  timer = null;
+  if (st.playing && st.mode !== "none") timer = setInterval(() => { step(); changed(); }, 2500);
+}
+function setMode(mode, keepScreen) {
+  st.mode = mode;
+  st.cursor = 0; st.step = -1;
+  st.sessions = []; st.approvals = []; st.questions = {};
+  st.selected = null; st.closedApproval = null; st.questionPill = null; st.diff = null; st.pairRequest = null;
+  st.link = "connected"; st.diag = { running: false, results: [] };
+  if (mode !== "paired") st.chat = { ...st.chat, messages: [], busy: false, refusal: null };
+  if (!keepScreen) st.screen = "HOME";
+  if (mode !== "none") step();
+  schedule();
+  changed();
+}
+/** AppModel.decide: the decision is kept on the phone (never the command), the request leaves. */
+function decide(fp, allow) {
+  const r = st.approvals.find((a) => a.fp === fp);
+  if (!r) { st.message = S.msg_not_pending; changed(); return; }
+  st.approvals = st.approvals.filter((a) => a.fp !== fp);
+  st.decisions.unshift({ agent: agentName(r.pill), tool: r.tool, allowed: allow, at: Date.now() });
+  changed();
+}
+
+/* ---------- change notification ---------- */
+const subs = [];
+let pending = false;
+function changed() {
+  if (pending) return;
+  pending = true;
+  requestAnimationFrame(() => {
+    pending = false;
+    render();
+    subs.forEach((fn) => { try { fn(st); } catch (e) { console.error(e); } });
+  });
+}
+function go(screen) {
+  if (!(screen in TAB_OF)) throw new Error("unknown screen " + screen);
+  st.screen = screen;
+  st.keyboard = false;
+  changed();
+}
+
+const INPUT = {}; // data-input handlers, added by the screens
+/** Every tappable thing carries data-act; the screens add their handlers here. */
+const ACT = {
+  tab: (a) => go(a),
+  back: () => { const b = BACK[st.screen]; if (b) go(b); },
+  closeMessage: () => { st.message = null; changed(); },
+};
+
+/* ---- screens-home.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* Pairing (ui/PairingScreen.kt), Scan (ui/ScanScreen.kt), Home (MainActivity.kt Home + ui/HomePanel.kt), bottom bar (ui/BottomBar.kt). */
+
+function pairingScreen() {
+  return `<div class="scr"><div class="pairing">
+  <div style="height:48px"></div>${clay("sleeping", 132)}<div style="height:24px"></div>
+  <h1 class="t-display center">${esc(S.pairing_headline)}</h1>
+  <p class="t-body dim center" style="padding:10px 0 28px">${esc(S.pairing_help)}</p>
+  ${st.message ? messagePanel(st.message) + '<div style="height:12px"></div>' : ""}
+  ${pill(S.scan_button, "scan", { kind: "pri", w: true, icon: "SCAN" })}
+  <div style="height:12px"></div>
+  <div class="row2">${pill(S.pair_paste_short, "openPaste")}${pill(S.demo_try, "startDemo")}</div>
+  <div style="height:32px"></div>
+  <p class="t-sec faint center">${esc(S.pairing_footer)}</p>
+  <button type="button" class="t-sec dim u" style="min-height:48px;padding:14px 16px" data-act="tab" data-arg="SETTINGS">${esc(S.pairing_about)}</button>
+  <div class="clear"></div></div></div>`;
+}
+ACT.scan = () => { st.scanWrong = false; go("SCAN"); };
+ACT.startDemo = () => setMode("demo");
+
+/* ---------- Scan ---------- */
+function fakeQr() {
+  let cells = "";
+  let seed = 7;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const finder = (x, y) => `<rect x="${x}" y="${y}" width="7" height="7" fill="#111"/><rect x="${x + 1}" y="${y + 1}" width="5" height="5" fill="#fff"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3" fill="#111"/>`;
+  for (let y = 0; y < 21; y++) for (let x = 0; x < 21; x++) {
+    const inFinder = (x < 8 && y < 8) || (x > 12 && y < 8) || (x < 8 && y > 12);
+    if (!inFinder && rnd() > 0.52) cells += `<rect x="${x}" y="${y}" width="1" height="1" fill="#111"/>`;
+  }
+  return `<svg width="104" height="104" viewBox="-1 -1 23 23" shape-rendering="crispEdges"><rect x="-1" y="-1" width="23" height="23" fill="#fff"/>${cells}${finder(0, 0)}${finder(14, 0)}${finder(0, 14)}</svg>`;
+}
+function scanScreen() {
+  const top = `<div style="display:flex;align-items:center;padding-top:4px"><button type="button" aria-label="${esc(S.action_back)}" data-act="back" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center">${icon("BACK", 24, "#F5F6F8")}</button><h1 class="t-title white ell">${esc(S.scan_title)}</h1></div>`;
+  let body;
+  if (st.camera === "granted") {
+    body = `<div class="cam"><div class="desk">${fakeQr()}</div>
+      <div class="vf" style="display:flex;align-items:center;justify-content:center"><div style="width:70%;aspect-ratio:1;border:3px solid #fff;border-radius:16px;box-shadow:0 0 0 999px rgba(0,0,0,.6)"></div></div>
+      <div class="simbtns"><button type="button" data-act="simScan" data-arg="ok">Simulate scan: Kenai code</button><button type="button" data-act="simScan" data-arg="other">Simulate scan: other QR</button></div></div>
+      <p class="t-body center" style="padding-bottom:12px;color:${st.scanWrong ? "var(--danger)" : "#9398A1"}">${esc(st.scanWrong ? S.scan_not_pairing : S.scan_hint)}</p>`;
+  } else if (st.camera === "ask") {
+    body = `<p class="t-body white" style="padding-top:12px">${esc(S.scan_why)}</p>${pill(S.scan_allow, "askCamera", { kind: "pri", dark: true, w: true })}${pill(S.scan_paste_instead, "back", { dark: true, w: true })}`;
+  } else {
+    body = `<p class="t-body white" style="padding-top:12px">${esc(S.scan_blocked)}</p>${pill(S.scan_open_settings, "cameraSettings", { kind: "pri", dark: true, w: true })}${pill(S.scan_paste_instead, "back", { dark: true, w: true })}`;
+  }
+  return `<div class="scan">${top}${body}</div>`;
+}
+let wrongTimer = null;
+ACT.simScan = (a) => {
+  if (a === "ok") { st.pairRequest = SAMPLE_LINK; go("HOME"); return; } // MainActivity: onText true → Home, then PairConfirm
+  st.scanWrong = true; changed();
+  clearTimeout(wrongTimer); wrongTimer = setTimeout(() => { st.scanWrong = false; changed(); }, 2500);
+};
+ACT.askCamera = () => { st.sys = "camera"; changed(); };
+ACT.cameraSettings = () => { st.camera = "granted"; changed(); }; // stands for: the user allowed it in Android's settings and came back
+ACT.cameraGrant = (a) => {
+  st.sys = null;
+  if (a === "deny") st.camera = st.cameraAsked ? "blocked" : "ask";
+  else st.camera = "granted";
+  st.cameraAsked = true;
+  changed();
+};
+
+/* ---------- Home ---------- */
+function heroCard(focus, list) {
+  const state = focus ? focus.state : "sleeping";
+  const running = list.filter((s) => BUSY.includes(s.state)).length;
+  const hasApproval = approvals().length > 0;
+  const link = hasApproval ? "APPROVAL" : st.mode === "none" ? "PAIR" : "NONE";
+  let who;
+  if (!focus) {
+    who = `<div class="empty">${kodaEl(state, 128, S.koda_description)}<p class="t-title white">${esc(S.home_empty_title)}</p><p class="t-sec dim clamp3">${esc(S.home_empty_hint)}</p></div>`;
+  } else {
+    const pillName = (PILLS[focus.pill] || {}).name || "";
+    const name = focus.agent || pillName || S.app_name;
+    const sub = pillName && pillName !== name ? pillName : S.agent_kind;
+    who = `<div class="who">${kodaEl(state, 96, S.koda_description)}<div><p class="t-title white clamp2">${esc(name)}</p><p class="t-sec dim ell">${esc(sub)}</p><p class="t-head white clamp3" style="padding-top:4px">${esc(homeLine(focus) || stateLabel(state))}</p></div></div>`;
+  }
+  const btns = [];
+  if (link !== "NONE") btns.push(pill(link === "PAIR" ? S.link_pair : S.link_approval, link === "PAIR" ? "scan" : "review", { kind: "pri", dark: true }));
+  if (focus && focus.state === "question") btns.push(pill(questionFor(focus.pill) ? S.question_see_answer : S.question_see, "openQuestion", { kind: "pri", dark: true, arg: focus.pill }));
+  if (focus && hasDetails(focus)) btns.push(pill(S.session_details, "details", { dark: true, arg: focus.pill, icon: "CHEVRON", iconSize: 18 }));
+  return `<div class="hero"><div class="wash" style="--wash:${roleOf(state)};opacity:.5"></div>
+    <div class="lk">${dot(linkDot())}<span class="ell">${esc(linkText())}</span>${running > 0 ? `<span>${esc(fmt("home_running", running))}</span>` : ""}</div>
+    ${who}${btns.length ? `<div class="btns">${btns.join("")}</div>` : ""}</div>`;
+}
+ACT.review = () => { st.closedApproval = null; changed(); };
+ACT.details = (a) => { st.detailPill = a; go("SESSION"); };
+ACT.pick = (a) => { st.selected = a; changed(); };
+
+function agentRows(others) {
+  return panel(others.map((s, i) => {
+    const name = s.agent || (PILLS[s.pill] || {}).name || "";
+    return `${i > 0 ? divider() : ""}<button type="button" class="arow" data-act="pick" data-arg="${s.pill}">${kodaEl(s.state, 40)}<div><b class="ell">${esc(name)}</b><span class="ell">${esc(homeLine(s) || stateLabel(s.state))}</span></div>${dot(roleOf(s.state))}</button>`;
+  }).join(""));
+}
+function usagePanel() {
+  const u = FAKE.usage;
+  const bar = (plan, label, pct, reset) => {
+    const c = pct < 50 ? "#0F9F6E" : pct < 80 ? "#B45309" : "var(--danger)";
+    return `<div style="display:flex;flex-direction:column;gap:4px" aria-label="${esc(fmt("usage_desc", plan, label, pct))}. ${esc(reset)}" role="group">
+      <div style="display:flex"><span class="t-body" style="flex:1">${esc(label)}</span><span class="t-body">${esc(fmt("usage_pct", pct))}</span></div>
+      <div class="bar8"><i style="width:${pct}%;background:${c}"></i></div><span class="t-sec dim">${esc(reset)}</span></div>`;
+  };
+  const block = (name, p) => `<div style="padding:16px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center"><span class="t-head" style="flex:1">${esc(name)}</span><span class="t-sec dim">${esc(p.plan)}</span></div>
+    ${bar(name, S.usage_five_hours, p.five.pct, (p.five.resetMin < 60 ? fmt("usage_resets_m", p.five.resetMin) : fmt("usage_resets_hm", Math.floor(p.five.resetMin / 60), p.five.resetMin % 60)))}
+    ${bar(name, S.usage_week, p.week.pct, fmt("usage_resets_week", p.week.day))}
+    ${p.credits ? `<span class="t-sec dim">${esc(fmt("usage_credits", p.credits))}</span>` : ""}</div>`;
+  return `<div style="display:flex;flex-direction:column;gap:8px">${heading(S.usage_title)}${panel(block(S.usage_claude, u.claude) + divider() + block(S.usage_codex, u.codex))}</div>`;
+}
+function servicesPanel() {
+  const cards = FAKE.services.map((c) => panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;align-items:center;gap:8px"><span class="t-sec dim ell" style="flex:1">${esc(c.title)}</span>${c.reason ? `<span class="t-label dim">${esc(c.reason)}</span>` : ""}</div>
+    <p class="t-title clamp2">${esc(c.headline)}</p>
+    ${c.items.map((l) => `<div style="display:flex;gap:12px;align-items:center"><span class="t-body ell" style="flex:1">${esc(l.label)}</span><span class="t-sec dim">${esc(l.detail)}</span></div>`).join("")}</div>`)).join("");
+  return `<div style="display:flex;flex-direction:column;gap:8px">${heading(S.services_title)}${cards}</div>`;
+}
+function dayOf(at) {
+  const d = new Date(at), n = new Date();
+  const a = new Date(d.getFullYear(), d.getMonth(), d.getDate()), b = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  const days = Math.round((b - a) / 864e5);
+  return days === 0 ? "TODAY" : days === 1 ? "YESTERDAY" : "OTHER";
+}
+const hhmm = (at) => new Date(at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+function recentPanel() {
+  if (!st.decisions.length) return "";
+  const rows = st.decisions.slice(0, 2).map((d, i) => {
+    const day = dayOf(d.at);
+    const when = day === "TODAY" ? hhmm(d.at) : day === "YESTERDAY" ? S.history_yesterday : new Date(d.at).toLocaleDateString("en-GB");
+    return `${i > 0 ? divider() : ""}<button type="button" class="rrow" data-act="tab" data-arg="HISTORY">${dot(d.allowed ? "#0F9F6E" : "var(--danger)")}<span class="t-body ell" style="flex:1">${esc(recentText(d.allowed, d.tool))}</span><span class="t-sec dim">${esc(when)}</span></button>`;
+  }).join("");
+  return `<div style="display:flex;flex-direction:column;gap:8px"><div style="display:flex;align-items:center">${heading(S.recent_title).replace('class="sh ell"', 'class="sh ell" style="flex:1"')}<button type="button" class="t-label dim" style="min-height:48px;padding:12px 4px" data-act="tab" data-arg="HISTORY">${esc(S.recent_all)}</button></div>${panel(rows)}</div>`;
+}
+function linkHealthPanel() {
+  return panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:4px"><p class="t-body">${esc(LINK_LOST[0])}</p><p class="t-sec dim">${esc(LINK_LOST[1])}</p></div>${divider()}${listRow(S.diag_title, { act: "tab", arg: "DIAGNOSTICS", trailing: chevron() })}`);
+}
+const batteryCard = () => panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:8px"><p class="t-head">${esc(S.battery_title)}</p><p class="t-sec dim">${esc(S.battery_body)}</p>
+  ${BATTERY_STEPS.map((s, i) => `<p class="t-sec">${i + 1}. ${esc(s)}</p>`).join("")}
+  <div class="row2 g8" style="padding-top:4px">${pill(S.battery_not_now, "snoozeBattery")}${pill(S.battery_open, "openBattery", { kind: "pri" })}</div></div>`);
+ACT.snoozeBattery = () => { st.batterySnoozed = true; changed(); };
+ACT.openBattery = () => { st.sys = "battery"; changed(); };
+const discoveryHint = () => panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:8px"><p class="t-head">${esc(S.discovery_title)}</p><p class="t-sec dim">${esc(S.discovery_body)}</p>
+  <div class="row2 g8" style="padding-top:4px">${pill(S.discovery_pair_again, "scan")}${pill(S.discovery_enter_address, "openAddress")}</div></div>`);
+const overlayHint = () => panel(`<div style="display:flex;align-items:center;padding-left:16px"><p class="t-sec dim" style="flex:1;padding:12px 0">${esc(S.overlay_missing)}</p><button type="button" class="t-label" style="min-height:48px;padding:14px 16px" data-act="overlay" data-arg="on">${esc(S.overlay_allow)}</button></div>`);
+
+function homeScreen() {
+  if (st.mode === "none") return pairingScreen();
+  const list = sessions();
+  const focus = focusOf(list);
+  const others = list.filter((s) => !focus || s.pill !== focus.pill);
+  const items = [heroCard(focus, list)];
+  const g = (x) => `<div class="gut">${x}</div>`;
+  if (st.mode === "paired" && st.link !== "connected") items.push(g(linkHealthPanel()));
+  if (batteryHint()) items.push(g(batteryCard()));
+  if (st.mode === "paired" && st.link === "notfound") items.push(g(discoveryHint()));
+  if (st.message) items.push(g(messagePanel(st.message)));
+  if (others.length) items.push(g(agentRows(others)));
+  if (st.mode === "paired" && connected()) { items.push(g(usagePanel())); items.push(g(servicesPanel())); }
+  const recent = recentPanel();
+  if (recent) items.push(g(recent));
+  if (st.settings.overlayWished && !st.settings.overlayPermission) items.push(g(overlayHint()));
+  items.push('<div style="height:16px;flex:none"></div><div class="clear"></div>');
+  return `<div class="scr"><div class="col">${items.join("")}</div></div>`;
+}
+
+/* ---------- ui/BottomBar.kt ---------- */
+function bottomBar() {
+  const sel = TAB_OF[st.screen];
+  const tab = (id, ic, label) => {
+    const on = sel === id;
+    const alert = id === "HOME" && approvals().length > 0 ? '<span class="alert" style="background:' + STATE_COLOR.approval + '"></span>' : "";
+    return `<button type="button" role="tab" aria-selected="${on}" data-act="tab" data-arg="${id}" data-tab="${id}">${icon(ic, 22, on ? "var(--text)" : "var(--dim)")}<span>${esc(label)}</span>${alert}</button>`;
+  };
+  return `<nav class="bbar" role="tablist">${tab("HOME", "HOME", S.tab_home)}${tab("CHAT", "CHAT", S.tab_chat)}${tab("SETTINGS", "SLIDERS", S.tab_settings)}</nav>`;
+}
+
+/* ---- screens-settings.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* ui/SettingsScreens.kt (Settings, History), Gallery (MainActivity.kt), ui/DiagnosticsScreen.kt, ui/LicencesScreen.kt, ui/SessionScreen.kt. */
+
+const settingSwitch = (title, hint, on, act, disabled) => listRow(title, { hint, trailing: switchEl(on, act, title, disabled) });
+const linkRow = (title, screen) => listRow(title, { act: "tab", arg: screen, trailing: chevron() });
+const clockText = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+function timeRow(label, which) {
+  const q = st.settings.quiet;
+  const m = q[which];
+  const dis = !q.enabled;
+  return `<div style="display:flex;align-items:center;gap:8px;padding:4px 16px;${dis ? "opacity:.5" : ""}"><span class="t-body" style="flex:1">${esc(label)}</span>
+    <button type="button" class="step" ${dis ? "disabled" : ""} data-act="quietStep" data-arg="${which}:-30" aria-label="${esc(label)}, 30 minutes earlier">−</button>
+    <span class="t-body" style="width:56px;font-family:var(--mono)">${clockText(m)}</span>
+    <button type="button" class="step" ${dis ? "disabled" : ""} data-act="quietStep" data-arg="${which}:30" aria-label="${esc(label)}, 30 minutes later">+</button></div>`;
+}
+ACT.quietStep = (a) => { const [w, d] = a.split(":"); const q = st.settings.quiet; q[w] = (((q[w] + +d) % 1440) + 1440) % 1440; changed(); };
+
+function settingsScreen() {
+  const s = st.settings;
+  let computer = `<div style="display:flex;align-items:center;gap:12px;padding:16px">${dot(linkDot())}<span class="t-body clamp2" style="flex:1">${esc(linkText())}</span></div>`;
+  if (st.mode === "paired") computer += divider() + linkRow(S.diag_title, "DIAGNOSTICS") + divider() + `<div style="padding:16px">${pill(S.action_unpair, "unpair", { kind: "dan", w: true })}</div>`;
+  else if (st.mode === "demo") computer += divider() + `<div style="padding:16px">${pill(S.demo_leave, "leaveDemo", { w: true })}</div>`;
+  else computer += `<p class="t-sec dim" style="padding:0 16px 16px">${esc(S.settings_computer_none)}</p>`;
+  const vol = Math.round((s.volume / 0.2) * 100);
+  const items = [
+    screenTitle(S.settings_title),
+    heading(S.settings_section_computer), panel(computer),
+    batteryHint() ? batteryCard() : "",
+    heading(S.settings_section_display), panel(settingSwitch(S.overlay_title, S.overlay_hint, s.overlayWished && s.overlayPermission, "overlay")),
+    heading(S.settings_section_sound),
+    panel(settingSwitch(S.settings_sound, null, s.soundOn, "sound") + divider() +
+      `<div style="padding:8px 16px"><div style="display:flex"><span class="t-body" style="flex:1">${esc(S.settings_volume)}</span><span class="t-sec dim" id="volpct">${vol}%</span></div>
+      <input id="vol" class="slider" type="range" min="0" max="0.2" step="0.01" value="${s.volume}" style="--f:${vol}%" aria-label="${esc(S.settings_volume)}" data-input="volume" ${s.soundOn ? "" : "disabled"}></div>`),
+    heading(S.settings_section_notices),
+    panel(settingSwitch(S.notify_done, S.notify_done_hint, s.notifyDone, "notifyDone") + divider() +
+      settingSwitch(S.quiet_hours, S.quiet_hint, s.quiet.enabled, "quiet") + timeRow(S.quiet_from, "from") + timeRow(S.quiet_to, "to") + '<div style="height:8px"></div>'),
+    heading(S.settings_section_more),
+    panel(linkRow(S.history_title, "HISTORY") + divider() + divider() + linkRow(S.gallery, "GALLERY")),
+    heading(S.settings_section_about),
+    panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:8px"><p class="t-body">${esc(S.about_unofficial)}</p>
+      <a class="t-body u" style="color:var(--text)" href="#" data-act="repo">${esc(S.about_repo)}</a><p class="t-sec dim">${esc(S.about_assets)}</p></div>${divider()}${linkRow(S.licences_title, "LICENCES")}`),
+    '<div style="height:16px;flex:none"></div><div class="clear"></div>',
+  ];
+  return `<div class="scr gut"><div class="col">${items.join("")}</div></div>`;
+}
+/** MainActivity.setOverlay: the wish is saved first; without Android's permission its settings page opens. */
+ACT.overlay = () => {
+  const s = st.settings;
+  const on = !(s.overlayWished && s.overlayPermission);
+  s.overlayWished = on;
+  if (on && !s.overlayPermission) { st.message = S.msg_overlay_permission; st.sys = "overlay"; }
+  changed();
+};
+ACT.sound = () => { st.settings.soundOn = !st.settings.soundOn; changed(); };
+ACT.notifyDone = () => { st.settings.notifyDone = !st.settings.notifyDone; changed(); };
+ACT.quiet = () => { st.settings.quiet.enabled = !st.settings.quiet.enabled; changed(); };
+ACT.repo = (_, el, e) => { e.preventDefault(); st.message = "Opens github.com/Alvarogds04/kenai in the browser."; changed(); };
+ACT.unpair = () => setMode("none", true);
+ACT.leaveDemo = () => setMode("none", true);
+INPUT.volume = (v, el) => {
+  st.settings.volume = +v;
+  const pct = Math.round((+v / 0.2) * 100);
+  el.style.setProperty("--f", pct + "%");
+  document.getElementById("volpct").textContent = pct + "%";
+};
+
+/* ---------- History ---------- */
+function historyScreen() {
+  const groups = [];
+  for (const d of st.decisions) {
+    const day = dayOf(d.at);
+    const label = day === "TODAY" ? S.history_today : day === "YESTERDAY" ? S.history_yesterday : new Date(d.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    let g = groups.find((x) => x.label === label);
+    if (!g) groups.push((g = { label, list: [] }));
+    g.list.push(d);
+  }
+  const items = [screenTitle(S.history_title, "back"), `<p class="t-sec dim" style="padding:0 4px">${esc(S.history_note)}</p>`];
+  if (!groups.length) items.push(panel(`<p class="t-body dim" style="padding:16px">${esc(S.history_empty)}</p>`));
+  for (const g of groups) {
+    items.push(heading(g.label));
+    items.push(panel(g.list.map((d, i) => `${i > 0 ? divider() : ""}<div class="rrow">${dot(d.allowed ? "#0F9F6E" : "var(--danger)")}<span class="t-body clamp2" style="flex:1">${esc(decisionText(d.allowed, d.agent, d.tool))}</span><span class="t-sec dim">${hhmm(d.at)}</span></div>`).join("")));
+  }
+  if (groups.length) items.push(pill(S.history_clear, "clearHistory", { kind: "dan", w: true }));
+  items.push('<div style="height:16px;flex:none"></div>');
+  return `<div class="scr gut"><div class="col">${items.join("")}</div></div>`;
+}
+ACT.clearHistory = () => { st.decisions = []; changed(); };
+
+/* ---------- Gallery: every state, then every emote, 3 columns ---------- */
+function galleryScreen() {
+  const cell = (k) => `<div style="display:flex;flex-direction:column;align-items:center">${clay(k, 98)}<span style="font-size:11px;line-height:16px;font-weight:500">${k}</span></div>`;
+  return `<div class="scr gut">${screenTitle(S.gallery, "back")}<div style="height:12px"></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${STATES.map(cell).join("")}${EMOTES.map(cell).join("")}</div><div style="height:16px"></div></div>`;
+}
+
+/* ---------- Diagnostics ---------- */
+function diagnosticsScreen() {
+  const d = st.diag;
+  if (!d.results.length && !d.running) setTimeout(runDiag, 0);
+  const rows = d.results.map(([title, kind, detail, hint], i) => {
+    const word = kind === "ok" ? S.diag_ok : kind === "problem" ? S.diag_problem : S.diag_skipped;
+    const c = kind === "ok" ? "#0F9F6E" : kind === "problem" ? "var(--danger)" : "var(--faint)";
+    return `${i > 0 ? divider() : ""}<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;min-height:56px">${dot(c, "margin-top:6px")}<div style="flex:1;display:flex;flex-direction:column;gap:2px"><p class="t-body">${esc(title)} · ${esc(word)}</p><p class="t-sec dim">${esc(detail)}</p>${hint ? `<p class="t-sec">${esc(hint)}</p>` : ""}</div></div>`;
+  }).join("");
+  const items = [screenTitle(S.diag_title, "back"), `<p class="t-sec dim" style="padding:0 4px">${esc(S.diag_intro)}</p>`,
+    panel(rows + (d.running ? `<p class="t-sec dim" style="padding:16px">${esc(S.diag_running)}</p>` : "")),
+    `<div class="row2 g8">${pill(S.diag_run, "diagRun", { disabled: d.running })}${pill(S.diag_copy, "diagCopy", { kind: "pri", disabled: !d.results.length || d.running })}</div>`,
+    d.copied ? `<p class="t-sec dim" style="padding:0 4px">${esc(S.diag_copied)}</p>` : "", '<div class="clear"></div>'];
+  return `<div class="scr gut"><div class="col">${items.join("")}</div></div>`;
+}
+function runDiag() {
+  const d = st.diag;
+  if (d.running) return;
+  const all = st.link === "connected" ? DIAG_OK : DIAG_DOWN;
+  d.running = true; d.results = []; d.copied = false;
+  changed();
+  let i = 0;
+  const next = () => {
+    if (st.diag !== d) return;
+    d.results.push(all[i++]);
+    if (i >= all.length) d.running = false; else setTimeout(next, 350);
+    changed();
+  };
+  setTimeout(next, 350);
+}
+ACT.diagRun = () => runDiag();
+ACT.diagCopy = () => { st.diag.copied = true; changed(); };
+
+/* ---------- Licences: assets/licenses, paragraphs in mono ---------- */
+const LIC_PARAS = LICENCES.replace(/\r\n/g, "\n").split(/\n\s*\n/).map((p) => p.replace(/^\n+|\n+$/g, "")).filter((p) => p.trim());
+function licencesScreen() {
+  return `<div class="scr gut"><div style="display:flex;flex-direction:column;gap:10px">${screenTitle(S.licences_title, "back")}<p class="t-sec dim" style="padding:0 4px">${esc(S.licences_intro)}</p>
+    ${LIC_PARAS.map((p) => `<p class="t-sec" style="padding:0 4px;font-family:var(--mono);white-space:pre-wrap">${esc(p)}</p>`).join("")}<div class="clear"></div></div></div>`;
+}
+
+/* ---------- Session details ---------- */
+function sessionScreen() {
+  const s = sessions().find((x) => x.pill === st.detailPill);
+  if (!s) return `<div class="scr gut">${screenTitle(S.session_details, "back")}<p class="t-body dim" style="padding:16px">${esc(S.session_ended)}</p></div>`;
+  const name = s.agent || (PILLS[s.pill] || {}).name || "";
+  const busy = BUSY.includes(s.state);
+  const items = [screenTitle(name, "back"),
+    panel(`<div style="display:flex;align-items:center;gap:16px;padding:16px">${clay(s.state, 96, s.color)}<div style="flex:1;display:flex;flex-direction:column;gap:6px"><p class="t-head clamp3">${esc(homeLine(s) || stateLabel(s.state))}</p>${s.project ? `<span class="chip"><span class="ell">${esc(fmt("session_project", s.project))}</span></span>` : ""}</div></div>`, STATE_COLOR[s.state])];
+  if (s.finalLine) items.push(heading(S.session_last), panel(`<p class="t-body" style="padding:16px">${esc(s.finalLine)}</p>`, STATE_COLOR.finished));
+  if (s.files && s.files.length) {
+    items.push(heading(S.files_heading), panel([...s.files].reverse().map((f, i) => (i > 0 ? divider() : "") +
+      listRow(f.name, { hint: f.isNew ? S.files_new : null, act: "openDiff", arg: f.name, trailing: `<span class="t-sec dim" style="font-family:var(--mono)">${esc(fmt("files_counts", f.added, f.removed))}</span>` })).join("")));
+  }
+  items.push(heading(S.session_steps));
+  const steps = [...(s.steps || [])].reverse();
+  if (!steps.length) items.push(panel(`<p class="t-sec dim" style="padding:16px">${esc(st.mode === "paired" ? S.session_no_steps : S.session_hint)}</p>`));
+  else items.push(panel(steps.map((stp, i) => {
+    const current = i === 0 && busy;
+    const mark = current ? dot(s.color, "margin:0 7px") : icon("CHECK", 22, i === 0 ? "#0F9F6E" : "var(--faint)");
+    const label = toolLabel(stp) || (current ? S.session_step_working : S.session_step_done);
+    return `${i > 0 ? divider() : ""}<div style="display:flex;align-items:center;gap:12px;min-height:48px;padding:10px 16px">${mark}<span class="t-body" style="flex:1;color:${i === 0 ? "var(--text)" : "var(--dim)"};font-weight:${current ? 600 : 400}">${esc(label)}</span></div>`;
+  }).join("")));
+  items.push('<div style="height:16px;flex:none"></div>');
+  return `<div class="scr gut"><div class="col">${items.join("")}</div></div>`;
+}
+
+/* ---- screens-chat.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* ui/ChatScreen.kt, core/ChatTab.kt, core/MarkdownLite.kt (bold, inline code, bullets, fenced code). Answers are fake. */
+
+const CHAT_MAX = 4000; // Protocol.CHAT_MAX_TEXT
+const STATE_TITLE = { NOT_PAIRED: "chat_off_not_paired_title", NOT_CONNECTED: "chat_off_offline_title", CHAT_OFF: "chat_off_title", NO_MODELS: "chat_nomodel_title", READY: "chat_title" };
+const STATE_BODY = { NOT_PAIRED: "chat_off_not_paired_body", NOT_CONNECTED: "chat_off_offline_body", CHAT_OFF: "chat_off_hint", NO_MODELS: "chat_off_hint", READY: "chat_title" };
+
+function mdSpans(t) {
+  return esc(t).replace(/`([^`]+)`/g, '<code style="font-family:var(--mono);background:var(--panel2);border-radius:4px;padding:0 3px">$1</code>').replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+}
+function markdown(text) {
+  const out = [];
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (l.startsWith("```")) {
+      const code = [];
+      for (i++; i < lines.length && !lines[i].startsWith("```"); i++) code.push(lines[i]);
+      out.push(`<pre class="t-mono" style="margin:0;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;white-space:pre-wrap">${esc(code.join("\n"))}</pre>`);
+    } else if (/^[-*] /.test(l)) out.push(`<div class="t-body" style="display:flex"><span>•&nbsp;&nbsp;</span><span style="flex:1">${mdSpans(l.slice(2))}</span></div>`);
+    else if (l.trim()) out.push(`<p class="t-body">${mdSpans(l)}</p>`);
+  }
+  return `<div style="display:flex;flex-direction:column;gap:8px">${out.join("")}</div>`;
+}
+const typingDots = () => '<div class="typing" style="display:flex;gap:6px;padding:8px 0"><i></i><i></i><i></i></div>';
+
+function bubble(m) {
+  if (m.role === "user") return `<div style="display:flex;justify-content:flex-end"><p class="t-body" style="max-width:300px;background:var(--panel2);border-radius:18px 18px 6px 18px;padding:10px 14px;white-space:pre-wrap;word-break:break-word">${esc(m.text)}</p></div>`;
+  let h = "";
+  if (!m.text && m.status === "streaming") h = typingDots();
+  else if (m.text) h = markdown(m.text);
+  if (m.status === "failed") h += `<p class="t-sec dang">${esc(S.chat_err_canceled)}</p>`;
+  return `<div style="display:flex;flex-direction:column;gap:6px">${h}</div>`;
+}
+
+function chatEmpty(state) {
+  const btn = state === "NOT_PAIRED" ? pill(S.chat_go_pair, "tab", { kind: "pri", w: true, arg: "HOME" }) : state === "NOT_CONNECTED" ? pill(S.chat_go_settings, "tab", { kind: "pri", w: true, arg: "SETTINGS" }) : "";
+  return `<div class="gut" style="height:100%;display:flex;flex-direction:column">${screenTitle(S.chat_title)}
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 8px">${clay("sleeping", 120)}
+    <p class="t-title center" style="padding-top:16px">${esc(S[STATE_TITLE[state]])}</p><p class="t-body dim center" style="padding:8px 0 20px">${esc(S[STATE_BODY[state]])}</p>${btn}</div></div>`;
+}
+
+function chatScreen() {
+  const c = st.chat;
+  const tab = chatTabState();
+  if (tab !== "READY" && !c.messages.length) return chatEmpty(tab);
+  const clear = c.messages.length ? `<button type="button" class="tlink" data-act="chatClearAsk">${esc(S.chat_clear)}</button>` : "";
+  const reason = !chatAvailable() ? panel(`<div style="padding:16px;display:flex;flex-direction:column;gap:4px"><p class="t-head">${esc(S[STATE_TITLE[tab]])}</p><p class="t-sec dim">${esc(S[STATE_BODY[tab]])}</p></div>`, null, "margin:4px 0") : "";
+  const list = c.messages.length
+    ? `<div class="scr" id="chatlist" style="position:static;height:100%;display:flex;flex-direction:column;gap:12px">${c.messages.map(bubble).join("")}</div>`
+    : `<div style="height:100%;display:flex;align-items:center;justify-content:center"><p class="t-body dim center" style="padding:16px">${esc(S.chat_empty)}</p></div>`;
+  const len = c.text.trim().length;
+  const canSend = chatAvailable() && len >= 1 && len <= CHAT_MAX;
+  const cur = FAKE.models.find((m) => m.id === c.model);
+  let note = "";
+  if (c.refusal === "BUSY") note = `<p class="t-sec dang">${esc(S.chat_ref_busy)}</p>`;
+  else if (len > CHAT_MAX) note = `<p class="t-sec dang">${esc(S.chat_ref_too_long)}</p>`;
+  else if (len > CHAT_MAX * 0.9) note = `<p class="t-sec dim">${esc(fmt("chat_count", len, CHAT_MAX))}</p>`;
+  const action = c.busy
+    ? `<button type="button" class="pb" style="height:56px" data-act="chatStop"><span>${esc(S.chat_stop)}</span></button>`
+    : `<button type="button" aria-label="${esc(S.chat_send)}" data-act="chatSend" ${canSend ? "" : "disabled"} style="width:56px;height:56px;border-radius:50%;background:var(--pri);display:flex;align-items:center;justify-content:center;flex:none;opacity:${canSend ? 1 : 0.4}">${icon("SEND", 22, "var(--onpri)")}</button>`;
+  const menu = c.menu ? `<div class="menu" style="left:16px;bottom:120px">${FAKE.models.map((m) => `<button type="button" data-act="chatModel" data-arg="${m.id}">${esc(m.label)}</button>`).join("")}</div>` : "";
+  return `<div class="gut" style="height:100%;display:flex;flex-direction:column">${screenTitle(S.chat_title, null, clear)}
+    <p class="t-sec dim" style="padding:4px">${esc(S.chat_note)}</p>${reason}
+    <div style="flex:1;min-height:0;position:relative">${list}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:8px 0">
+      <button type="button" class="chip" style="min-height:48px;padding:0 14px;gap:6px;align-self:flex-start;background:var(--panel2)" data-act="chatMenu"><span class="ell">${esc(fmt("chat_model", cur ? cur.label : "—"))}</span><span style="transform:rotate(90deg);display:flex">${icon("CHEVRON", 16, "var(--dim)")}</span></button>
+      <div style="display:flex;align-items:flex-end;gap:8px"><textarea id="chatbox" rows="1" class="field" style="border-radius:26px;background:var(--panel);border-color:var(--line);padding:16px;font-size:15px;resize:none;max-height:120px" placeholder="${esc(S.chat_placeholder)}" data-input="chat" ${chatAvailable() ? "" : "disabled"}>${esc(c.text)}</textarea>${action}</div>
+      ${note}</div>${menu}</div>`;
+}
+function afterScreen() {
+  const l = document.getElementById("chatlist");
+  if (l) l.scrollTop = l.scrollHeight; // follow the answer as it grows
+}
+INPUT.chat = (v) => {
+  const before = st.chat.text.trim().length;
+  st.chat.text = v; st.chat.refusal = null;
+  const after = v.trim().length;
+  if ((before === 0) !== (after === 0) || after > CHAT_MAX * 0.9 || before > CHAT_MAX * 0.9) changed();
+};
+ACT.chatMenu = () => { st.chat.menu = !st.chat.menu; changed(); };
+ACT.chatModel = (id) => { st.chat.model = id; st.chat.menu = false; changed(); };
+ACT.chatClearAsk = () => { st.chat.confirmClear = true; changed(); };
+ACT.clearCancel = () => { st.chat.confirmClear = false; changed(); };
+ACT.clearOk = () => { st.chat.confirmClear = false; st.chat.messages = []; changed(); };
+let chatTimer = null;
+ACT.chatSend = () => {
+  const c = st.chat;
+  if (c.busy) { c.refusal = "BUSY"; changed(); return; }
+  const text = c.text.trim();
+  if (!text || !chatAvailable()) return;
+  c.messages.push({ role: "user", text });
+  const answer = { role: "assistant", text: "", status: "streaming" };
+  c.messages.push(answer);
+  c.text = ""; c.busy = true;
+  changed();
+  // A fake stream: the dots, then the answer a few words at a time.
+  const words = FAKE.reply.split(/(?<=\s)/);
+  let i = 0;
+  clearInterval(chatTimer);
+  setTimeout(() => {
+    chatTimer = setInterval(() => {
+      if (answer.status !== "streaming") { clearInterval(chatTimer); return; }
+      answer.text += words.slice(i, i + 3).join(""); i += 3;
+      if (i >= words.length) { answer.status = "done"; c.busy = false; clearInterval(chatTimer); }
+      changed();
+    }, 90);
+  }, 700);
+};
+ACT.chatStop = () => {
+  const last = st.chat.messages[st.chat.messages.length - 1];
+  if (last && last.status === "streaming") last.status = "failed";
+  st.chat.busy = false; clearInterval(chatTimer); changed();
+};
+
+/* ---- sheets.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* ui/Sheets.kt (BottomSheetHost, ApprovalSheet, QuestionSheet), ui/DiffSheet.kt, PasteSheet (ui/PairingScreen.kt),
+   AddressSheet (ui/DiscoveryHint.kt), ui/PairConfirm.kt, and the Android surfaces: BiometricPrompt, permission dialogs. */
+
+const GUARD_MS = 600; // ApprovalSheetPlan.GUARD_MS
+let armedAt = {};
+function armed(key) {
+  if (!(key in armedAt)) { armedAt[key] = Date.now(); setTimeout(changed, GUARD_MS + 20); }
+  return Date.now() - armedAt[key] >= GUARD_MS;
+}
+const sheet = (key, inner, wash) => ({
+  key,
+  html: `<div class="host"><div class="scrim" data-act="sheetDismiss" data-arg="${esc(key)}"></div><div class="sheet" role="dialog" aria-modal="true">${wash ? `<div class="wash" style="--wash:${wash};opacity:.45"></div>` : ""}<div class="grab"></div>${inner}</div></div>`,
+});
+ACT.sheetDismiss = () => ACT.sysBack();
+
+/** ApprovalSheetPlan.next: the first request the user has not closed; never over Scan. */
+const pendingApproval = () => (st.screen === "SCAN" ? null : approvals().find((a) => a.fp !== st.closedApproval) || null);
+
+function approvalSheet(r) {
+  const name = agentName(r.pill);
+  const kind = (PILLS[r.pill] || {}).name || "";
+  const on = armed("a:" + r.fp);
+  const cmd = st.showCommand === r.fp;
+  const inner = `<div class="shead">${clay("approval", 84, (PILLS[r.pill] || {}).color)}<div><p class="t-sec dim ell">${esc(kind && kind !== name ? name + " · " + kind : name)}</p><p class="t-title white clamp3">${esc(fmt("approval_wants", toolAction(r.tool)))}</p></div></div>
+  <p class="t-sec dim" style="padding-top:12px">${esc(S.approval_caution)}</p>
+  <button type="button" class="t-sec dim u" style="min-height:48px;padding:12px 0" data-act="toggleCmd" data-arg="${esc(r.fp)}">${esc(cmd ? S.approval_hide_cmd : S.approval_show_cmd)}</button>
+  ${cmd ? `<div class="cmd"><span class="t-label dim">${esc(r.tool)}</span><span class="t-mono white">${esc(r.command)}</span></div><div style="height:8px"></div>` : ""}
+  <div class="row2 g10" style="padding-top:4px">${pill(S.action_deny, "deny", { dark: true, disabled: !on, arg: r.fp })}${pill(S.action_allow, "allow", { kind: "pri", dark: true, disabled: !on, arg: r.fp, icon: "LOCK", iconSize: 18 })}</div>
+  <p class="t-label dim" style="padding-top:10px">${esc(S.approval_hint)}</p>
+  <button type="button" class="later" data-act="notNow">${esc(S.approval_later)}</button>`;
+  return sheet("approval:" + r.fp, inner, STATE_COLOR.approval);
+}
+ACT.toggleCmd = (fp) => { st.showCommand = st.showCommand === fp ? null : fp; changed(); };
+ACT.deny = (fp) => decide(fp, false);
+ACT.allow = (fp) => {
+  const r = st.approvals.find((a) => a.fp === fp);
+  if (!r || st.bio) return;
+  st.bio = { title: S.action_allow, sub: `${r.tool}: ${r.command}`, onOk: () => decide(fp, true) };
+  changed();
+};
+ACT.notNow = () => {
+  if (st.questionPill) st.questionPill = null;
+  else { const p = pendingApproval(); if (p) st.closedApproval = p.fp; }
+  changed();
+};
+
+/* ---------- QuestionSheet + core/QuestionFlow.kt ---------- */
+function questionSheet(pillId) {
+  const wash = STATE_COLOR.question;
+  const colour = (PILLS[pillId] || {}).color;
+  const req = questionFor(pillId);
+  if (!req) {
+    return sheet("q0:" + pillId, `<div class="shead">${clay("question", 84, colour)}<p class="t-title white clamp3" style="flex:1">${esc(fmt("question_title", agentName(pillId)))}</p></div>
+      <p class="t-body dim" style="padding:12px 0 16px">${esc(S.question_body)}</p>${pill_(S.question_ok, "notNow")}`, wash);
+  }
+  if (!st.qflow || st.qflow.fp !== req.fp) st.qflow = { fp: req.fp, index: 0, picks: req.questions.map(() => []) };
+  const f = st.qflow;
+  const q = req.questions[f.index];
+  const on = armed("q:" + req.fp);
+  const isLast = f.index === req.questions.length - 1;
+  const complete = f.picks.every((p) => p.length > 0);
+  const opts = q.options.map((o) => {
+    const sel = f.picks[f.index].includes(o.label);
+    return `<button type="button" class="opt ${q.multiSelect ? "multi" : ""}" role="${q.multiSelect ? "checkbox" : "radio"}" aria-checked="${sel}" data-act="qPick" data-arg="${esc(o.label)}"><span class="mk">${sel ? icon("CHECK", 16, "#0B0C0E") : ""}</span><div><b class="t-body" style="font-weight:600">${esc(o.label)}</b>${o.description ? `<span class="t-sec dim">${esc(o.description)}</span>` : ""}</div></button>`;
+  }).join("");
+  const nav = [];
+  if (f.index > 0) nav.push(pill(S.question_back, "qBack", { dark: true }));
+  if (isLast) nav.push(pill(S.question_send, "qSend", { kind: "pri", dark: true, disabled: !(on && complete), icon: "LOCK", iconSize: 18 }));
+  else nav.push(pill(S.question_next, "qNext", { kind: "pri", dark: true, disabled: f.picks[f.index].length === 0 }));
+  const position = req.questions.length > 1 ? `<p class="t-label dim">${esc(fmt("question_position", f.index + 1, req.questions.length))}</p>` : "";
+  const inner = `<div class="shead">${clay("question", 84, colour)}<div><p class="t-sec dim clamp2">${esc(fmt("question_title", agentName(pillId)))}</p>${position}</div></div>
+  <p class="t-head white" style="padding-top:12px">${esc(q.question)}</p>
+  ${q.multiSelect ? `<p class="t-sec dim" style="padding-top:2px">${esc(S.question_pick_many)}</p>` : ""}
+  <div style="display:flex;flex-direction:column;gap:8px;padding-top:12px">${opts}</div>
+  <div class="row2 g10" style="padding-top:16px">${nav.join("")}</div>
+  <p class="t-label dim" style="padding-top:10px">${esc(S.approval_hint)}</p>
+  <button type="button" class="later" data-act="notNow">${esc(S.approval_later)}</button>`;
+  return sheet("q:" + req.fp, inner, wash);
+}
+const pill_ = (label, act) => pill(label, act, { kind: "pri", dark: true, w: true });
+ACT.openQuestion = (p) => { st.questionPill = p; changed(); };
+ACT.qPick = (label) => {
+  const req = questionFor(st.questionPill);
+  const q = req.questions[st.qflow.index];
+  const cur = st.qflow.picks[st.qflow.index];
+  st.qflow.picks[st.qflow.index] = q.multiSelect ? (cur.includes(label) ? cur.filter((x) => x !== label) : [...cur, label]) : [label];
+  changed();
+};
+ACT.qNext = () => { st.qflow.index++; changed(); };
+ACT.qBack = () => { st.qflow.index--; changed(); };
+ACT.qSend = () => {
+  const pillId = st.questionPill;
+  const picks = st.qflow.picks;
+  st.bio = { title: S.question_confirm_title, sub: picks.map((p) => p.join(", ")).join("; "), onOk: () => {
+    st.questionPill = null; delete st.questions[pillId]; st.qflow = null; st.message = S.question_sent;
+    const s = st.sessions.find((x) => x.pill === pillId);
+    if (s) { s.state = "working"; s.text = "Bash · git checkout"; }
+  } };
+  changed();
+};
+
+/* ---------- DiffSheet (≤ 200 lines, + and − besides the colour) ---------- */
+function diffSheet() {
+  const d = st.diff;
+  const rows = d.rows.slice(0, 200).map((l) => {
+    const k = l[0];
+    const col = k === "+" ? "#34D399" : k === "-" ? "#FF8D97" : k === "@" ? "#9398A1" : "#F5F6F8";
+    const bg = k === "+" ? "rgba(52,211,153,.12)" : k === "-" ? "rgba(255,141,151,.12)" : "transparent";
+    const mark = k === "+" ? "+" : k === "-" ? "−" : k === "@" ? "" : " ";
+    return `<div class="drow" style="color:${col};background:${bg}"><b>${mark}</b><span>${esc(k === "@" ? l : l.slice(1))}</span></div>`;
+  }).join("");
+  const added = d.rows.filter((l) => l[0] === "+").length, removed = d.rows.filter((l) => l[0] === "-").length;
+  return sheet("diff:" + d.name, `<p class="t-title white clamp2">${esc(d.name)}</p>
+    <p class="t-sec dim" style="padding:2px 0 10px">${esc(fmt("file_summary", added, removed))}</p>
+    <div class="dlist">${rows}</div>${d.rows.length > 200 ? `<p class="t-sec dim" style="padding-top:8px">${esc(S.file_truncated)}</p>` : ""}
+    <div style="padding-top:12px">${pill(S.file_close, "closeDiff", { dark: true, w: true })}</div>`);
+}
+ACT.openDiff = (name) => {
+  const f = Object.values(FAKE.details).flatMap((d) => d.files).find((x) => x.name === name);
+  st.diff = { name, rows: f && f.isNew ? ["@@ -0,0 +1,12 @@", ...Array.from({ length: 12 }, (_, i) => "+" + ["# Release 0.1", "", "- Light theme", "- Spanish", "- Vibration", "- Tile actions", "", "Build with", "", "    ./gradlew assembleRelease", "", "Then sign the APK."][i])] : FAKE.diff };
+  changed();
+};
+ACT.closeDiff = () => { st.diff = null; changed(); };
+
+/* ---------- PasteSheet and AddressSheet ---------- */
+/** link/Pairing.kt PairingPayload.parse */
+function parsePairing(text) {
+  let u;
+  try { u = new URL(text.trim()); } catch (_) { return null; }
+  if (u.protocol !== "abito:" || (u.host || u.pathname.replace(/^\/\//, "")) !== "pair") return null;
+  const q = u.searchParams;
+  if (q.get("v") !== "1") return null;
+  const host = q.get("host"), port = +q.get("port"), fp = (q.get("fp") || "").toLowerCase(), token = q.get("token") || "";
+  if (!host || host.length > 253 || !(port >= 1 && port <= 65535)) return null;
+  if (!/^[0-9a-f]{64}$/.test(fp) || !/^[A-Za-z0-9_-]{16,128}$/.test(token)) return null;
+  return { host, port, name: (q.get("name") || "").slice(0, 64) };
+}
+function fieldSheet(key, title, hint, placeholder, value, bad, badText, buttons) {
+  return sheet(key, `<p class="t-title white">${esc(title)}</p><p class="t-sec dim" style="padding:4px 0 12px">${esc(hint)}</p>
+    <input id="f-${key}" class="field" type="url" autocomplete="off" spellcheck="false" placeholder="${esc(placeholder)}" value="${esc(value)}" data-input="${key}">
+    ${bad ? `<p class="t-sec dang" style="padding-top:8px">${esc(badText)}</p>` : ""}${buttons}`);
+}
+const pasteSheet = () => fieldSheet("paste", S.paste_title, S.paste_hint, "abito://pair?…", st.paste.text, st.paste.bad, S.msg_bad_link,
+  `<div class="row2 g10" style="padding-top:16px">${pill(S.pair_clipboard, "clipboard", { dark: true })}${pill(S.pair_button, "pastePair", { kind: "pri", dark: true, disabled: !st.paste.text.trim() })}</div>`);
+const addressSheet = () => fieldSheet("address", S.address_title, S.address_hint, "192.168.1.20:47821", st.address.text, st.address.bad, S.address_bad,
+  `<div style="padding-top:16px">${pill(S.address_save, "saveAddress", { kind: "pri", dark: true, w: true, disabled: !st.address.text.trim() })}</div>`);
+INPUT.paste = (v) => { const was = !!st.paste.text.trim(); st.paste.text = v; const bad = st.paste.bad; st.paste.bad = false; if (bad || was !== !!v.trim()) changed(); };
+INPUT.address = (v) => { const was = !!st.address.text.trim(); st.address.text = v; const bad = st.address.bad; st.address.bad = false; if (bad || was !== !!v.trim()) changed(); };
+ACT.openPaste = () => { st.paste = { text: "", bad: false }; changed(); };
+ACT.clipboard = () => { st.paste.text = SAMPLE_LINK; st.paste.bad = false; changed(); }; // the canvas' clipboard holds a sample link
+ACT.pastePair = () => {
+  if (parsePairing(st.paste.text)) { st.paste = null; st.keyboard = false; setMode("paired", true); } // PasteSheet pairs directly (model.pair)
+  else { st.paste.bad = true; changed(); }
+};
+ACT.openAddress = () => { st.address = { text: "", bad: false }; changed(); };
+ACT.saveAddress = () => {
+  const ok = /^(\d{1,3}\.){3}\d{1,3}(:\d{1,5})?$/.test(st.address.text.trim()) && st.address.text.trim().split(/[.:]/).slice(0, 4).every((n) => +n <= 255);
+  if (ok) { st.address = null; st.keyboard = false; st.link = "connected"; changed(); } else { st.address.bad = true; changed(); }
+};
+
+function sheetLayer() {
+  if (st.diff) return diffSheet();
+  if (st.paste) return pasteSheet();
+  if (st.address) return addressSheet();
+  if (st.questionPill) return questionSheet(st.questionPill);
+  const r = pendingApproval();
+  if (r) return approvalSheet(r);
+  return null;
+}
+
+/* ---------- PairConfirm (Material 3 AlertDialog) and Clear chat ---------- */
+function dialogLayer() {
+  if (st.pairRequest) {
+    const p = parsePairing(st.pairRequest);
+    const body = fmt("pair_confirm_body", p.host, p.port) + (st.mode === "paired" ? "\n\n" + S.pair_confirm_replace : "");
+    return { key: "pair", html: `<div class="dhost"><div class="dlg" role="alertdialog"><h2>${esc(fmt("pair_confirm_title", p.name || p.host))}</h2><p>${esc(body)}</p>
+      <div class="acts"><button type="button" class="tbtn" data-act="pairCancel">${esc(S.action_cancel)}</button><button type="button" class="tbtn" data-act="pairOk">${esc(S.pair_confirm_ok)}</button></div></div></div>` };
+  }
+  if (st.chat.confirmClear) {
+    return { key: "clear", html: `<div class="dhost"><div class="dlg" role="alertdialog"><h2>${esc(S.chat_clear_title)}</h2><p>${esc(S.chat_clear_body)}</p>
+      <div class="acts"><button type="button" class="tbtn" data-act="clearCancel">${esc(S.action_cancel)}</button><button type="button" class="tbtn" style="color:#F2B8B5" data-act="clearOk">${esc(S.chat_clear)}</button></div></div></div>` };
+  }
+  return null;
+}
+ACT.pairCancel = () => { st.pairRequest = null; changed(); };
+ACT.pairOk = () => { st.pairRequest = null; setMode("paired", true); };
+
+/* ---------- BiometricPrompt (BiometricGate), simulated ---------- */
+function bioLayer() {
+  if (!st.bio) return null;
+  const b = st.bio;
+  return { key: "bio:" + b.title + b.sub, html: `<div class="bio-host"><div class="bio" role="dialog" aria-label="${esc(b.title)}">
+    <div class="app">${icon("LOCK", 16, "#bdc1c6")} Kenai</div><h2>${esc(b.title)}</h2><p class="sub">${esc(b.sub)}</p>
+    <button type="button" class="fp ${b.ok ? "ok" : ""}" data-act="bioTouch" aria-label="Touch the fingerprint sensor">${b.ok ? icon("CHECK", 36) : '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3M8.5 9.5a4 4 0 0 1 7 2.5v2a8 8 0 0 1-1 4M8 13v1a6 6 0 0 1-1 4M5 9a8 8 0 0 1 14 2v2M4 15v-1M17.5 19.5"/></svg>'}</button>
+    <p class="fpt">${b.ok ? "Fingerprint recognised" : "Touch the fingerprint sensor"}</p>
+    <div class="acts"><button type="button" class="tbtn" style="color:#8ab4f8" data-act="bioPin">Use PIN</button><button type="button" class="tbtn" style="color:#8ab4f8" data-act="bioCancel">${esc(S.action_cancel)}</button></div></div></div>` };
+}
+ACT.bioTouch = () => {
+  if (!st.bio || st.bio.ok) return;
+  st.bio.ok = true; changed();
+  setTimeout(() => { const b = st.bio; st.bio = null; if (b) b.onOk(); changed(); }, 450);
+};
+ACT.bioPin = ACT.bioTouch;
+ACT.bioCancel = () => { st.bio = null; changed(); }; // onFail with an empty message: nothing shown
+
+/* ---------- Android's own screens: the camera permission, the overlay permission, battery settings ---------- */
+function sysLayer() {
+  if (st.sys === "camera") {
+    return { key: "cam", html: `<div class="sysd"><div class="box">${icon("SCAN", 28, "#8ab4f8")}<p>Allow <b>Kenai</b> to take pictures and record video?</p>
+      <button type="button" data-act="cameraGrant" data-arg="once">While using the app</button><button type="button" data-act="cameraGrant" data-arg="once">Only this time</button><button type="button" data-act="cameraGrant" data-arg="deny">Don't allow</button></div></div>` };
+  }
+  if (st.sys === "overlay" || st.sys === "battery") {
+    const overlay = st.sys === "overlay";
+    const on = st.settings.overlayPermission;
+    const opts = overlay
+      ? `<div class="opt2"><span>Allow display over other apps</span><span style="margin-left:auto">${switchEl(on, "sysOverlay", "Allow display over other apps")}</span></div>`
+      : `<button type="button" class="opt2" data-act="sysClose"><span class="radio on"></span>Unrestricted</button><button type="button" class="opt2" data-act="sysClose"><span class="radio"></span>Optimised</button><button type="button" class="opt2" data-act="sysClose"><span class="radio"></span>Restricted</button>`;
+    return { key: st.sys, html: `<div class="sysp"><div class="top"><button type="button" aria-label="Back" data-act="sysClose">${icon("BACK", 24, "#e8eaed")}</button><h2>${overlay ? "Display over other apps" : "App battery usage"}</h2></div>
+      <div class="app">${kodaEl("idle", 40)}<span>Kenai</span></div>${opts}<p class="note">Android settings, simulated by the canvas.</p></div>` };
+  }
+  return null;
+}
+ACT.sysOverlay = () => { st.settings.overlayPermission = !st.settings.overlayPermission; changed(); };
+ACT.sysClose = () => { st.sys = null; changed(); };
+
+/* ---- main.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* The canvas: toolbar, phone frame (status bar, gesture bar), the router of MainActivity.kt, and window.kenai for T1b. */
+
+const $ = (s, r = document) => r.querySelector(s);
+/** Every template escapes its text with esc(); markup is set through one helper. */
+const setHTML = (el, html) => el.replaceChildren(document.createRange().createContextualFragment(html));
+const STEP_TEXT = [
+  "Claude Code thinking", "Claude working · Codex searching", "Approval: Bash npm run build", "Claude building · Codex asks “Which branch?”",
+  "Claude finished · Codex error", "Codex rate limited", "Gemini CLI sleeping", "Approval resolved · no agents",
+];
+
+function toolbar() {
+  setHTML($("#tbar"), `<div class="brand"><b>Kenai for Android · functional replica</b><span>Today's app, English, dark · DemoLink loop, 2.5 s a step</span></div>
+  <button type="button" class="cb" id="play" data-tb="play"></button>
+  <button type="button" class="cb" id="step" data-tb="step">Step</button>
+  <div class="ctl" id="stepinfo"></div>
+  <div class="seg" role="group" aria-label="Mode" id="mode">
+    <button type="button" data-tb="mode" data-arg="none">Not paired</button>
+    <button type="button" data-tb="mode" data-arg="demo">Demo mode</button>
+    <button type="button" data-tb="mode" data-arg="paired">Paired (fake data)</button></div>
+  <label class="ctl" id="linkctl">Link <select id="linksel"><option value="connected">Connected</option><option value="lost">Connection lost</option><option value="notfound">Can't find computer</option></select></label>`);
+  $("#tbar").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-tb]");
+    if (!b) return;
+    if (b.dataset.tb === "play") { st.playing = !st.playing; schedule(); changed(); }
+    if (b.dataset.tb === "step") { if (st.mode === "none") setMode("demo"); else { step(); schedule(); changed(); } }
+    if (b.dataset.tb === "mode") setMode(b.dataset.arg);
+  });
+  $("#linksel").addEventListener("change", (e) => { st.link = e.target.value; st.batterySnoozed = false; st.diag = { running: false, results: [] }; changed(); });
+}
+function updateToolbar() {
+  $("#play").textContent = st.playing ? "Pause" : "Play";
+  $("#play").setAttribute("aria-pressed", String(!st.playing));
+  setHTML($("#stepinfo"), st.mode === "none" ? "<i>Demo loop stopped (not paired)</i>" : `Step ${st.step + 1} of 8 · <i>${esc(STEP_TEXT[st.step] || "")}</i>`);
+  document.querySelectorAll("#mode button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.arg === st.mode)));
+  $("#linkctl").hidden = st.mode !== "paired";
+  $("#linksel").value = st.link;
+}
+
+const TEXT_FIELD = "input[type=text],input[type=url],textarea";
+function phoneSkeleton() {
+  setHTML($("#phone"), `<div class="sbar"><span id="clock"></span><span class="cam"></span><span class="r"><i></i><i class="w"></i></span></div>
+  <div class="screen" id="screen"><div id="content"></div><div id="bar"></div><div id="layer"></div><div id="dlg"></div><div id="bio"></div><div id="sys"></div></div>
+  <div class="gbar"><button type="button" aria-label="Back (system gesture)" data-act="sysBack"></button></div>`);
+  const phone = $("#phone");
+  phone.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el || el.disabled || !phone.contains(el)) return;
+    const fn = ACT[el.dataset.act];
+    if (fn) fn(el.dataset.arg, el, e);
+  });
+  phone.addEventListener("input", (e) => {
+    const fn = INPUT[e.target.dataset.input];
+    if (fn) fn(e.target.value, e.target);
+  });
+  phone.addEventListener("focusin", (e) => { if (!st.keyboard && e.target.matches(TEXT_FIELD)) { st.keyboard = true; changed(); } });
+  phone.addEventListener("focusout", (e) => { if (e.target.matches(TEXT_FIELD)) setTimeout(() => { const a = document.activeElement; if (st.keyboard && !(a && a.matches && a.matches(TEXT_FIELD))) { st.keyboard = false; changed(); } }, 0); });
+}
+/** System Back: closes what is on top first, then goes up one level (Navigation.kt Nav.back). */
+ACT.sysBack = () => {
+  if (st.bio) { ACT.bioCancel(); return; }
+  if (st.sys) { st.sys = null; changed(); return; }
+  if (st.pairRequest) { st.pairRequest = null; changed(); return; }
+  if (st.chat.confirmClear || st.chat.menu) { st.chat.confirmClear = false; st.chat.menu = false; changed(); return; }
+  if (st.diff) { st.diff = null; changed(); return; }
+  if (st.paste) { st.paste = null; changed(); return; }
+  if (st.address) { st.address = null; changed(); return; }
+  if (st.questionPill) { st.questionPill = null; changed(); return; }
+  const pending = typeof pendingApproval === "function" && pendingApproval();
+  if (pending) { st.closedApproval = pending.fp; changed(); return; }
+  ACT.back();
+};
+
+const SCREENS = {
+  HOME: () => homeScreen(),
+  SCAN: () => scanScreen(),
+  CHAT: () => (typeof chatScreen === "function" ? chatScreen() : ""),
+  SETTINGS: () => settingsScreen(),
+  HISTORY: () => historyScreen(),
+  GALLERY: () => galleryScreen(),
+  DIAGNOSTICS: () => diagnosticsScreen(),
+  LICENCES: () => licencesScreen(),
+  SESSION: () => sessionScreen(),
+};
+const scrollMem = {};
+let lastScreen = null;
+const layerKeys = {};
+function setLayer(id, out) {
+  const el = $("#" + id);
+  const key = out ? out.key : "";
+  const fresh = key !== layerKeys[id];
+  const keepScroll = el.querySelector(".sheet");
+  const top = keepScroll && !fresh ? keepScroll.scrollTop : 0;
+  setHTML(el, out ? out.html : "");
+  const sh = el.querySelector(".sheet");
+  if (sh) { if (fresh) sh.classList.add("enter"); sh.scrollTop = top; }
+  layerKeys[id] = key;
+}
+function render() {
+  const a = document.activeElement;
+  const focusId = a && a.id && $("#phone").contains(a) ? a.id : null;
+  const sel = focusId && "selectionStart" in a ? [a.selectionStart, a.selectionEnd] : null;
+  const old = $("#content .scr");
+  if (old && lastScreen) scrollMem[lastScreen] = old.scrollTop;
+  const top = st.screen === "HOME" || st.screen === "SCAN" ? "" : "ptop";
+  const chatPad = st.screen === "CHAT" && barVisible() ? "padding-bottom:96px" : "";
+  setHTML($("#content"), `<div class="${top}" style="position:absolute;inset:0;${chatPad}"><div style="position:relative;height:100%">${SCREENS[st.screen]()}</div></div>`);
+  const scr = $("#content .scr");
+  // Same screen: keep the scroll. A screen left and opened again starts at the top, as a recomposed LazyColumn does.
+  if (scr) scr.scrollTop = st.screen === lastScreen ? scrollMem[st.screen] || 0 : 0;
+  if (typeof afterScreen === "function") afterScreen();
+  lastScreen = st.screen;
+  setHTML($("#bar"), barVisible() ? bottomBar() : "");
+  setLayer("layer", typeof sheetLayer === "function" ? sheetLayer() : null);
+  setLayer("dlg", typeof dialogLayer === "function" ? dialogLayer() : null);
+  setLayer("bio", typeof bioLayer === "function" ? bioLayer() : null);
+  setLayer("sys", typeof sysLayer === "function" ? sysLayer() : null);
+  if (focusId) {
+    const n = document.getElementById(focusId);
+    if (n) { n.focus(); if (sel && "setSelectionRange" in n) try { n.setSelectionRange(sel[0], sel[1]); } catch (_) { /* not a text field */ } }
+  }
+  paintKoda($("#phone"));
+  $("#clock").textContent = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  updateToolbar();
+}
+
+/* The API the widget panel (T1b) drives and reads. */
+window.kenai = {
+  state: st,
+  go,
+  subscribe(fn) { subs.push(fn); return () => { const i = subs.indexOf(fn); if (i >= 0) subs.splice(i, 1); }; },
+  openApproval() { st.closedApproval = null; if (st.screen === "SCAN") st.screen = "HOME"; changed(); return approvals().length > 0; },
+  openQuestion(pill) {
+    const p = pill || (sessions().find((s) => s.state === "question") || {}).pill;
+    if (!p) return false;
+    st.questionPill = p; changed(); return true;
+  },
+  setMode, step: () => { step(); changed(); },
+  play(on) { st.playing = on !== false; schedule(); changed(); },
+  derived: { sessions, approvals, focus: () => focusOf(sessions()), linkText, connected },
+};
+
+toolbar();
+phoneSkeleton();
+setInterval(() => { const c = $("#clock"); if (c) c.textContent = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); }, 30000);
+const startMode = new URLSearchParams(location.search).get("mode");
+setMode(["none", "demo", "paired"].includes(startMode) ? startMode : "demo");
+
+/* ---- widgets-data.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* What the widgets draw, as plain data: a port of core/Glance.kt (GlanceBuilder), core/WidgetData.kt (WidgetTone, UsageTone,
+   PlanUsageLook, WidgetContent, WidgetData.build) and AppModel.glance()/widgetContent(), read from window.kenai only.
+   The English texts below are the Kotlin literals of those two files, verbatim (they are not in strings.xml). */
+
+/* WidgetTone (res/values/colors.xml widget_tone_*, widget_tint_*, widget_border_*): the one palette of every widget. */
+const W_TONE = {
+  MUTED: { c: "#94A2B8", tint: "rgba(148,162,184,.15)", border: "rgba(148,162,184,.6)" },
+  IDLE: { c: "#B8BDC7", tint: "rgba(184,189,199,.15)", border: "rgba(184,189,199,.6)" },
+  WORKING: { c: "#3B9EFF", tint: "rgba(59,158,255,.2)", border: "rgba(59,158,255,.6)" },
+  ATTENTION: { c: "#F5A524", tint: "rgba(245,165,36,.25)", border: "rgba(245,165,36,.6)" },
+  DONE: { c: "#34D499", tint: "rgba(52,212,153,.2)", border: "rgba(52,212,153,.6)" },
+  TROUBLE: { c: "#F4505E", tint: "rgba(244,80,94,.2)", border: "rgba(244,80,94,.6)" },
+};
+/* UsageTone (widget_usage_*): teal, yellow from 75 %, red from 90 %. */
+const W_USAGE = {
+  CALM: { c: "#0E8F9A", tint: "rgba(14,143,154,.2)", border: "rgba(14,143,154,.6)" },
+  CLOSE: { c: "#F2D024", tint: "rgba(242,208,36,.25)", border: "rgba(242,208,36,.6)" },
+  LIMIT: { c: "#D92D20", tint: "rgba(217,45,32,.2)", border: "rgba(217,45,32,.6)" },
+};
+/** WidgetTone.of: the tone of one agent's state; a computer that is not connected is always muted. */
+function toneOf(state, isConnected = true) {
+  if (!isConnected) return "MUTED";
+  if (state === "approval" || state === "question") return "ATTENTION";
+  if (state === "working" || state === "thinking" || state === "searching") return "WORKING";
+  if (state === "finished") return "DONE";
+  if (state === "error" || state === "ratelimit" || state === "dizzy") return "TROUBLE";
+  return "IDLE";
+}
+
+/* GlanceBuilder */
+const G_ORDER = ["approval", "question", "error", "ratelimit", "dizzy", "working", "searching", "thinking", "finished", "sleeping", "idle"];
+const G_BUSY = ["working", "thinking", "searching"];
+const G_TROUBLE = ["error", "ratelimit", "dizzy"];
+const rankOf = (state) => { const i = G_ORDER.indexOf(state); return i < 0 ? G_ORDER.length : i; };
+/** GlanceBuilder.lineOf: the state in a few words, never the step text. */
+function glanceLineOf(state) {
+  return ({ approval: "Waiting for your approval", question: "Has a question", error: "Stopped on an error", ratelimit: "Hit a limit",
+    dizzy: "Needs a look", finished: "Finished", sleeping: "Idle", idle: "Idle", thinking: "Thinking", searching: "Searching" })[state] || "Working";
+}
+/** AppModel.agentName: the session's agent, else its pill's name, else "An agent". */
+const wNameOf = (list, pill) => ((list.find((s) => s.pill === pill) || {}).agent || (PILLS[pill] || {}).name || "An agent");
+
+/**
+ * GlanceBuilder.build with AppModel.glance()'s arguments: paired = mode != NONE (Not paired has no pairing), the link is
+ * connected in Demo mode and in Paired mode with the link up, and the desktop's name is only known on a real computer
+ * (AppModel.onWelcome ignores the demo's "Demo").
+ */
+function buildGlance(k) {
+  const s = k.state;
+  if (s.mode === "none") return { headline: "Not paired", detail: "Open Kenai to connect to your computer", connected: false, lines: [], waiting: 0 };
+  if (!k.derived.connected()) return { headline: "Not connected", detail: "Kenai cannot reach your computer", connected: false, lines: [], waiting: 0 };
+  const list = k.derived.sessions();
+  const approvals = k.derived.approvals().length;
+  const where = s.mode === "paired" ? DESKTOP.name : null;
+  const ranked = [...list].sort((a, b) => rankOf(a.state) - rankOf(b.state));
+  const lines = ranked.slice(0, 4).map((x) => ({ agent: wNameOf(list, x.pill), text: glanceLineOf(x.state), state: x.state }));
+  const questions = list.filter((x) => x.state === "question").length;
+  const waiting = approvals + questions;
+  const busy = list.filter((x) => G_BUSY.includes(x.state)).length;
+  const trouble = list.filter((x) => G_TROUBLE.includes(x.state)).length;
+  const g = (headline, detail, w = 0) => ({ headline, detail, connected: true, lines, waiting: w });
+  if (approvals > 0) return g("Waiting for you", approvals === 1 ? "1 request to approve" : `${approvals} requests to approve`, waiting);
+  if (questions > 0) return g("Waiting for your answer", questions === 1 ? "1 question from an agent" : `${questions} questions from agents`, waiting);
+  if (trouble > 0) return g("An agent needs a look", trouble === 1 ? "1 agent stopped" : `${trouble} agents stopped`);
+  if (busy > 0) return g(busy === 1 ? `${wNameOf(list, ranked.find((x) => G_BUSY.includes(x.state)).pill)} is working` : `${busy} agents are working`, where ? `On ${where}` : "Working");
+  if (list.some((x) => x.state === "finished")) return g("All done", where ? `On ${where}` : "Finished");
+  return g("Connected", where ? `To ${where}` : "Nothing is running");
+}
+
+/* PlanUsageLook */
+const usageTone = (pct) => (pct >= 90 ? "LIMIT" : pct >= 75 ? "CLOSE" : "CALM");
+function resetLine(atMs, nowMs) {
+  if (atMs <= 0 || atMs <= nowMs) return null;
+  const at = new Date(atMs);
+  const day = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(at) - day(new Date(nowMs))) / 864e5);
+  const clock = `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+  if (days === 0) return `resets at ${clock}`;
+  if (days < 7) return `resets ${at.toLocaleDateString("en-GB", { weekday: "short" })} ${clock}`;
+  return `resets ${at.toLocaleDateString("en-GB", { month: "short" })} ${at.getDate()} ${clock}`;
+}
+/** WidgetData.row: one UsageRing (plan, window, pct, the "Near limit" note from the red line). */
+function usageRow(plan, window, pct, resetsAtMs, nowMs) {
+  const shown = Math.max(0, Math.min(100, pct));
+  const near = shown >= 90;
+  return { plan, window, shown, label: `${plan} · ${window}`, tone: usageTone(shown), near, note: near ? ["Near limit", resetLine(resetsAtMs, nowMs)].filter(Boolean).join(" · ") : null };
+}
+/**
+ * The plan usage the computer sends (its switch on): only the fake desktop of "Paired (fake data)" sends it, from the same
+ * FAKE.usage as the phone's Home. Demo mode sends none (DemoLink has no usage), so the ring asks to turn it on.
+ */
+function usageRowsNow(k, nowMs) {
+  if (k.state.mode !== "paired" || !k.derived.connected()) return [];
+  const u = FAKE.usage;
+  return [["Claude", u.claude], ["Codex", u.codex]].filter(([, p]) => p && p.five).map(([name, p]) => usageRow(name, "5 h", p.five.pct, nowMs + p.five.resetMin * 60e3, nowMs));
+}
+
+/** WidgetData.build plus WidgetContent's derived values, for one picture of every widget. */
+function buildContent(k, today) {
+  const g = buildGlance(k);
+  const list = g.connected ? k.derived.sessions() : [];
+  const tiles = [...list].sort((a, b) => rankOf(a.state) - rankOf(b.state)).slice(0, 5)
+    .map((x) => ({ pill: x.pill, name: wNameOf(list, x.pill), state: x.state, word: glanceLineOf(x.state), tone: toneOf(x.state) }));
+  const rows = g.connected ? usageRowsNow(k, Date.now()) : [];
+  const top = tiles[0] || null;
+  const waiting = g.waiting;
+  const c = { glance: g, headline: g.headline, connected: g.connected, waiting, tiles, top, usageRows: rows, ring: rows[0] || null, today };
+  c.usageSide = !c.connected ? "NOT_CONNECTED" : rows.length ? "ROWS" : "OFF";
+  c.emptyLine = tiles.length ? null : !c.connected ? "Waiting for your computer" : "No agents running";
+  c.alertLine = !c.connected ? "Not connected" : waiting > 0 ? `${waiting} waiting` : "All calm";
+  c.alertSub = !c.connected ? "Waiting for your PC" : waiting > 0 ? (top ? top.name : "") : "Nothing needs you";
+  c.todayMood = today > 0 ? "finished" : "idle";
+  c.todayLook = today > 0 ? "DONE" : "IDLE";
+  c.look = !c.connected ? "MUTED" : waiting > 0 ? "ATTENTION" : top ? toneOf(top.state) : "IDLE";
+  c.mood = top ? top.state : c.connected ? "idle" : "sleeping";
+  // Glance.look() / Glance.mood(): the summary widget's own, from its lines (the same rule).
+  c.glanceLook = !g.connected ? "MUTED" : g.waiting > 0 ? "ATTENTION" : g.lines[0] ? toneOf(g.lines[0].state) : "IDLE";
+  c.glanceMood = g.lines[0] ? g.lines[0].state : g.connected ? "idle" : "sleeping";
+  return c;
+}
+
+/**
+ * The Today count (core/TodayCounter + AppModel.onSessions): a session moving into FINISHED from another state it was seen in
+ * counts one. lastState is forgotten when the link stops (a mode change) and trimmed to the sessions present, as AppModel does.
+ * As in the real app it counts on a paired computer only (AppModel.onSessions: mode == Mode.PAIRED), so Demo mode stays at 0.
+ */
+const todayCounter = {
+  count: 0, last: new Map(), mode: null,
+  observe(k) {
+    if (k.state.mode !== this.mode) { this.mode = k.state.mode; this.last.clear(); }
+    const list = k.derived.sessions();
+    for (const s of list) {
+      const prev = this.last.get(s.pill);
+      this.last.set(s.pill, s.state);
+      if (k.state.mode === "paired" && prev !== undefined && prev !== "finished" && s.state === "finished") this.count++;
+    }
+    const here = new Set(list.map((s) => s.pill));
+    for (const p of [...this.last.keys()]) if (!here.has(p)) this.last.delete(p);
+    return this.count;
+  },
+};
+
+/* ---- widgets-render.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* The Android home screen with Kenai's 9 widgets, drawn from window.kenai on every change (app/WidgetHub.kt pushes them the same
+   way: no timer, a new picture per change). Layouts: res/layout/widget_*.xml; logic: app/*Widget*.kt; data: widgets-data.js. */
+
+/* res/drawable/ic_widget_*.xml (24 grid, stroke 2, round) and ic_widget_offline.xml (filled, widget_tone_muted). */
+const W_ICON = {
+  home: '<path d="M3 11.5L12 4L21 11.5"/><path d="M5.5 10V19.5A.5.5 0 0 0 6 20H10V14.5H14V20H18A.5.5 0 0 0 18.5 19.5V10"/>',
+  chat: '<path d="M5 4.5H19A1.5 1.5 0 0 1 20.5 6V15A1.5 1.5 0 0 1 19 16.5H11L7 20V16.5H5A1.5 1.5 0 0 1 3.5 15V6A1.5 1.5 0 0 1 5 4.5Z"/>',
+  settings: '<circle cx="12" cy="12" r="6.4"/><circle cx="12" cy="12" r="2.5"/><path d="M18.4 12H21.4M16.53 16.53L18.65 18.65M12 18.4V21.4M7.47 16.53L5.35 18.65M5.6 12H2.6M7.47 7.47L5.35 5.35M12 5.6V2.6M16.53 7.47L18.65 5.35"/>',
+  recent: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12L15.2 14"/>',
+  session: '<path d="M13.5 4H20V10.5"/><path d="M20 4L11 13"/><path d="M18 14.5V18.5A1.5 1.5 0 0 1 16.5 20H5.5A1.5 1.5 0 0 1 4 18.5V7.5A1.5 1.5 0 0 1 5.5 6H9.5"/>',
+  pair: '<path d="M4 4H10V10H4Z"/><path d="M14 4H20V10H14Z"/><path d="M4 14H10V20H4Z"/><path d="M14 14H16.5M20 14V16.5M14 17.5V20M17.5 20H20"/>',
+};
+const wIcon = (k, size) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${W_ICON[k]}</svg>`;
+const wOffline = (size, color = W_TONE.MUTED.c) => `<svg class="kw-off" width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path fill="${color}" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM4 12c0-4.42 3.58-8 8-8 1.85 0 3.55.63 4.9 1.69L5.69 16.9C4.63 15.55 4 13.85 4 12zM12 20c-1.85 0-3.55-.63-4.9-1.69L18.31 7.1C19.37 8.45 20 10.15 20 12c0 4.42-3.58 8-8 8z"/></svg>`;
+const wDot = (color, size = 10, style = "") => `<span class="kw-dot" style="width:${size}px;height:${size}px;background:${color};${style}"></span>`;
+const wRgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+/** CharacterBitmap.of: Kenai still, in [state]; with a tone, the radial glow (0.55, or 0.32 for muted and idle) behind him. */
+function wFace(state, tone, style = "") {
+  const glow = tone ? `background:radial-gradient(closest-side circle,${wRgba(W_TONE[tone].c, tone === "MUTED" || tone === "IDLE" ? 0.32 : 0.55)},rgba(0,0,0,0));` : "";
+  return `<span class="kw-face" style="${glow}${style}">${clay(state, 100)}</span>`;
+}
+const wBadge = (n) => (n > 0 ? `<span class="kw-badge" aria-label="${esc(fmt("widget_badge_description", n))}">${n}</span>` : "");
+const wBtn = (to, inner, cls, label, style = "") => `<button type="button" class="${cls}" data-to="${esc(to)}" aria-label="${esc(label)}" style="${style}">${inner}</button>`;
+/** WidgetHub.openApp / openSession / openScreen as a data-to target. */
+const toSession = (top) => (top ? "session:" + top.pill : "home");
+
+/** WidgetHub.responsive: the largest of SMALL, MEDIUM (from mediumAt) and LARGE (from largeAt) that fits the widget, in dp. */
+function sizeOf(w, h, mediumAt, largeAt) {
+  const fits = ([mw, mh]) => w >= mw && h >= mh;
+  return fits(largeAt) ? "LARGE" : fits(mediumAt) ? "MEDIUM" : "SMALL";
+}
+
+/* ---------- one renderer per widget: (content, width, height) → inner HTML of the card ---------- */
+const W_RENDER = {
+  /** GlanceWidget (3x2): the Glance, its own look and mood. */
+  glance(c, w, h) {
+    const g = c.glance;
+    const size = sizeOf(w, h, [0, 100], [0, 150]);
+    const n = size === "SMALL" ? 1 : size === "MEDIUM" ? 2 : 3;
+    const lines = g.lines.slice(0, n).map((l) => `<div class="kw-row" style="margin-top:3px">${wDot(W_TONE[toneOf(l.state)].c, 8)}<span class="kw-ell" style="margin-left:6px;font-size:13px;font-weight:700;flex:0 1 auto">${esc(l.agent)}</span><span class="kw-sec kw-ell" style="margin-left:6px;flex:1 1 0">${esc(l.text)}</span></div>`).join("");
+    const detail = !g.lines.length || size === "LARGE" ? `<div class="kw-sec kw-ell">${esc(g.detail)}</div>` : "";
+    return { look: c.glanceLook, open: "home", html: `<div class="kw-in" style="align-items:center;padding:12px">${wFace(c.glanceMood, c.glanceLook, "width:64px;height:64px;flex:none")}
+      <div style="flex:1;min-width:0;margin-left:8px"><div class="kw-row">${g.connected ? "" : wOffline(16).replace("<svg", '<svg style="margin-right:6px"')}<span class="kw-name kw-ell" style="flex:1" data-k="headline">${esc(g.headline)}</span>${g.waiting > 0 ? `<span style="margin-left:6px">${wBadge(g.waiting)}</span>` : ""}</div>${detail}${lines}</div></div>` };
+  },
+  /** SoloWidget (2x2): Kenai over half the card, the top agent with its dot and state word, or the headline with an icon. */
+  solo(c, w, h) {
+    const size = sizeOf(w, h, [100, 100], [200, 200]);
+    const top = c.top;
+    const nameRow = top
+      ? `<div class="kw-row">${wDot(W_TONE[top.tone].c)}<span class="kw-ell" style="margin-left:6px;font-size:${size === "LARGE" ? 20 : 16}px;font-weight:700">${esc(top.name)}</span></div>`
+      : `<div class="kw-row">${c.connected ? wDot(W_TONE[c.look].c, 18) : wOffline(18)}<span class="kw-note kw-ell" style="margin-left:6px">${esc(c.headline)}</span></div>`;
+    const stateLine = size === "SMALL" && top ? "" : `<div class="kw-ell" style="width:100%;text-align:center;font-size:${size === "LARGE" ? 15 : 13}px;color:var(--w-sec)">${esc(top ? top.word : c.emptyLine || "")}</div>`;
+    const badge = c.waiting > 0 ? `<span style="position:absolute;top:10px;right:10px">${wBadge(c.waiting)}</span>` : "";
+    return { look: c.look, open: toSession(top), html: `<div class="kw-in kw-col" style="padding:10px">${wFace(c.mood, c.look, "flex:1;width:100%")}${nameRow}${stateLine}</div>${badge}` };
+  },
+  /** ListWidget (4x3): the headline and a badge, then a row per agent; with no agent a centred empty state. */
+  list(c, w, h) {
+    const pad = "padding:10px 14px";
+    if (!c.tiles.length) {
+      return { look: c.look, open: "home", html: `<div class="kw-in kw-col" style="${pad};justify-content:center">${wFace(c.mood, c.look, "flex:1;width:100%")}
+        <div class="kw-row">${c.connected ? wDot(W_TONE[c.look].c, 18) : wOffline(18, W_TONE[c.look].c)}<span class="kw-note kw-ell" style="margin-left:6px">${esc(c.headline)}</span></div><div class="kw-state kw-ell" style="width:100%;text-align:center">${esc(c.emptyLine)}</div></div>` };
+    }
+    const size = sizeOf(w, h, [0, 192], [0, 290]);
+    const shown = size === "SMALL" ? 2 : size === "MEDIUM" ? 3 : 5;
+    const rows = c.tiles.slice(0, shown).map((t) => wBtn("session:" + t.pill,
+      `<span style="width:3px;height:28px;border-radius:2px;flex:none;background:${W_TONE[t.tone].c}"></span>${wFace(t.state, null, "width:36px;height:36px;flex:none;margin-left:8px")}
+      <span style="flex:1;min-width:0;margin-left:10px;display:flex;flex-direction:column"><span class="kw-name kw-ell">${esc(t.name)}</span><span class="kw-state kw-ell">${esc(t.word)}</span></span>${wDot(W_TONE[t.tone].c, 10, "margin-left:8px")}`,
+      "kw-lrow", `${t.name}, ${t.word}`)).join("");
+    return { look: c.look, open: "home", html: `<div class="kw-in" style="${pad};flex-direction:column"><div class="kw-row" style="height:28px">${wDot(W_TONE[c.look].c)}<span class="kw-name kw-ell" style="flex:1;margin-left:8px">${esc(c.headline)}</span>${c.waiting > 0 ? `<span style="margin-left:8px">${wBadge(c.waiting)}</span>` : ""}</div>${rows}</div>` };
+  },
+  /** CharacterBigWidget (4x4): Kenai and the top agent on the left, plan usage on the right, buttons below. */
+  big(c, w, h) {
+    const size = sizeOf(w, h, [0, 290], [0, 400]);
+    const top = c.top;
+    let who = "";
+    if (top) who = `<div class="kw-row">${wDot(W_TONE[top.tone].c)}<span class="kw-name kw-ell" style="margin-left:6px">${esc(top.name)}</span></div>`;
+    else if (!c.connected) who = `<div class="kw-row">${wOffline(18).replace("<svg", '<svg style="margin-right:2px"')}<span class="kw-name kw-ell" style="margin-left:6px">${esc(c.headline)}</span></div>`;
+    const left = `<div style="flex:45;min-width:0;display:flex;flex-direction:column;align-items:center">${wFace(c.mood, c.look, "flex:1;width:100%")}${who}<div class="kw-state kw-ell" style="width:100%;text-align:center">${esc(top ? top.word : c.emptyLine || "")}</div></div>`;
+    let right;
+    if (c.usageSide === "ROWS") {
+      const rows = (size === "SMALL" ? c.usageRows.slice(0, 1) : c.usageRows).map((r, i) => `<div style="margin-top:${i ? 8 : 0}px" aria-label="${esc(fmt("widget_ring_cd", r.plan, r.shown))}">
+        <div class="kw-sec kw-ell">${esc(r.label)}</div><div style="font-size:${r.near ? 32 : 18}px;font-weight:${r.near ? 700 : 400}">${r.shown}%</div>${r.note ? `<div class="kw-ell" style="font-size:12px;color:var(--w-soft)">${esc(r.note)}</div>` : ""}<div class="kw-bar"><i style="width:${r.shown}%;background:${W_USAGE[r.tone].c}"></i></div></div>`).join("");
+      right = wBtn("home", rows, "kw-right", S.widget_ring_label, "flex:55;margin-left:8px");
+    } else {
+      const off = c.usageSide === "OFF";
+      right = wBtn(off ? "screen:SETTINGS" : "home", `<span class="kw-note" style="display:block">${esc(off ? S.widget_big_usage_off : S.widget_big_not_connected)}</span><span class="kw-sec" style="display:block;margin-top:2px">${esc(off ? S.widget_big_usage_off_line : c.emptyLine || "")}</span>`, "kw-right", off ? S.widget_big_usage_off : S.widget_big_not_connected, "flex:55;margin-left:8px");
+    }
+    const B = [["home", "screen:HOME", S.widget_btn_home, S.widget_btn_home_cd], ["chat", "screen:CHAT", S.widget_btn_chat, S.widget_btn_chat_cd], ["settings", "screen:SETTINGS", S.widget_btn_settings, S.widget_btn_settings_cd],
+      ["recent", "screen:HISTORY", S.widget_btn_recent, S.widget_btn_recent_cd], ["session", top ? "session:" + top.pill : "screen:HOME", S.widget_btn_session, S.widget_btn_session_cd], ["pair", "screen:SCAN", S.widget_btn_pair, S.widget_btn_pair_cd]];
+    const tile = (b) => wBtn(b[1], `${wIcon(b[0], 22)}<span class="kw-ell" style="max-width:100%">${esc(b[2])}</span>`, "kw-tile" + (c.look === "ATTENTION" ? " att" : ""), b[3]);
+    const rowOf = (list, mt = 0) => `<div style="display:flex;margin-top:${mt}px">${list.map(tile).join("")}</div>`;
+    const buttons = size === "SMALL" ? "" : `<div style="margin-top:8px">${size === "LARGE" ? rowOf(B.slice(0, 3)) + rowOf(B.slice(3), 6) : rowOf(B.slice(0, 4))}</div>`;
+    const badge = c.waiting > 0 ? `<span style="position:absolute;top:12px;right:12px">${wBadge(c.waiting)}</span>` : "";
+    return { look: c.look, open: toSession(top), html: `<div class="kw-in" style="flex-direction:column;padding:12px"><div style="flex:1;min-height:0;display:flex">${left}${right}</div>${buttons}</div>${badge}` };
+  },
+  /** StatusPillWidget (4x1): dot, name and state word, then four round buttons. */
+  pill(c, w, h) {
+    const size = sizeOf(w, h, [290, 0], [360, 0]);
+    const top = c.top;
+    const name = top ? top.name : c.headline;
+    const state = top ? top.word : c.emptyLine || "";
+    const dot = !top && !c.connected ? wOffline(10, W_TONE[c.look].c) : wDot(W_TONE[top ? top.tone : c.look].c);
+    const B = [["home", "screen:HOME", S.widget_btn_home_cd], ["chat", "screen:CHAT", S.widget_btn_chat_cd], ["settings", "screen:SETTINGS", S.widget_btn_settings_cd], ["recent", "screen:HISTORY", S.widget_btn_recent_cd]];
+    return { look: c.look, open: toSession(top), label: fmt("widget_pill_cd", name, state), html: `<div class="kw-in" style="align-items:center;padding:0 8px 0 16px"><div class="kw-row" style="flex:1">${dot}
+      ${size === "SMALL" ? "" : `<span class="kw-name kw-ell" style="margin-left:8px;flex:0 1 auto">${esc(name)}</span>`}${size === "LARGE" ? `<span class="kw-state kw-ell" style="margin-left:8px;flex:1 1 0">${esc(state)}</span>` : ""}</div>
+      ${B.map((b) => wBtn(b[1], wIcon(b[0], 20), "kw-rb", b[2])).join("")}</div>` };
+  },
+  /** WaitingAlertWidget (2x2): calm, or "N waiting" in orange with Kenai anxious. */
+  alert(c) {
+    const waiting = c.waiting > 0;
+    return { look: c.look, open: waiting ? "approval" : "home", html: `<div class="kw-in kw-col" style="padding:10px;justify-content:center">${wFace(c.mood, c.look, "flex:1;width:100%")}${c.connected ? "" : wOffline(18)}
+      ${waiting ? `<div class="kw-ell" style="width:100%;text-align:center;font-size:20px;font-weight:700;color:var(--w-att-text)" data-k="alert">${esc(c.alertLine)}</div>` : `<div class="kw-name kw-ell" style="width:100%;text-align:center" data-k="alert">${esc(c.alertLine)}</div>`}
+      <div class="kw-state kw-ell" style="width:100%;text-align:center" data-k="alertsub">${esc(c.alertSub)}</div></div>` };
+  },
+  /** UsageRingWidget (2x2): the ring and its percentage in the usage palette, or how to turn plan usage on. */
+  ring(c) {
+    const r = c.ring;
+    if (!r) {
+      return { look: c.connected ? "IDLE" : "MUTED", open: "home", label: S.widget_ring_label, html: `<div class="kw-in kw-col" style="padding:10px;justify-content:center">${wFace("idle", null, "width:44px;height:44px;flex:none")}
+        <div class="kw-note" style="margin-top:6px;text-align:center;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden" data-k="ring">${esc(c.connected ? S.widget_usage_off : c.emptyLine)}</div></div>` };
+    }
+    const R = 44;
+    const len = 2 * Math.PI * R;
+    const arc = r.shown > 0 ? `<circle cx="50" cy="50" r="${R}" fill="none" stroke="${W_USAGE[r.tone].c}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(len * r.shown) / 100} ${len}" transform="rotate(-90 50 50)"/>` : "";
+    return { usage: r.tone, open: "home", label: fmt("widget_ring_cd", r.plan, r.shown), html: `<div class="kw-in kw-col" style="padding:10px;justify-content:center">
+      <div style="position:relative;flex:1;min-height:0;width:100%"><svg viewBox="0 0 100 100" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true"><circle cx="50" cy="50" r="${R}" fill="none" stroke="rgba(128,128,128,.25)" stroke-width="12"/>${arc}</svg>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${r.near ? 26 : 18}px;font-weight:${r.near ? 700 : 400}" data-k="ring">${r.shown}%</div></div>
+      <div class="kw-state kw-ell" style="width:100%;text-align:center">${esc(r.label)}</div>${r.note ? `<div class="kw-ell" style="width:100%;text-align:center;font-size:12px;color:var(--w-soft)">${esc(r.note)}</div>` : ""}</div>` };
+  },
+  /** TodayWidget (2x2): today's finished tasks, Kenai pleased once there is one. */
+  today(c) {
+    return { look: c.todayLook, open: "home", label: fmt("widget_today_cd", c.today), html: `<div class="kw-in kw-col" style="padding:10px;justify-content:center">${wFace(c.todayMood, c.todayLook, "flex:1;width:100%")}
+      <div style="font-size:34px;font-weight:700;line-height:1.1" data-k="today">${c.today}</div><div class="kw-state">${esc(S.widget_today_unit)}</div></div>` };
+  },
+  /** MoodWidget (1x1): only Kenai's face, with his glow; the "not connected" mark in the corner. */
+  mood(c) {
+    return { look: c.look, open: toSession(c.top), html: `<div class="kw-in" style="padding:4px">${wFace(c.mood, c.look, "flex:1")}</div>${c.connected ? "" : `<span style="position:absolute;right:3px;bottom:3px">${wOffline(14)}</span>`}` };
+  },
+};
+
+/* ---- widgets.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* The widget panel: an Android home screen (wallpaper, a grid of 10 x 6 cells of 94 x 106 dp) with the 9 widgets at the grid size of
+   their res/xml/kenai_*_widget_info.xml (targetCellWidth x targetCellHeight). It reads and drives the phone only through window.kenai. */
+
+const K = window.kenai;
+/** [key, label (strings.xml), column, row, cells wide, cells high] */
+const W_LAYOUT = [
+  ["big", "widget_big_label", 0, 0, 4, 4],
+  ["list", "widget_list_label", 4, 0, 4, 3],
+  ["alert", "widget_alert_label", 8, 0, 2, 2],
+  ["ring", "widget_ring_label", 8, 2, 2, 2],
+  ["pill", "widget_pill_label", 4, 3, 4, 1],
+  ["glance", "widget_glance_label", 0, 4, 3, 2],
+  ["solo", "widget_solo_label", 3, 4, 2, 2],
+  ["today", "widget_today_label", 5, 4, 2, 2],
+  ["mood", "widget_mood_label", 7, 4, 1, 1],
+];
+const CELL_W = 94;
+const CELL_H = 106;
+const CELL_PAD = 4; // the launcher's inset around a widget
+const wState = { theme: "dark", today: 0, last: null };
+
+/**
+ * What a tap opens, as the PendingIntents of WidgetHub do: openApp → Home; openScreen → that screen (LaunchScreen: RECENT is
+ * History, PAIR is the pairing Scan); openSession → that agent's Session details. "approval" is the Waiting Alert while
+ * something waits: the app opens on Home with the request's sheet up.
+ */
+function wOpen(to) {
+  const [kind, arg] = to.split(":");
+  if (kind === "session") { K.state.detailPill = arg; K.go("SESSION"); }
+  else if (kind === "screen") K.go(arg);
+  else if (kind === "approval") { K.go("HOME"); K.openApproval(); }
+  else K.go("HOME");
+  const ph = document.getElementById("phone");
+  ph.classList.remove("flash");
+  void ph.offsetWidth; // restart the flash
+  ph.classList.add("flash");
+}
+
+function widgetsShell() {
+  setHTML($("#widgets"), `<div class="kw-head"><span class="cap">Home screen · Kenai's 9 widgets at their grid size</span>
+    <div class="kw-theme"><span>Widgets:</span><div class="seg" role="group" aria-label="Widget theme">
+      <button type="button" data-wtheme="dark">dark</button><button type="button" data-wtheme="light">light</button></div></div></div>
+    <div class="kw-home"><div class="kw-sbar"><span id="kw-clock"></span><span>Android launcher · 10 × 6 cells</span></div>
+    <div class="kw-grid" id="kw-grid"></div>
+    <p class="kw-legend"><b>Live from the phone:</b> every change redraws them, as WidgetHub pushes a new picture per change (no timer).
+    A tap opens the phone like the real PendingIntents: the card opens Home or the top agent's Session details, the buttons their screen,
+    the Waiting Alert the pending request. <b>Widgets: dark / light</b> follows the system on a real phone (values / values-notnight); the phone stays dark.</p></div>`);
+  $("#widgets").addEventListener("click", (e) => {
+    const t = e.target.closest("[data-wtheme]");
+    if (t) { wState.theme = t.dataset.wtheme; drawWidgets(); return; }
+    const b = e.target.closest("[data-to]");
+    if (b && $("#kw-grid").contains(b)) wOpen(b.dataset.to);
+  });
+}
+
+function drawWidgets() {
+  const root = $("#widgets");
+  root.classList.toggle("kw-light", wState.theme === "light");
+  root.dataset.theme = wState.theme;
+  root.querySelectorAll("[data-wtheme]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.wtheme === wState.theme)));
+  const c = buildContent(K, wState.today);
+  wState.last = c;
+  const a = document.activeElement;
+  const focus = a && a.id && a.id.startsWith("kw-") ? a.id : null;
+  const html = W_LAYOUT.map(([key, label, col, row, cw, chh]) => {
+    const w = cw * CELL_W - 2 * CELL_PAD;
+    const h = chh * CELL_H - 2 * CELL_PAD;
+    const r = W_RENDER[key](c, w, h);
+    const pal = r.usage ? W_USAGE[r.usage] : W_TONE[r.look];
+    const name = S[label];
+    let n = 0;
+    // Every button gets a stable id, so the keyboard focus survives a redraw.
+    const inner = r.html.replace(/<button type="button"/g, () => `<button type="button" id="kw-${key}-${++n}"`);
+    return `<div class="kw-cell" style="grid-column:${col + 1}/span ${cw};grid-row:${row + 1}/span ${chh}">
+      <div class="kw" data-wid="${key}" data-look="${r.usage ? "USAGE_" + r.usage : r.look}" title="${esc(name)} · ${cw}×${chh}" style="--kw-border:${pal.border};--kw-tint:${pal.tint}">
+      <div class="kw-tint"></div><button type="button" class="kw-hit" id="kw-${key}-0" data-to="${esc(r.open)}" aria-label="${esc(name + (r.label ? ": " + r.label : ""))}"></button>${inner}</div></div>`;
+  }).join("");
+  setHTML($("#kw-grid"), html);
+  if (focus) { const el = document.getElementById(focus); if (el) el.focus(); }
+  $("#kw-clock").textContent = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+}
+
+/** window.kenai.widgets: what the panel shows now, for the canvas check. */
+K.widgets = { content: () => wState.last, today: () => wState.today, theme: (t) => { if (t) { wState.theme = t; drawWidgets(); } return wState.theme; } };
+
+widgetsShell();
+K.subscribe(() => { wState.today = todayCounter.observe(K); drawWidgets(); });
+wState.today = todayCounter.observe(K);
+drawWidgets();
+
+</script>
+</body></html>
