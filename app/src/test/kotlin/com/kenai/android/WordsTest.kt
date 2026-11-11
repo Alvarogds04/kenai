@@ -24,6 +24,7 @@ import java.time.ZoneOffset
 import java.util.Locale
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -151,7 +152,7 @@ class WordsTest {
         assertEquals(2, BatteryHint.steps(samsung = true).size)
     }
 
-    @Test fun theChecksAreNamedInSpanishButTheReportStaysEnglish() {
+    @Test fun theChecksAndTheCopiedReportAreNamedInSpanish() {
         spanish()
         assertEquals("Red del teléfono", DiagStep.NETWORK.title)
         assertEquals("Código de emparejamiento y versión", DiagStep.TOKEN.title)
@@ -163,10 +164,24 @@ class WordsTest {
             override fun token() = DiagResult.Ok("ok")
         })
         assertEquals(DiagResult.Skipped("Necesita el Wi-Fi"), down[1].second)
-        // The copied report is for support: its frame and the names of the checks stay English.
-        val report = Diagnostics.report("0.1", "14", "Pixel", down, Diagnostics.maskHost("pc.local"), "not connected")
-        assertTrue(report, report.contains("PROBLEM  Phone network: x"))
-        assertTrue(report, report.contains("Computer: a name (hidden)"))
+        // «todo en español» (S6): the copied report follows the phone too, frame, check names and the hidden name.
+        val report = Diagnostics.report("0.1", "14", "Pixel", down, Diagnostics.maskHost("pc.local"), "sin conexión")
+        assertTrue(report, report.startsWith("Kenai para Android 0.1 · Android 14 · Pixel"))
+        assertTrue(report, report.contains("PROBLEMA    Red del teléfono: x"))
+        assertTrue(report, report.contains("SIN PROBAR  La dirección guardada responde: Necesita el Wi-Fi"))
+        assertTrue(report, report.contains("Computadora: un nombre (oculto) · conectada por: sin conexión"))
+        Locale.setDefault(Locale.ENGLISH)
+        val english = Diagnostics.report("0.1", "14", "Pixel", down, Diagnostics.maskHost("pc.local"), "not connected")
+        assertTrue(english, english.contains("PROBLEM  Phone network: x"))
+        assertTrue(english, english.contains("Computer: a name (hidden) · connected via: not connected"))
+    }
+
+    /** The app's "connected via" and "no computer" words in the copied report come from the words, not from English literals. */
+    @Test fun theReportsConnectionWordsFollowThePhone() {
+        val src = File("src/main/kotlin/com/kenai/android/app/AppModel.kt").readText()
+        val body = src.substringAfter("fun diagnosticsReport(").substringBefore("\n    }\n")
+        for (literal in listOf("\"not connected\"", "\"the direct link\"", "\"none\"")) assertFalse("diagnosticsReport says $literal", body.contains(literal))
+        assertTrue(body, body.contains("Words.current()"))
     }
 
     // ── The notification channels ─────────────────────────────────────────────────────────────────

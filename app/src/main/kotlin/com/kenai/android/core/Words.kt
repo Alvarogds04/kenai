@@ -7,7 +7,7 @@ import java.util.Locale
 /**
  * The words the app builds in Kotlin rather than reading from resources: the glance (ongoing notification, widgets, tile), the
  * widget lines, Home's sentences, the tool labels of the island and the notifications, the link's health, the "Can't connect?" checks
- * and the notification channels. Two tables, [EN] and [ES] (Rioplatense voseo, as the design artboards); [current] picks Spanish when
+ * and their copied report, the notification channels and the demo's texts (kenai-0.1 S6). Two tables, [EN] and [ES] (Rioplatense voseo, as the design artboards); [current] picks Spanish when
  * the phone is in Spanish and English for every other language (kenai-0.1 S2.6, L5 option 2a). No per-app picker. Pure, so every
  * phrase is a unit test; agent and product names (Claude Code, Codex, Koda, Kenai) are never translated. The Spanish follows res/values-es: the «emparejar» family
  * (not the other verb), «computadora», «pedido» for a permission request, «Ajustes», «Inicio», «Denegar».
@@ -128,6 +128,35 @@ interface Words {
     val noAnswerToHello: String
     val busyOrAsleep: String
     val brokeDuringHello: String
+
+    // ── The copied "Can't connect?" report ──────────────────────────────────────────────────────────
+    /** Its first line: "Kenai for Android 0.1.0 · Android 14 · Pixel 7". */
+    fun reportHeader(appVersion: String, androidVersion: String, device: String): String
+    /** Its second line; [host] is already masked, [via] is [viaDirectLink] or [viaNotConnected]. */
+    fun reportComputer(host: String, via: String): String
+    /** The mark of a check that found a problem ("PROBLEM"); a passed check is "OK" in every language. */
+    val reportProblem: String
+    /** The mark of a check not asked ("SKIPPED"). */
+    val reportSkipped: String
+    val viaDirectLink: String
+    val viaNotConnected: String
+    /** No pairing to name a computer from. */
+    val noComputer: String
+
+    // ── The demo (it stands for the desktop's own words) ────────────────────────────────────────────
+    /** The demo computer's name. */
+    val demoComputer: String
+    val demoReading: String
+    val demoEditing: String
+    val demoSearching: String
+    val demoWaiting: String
+    val demoTesting: String
+    val demoBuilding: String
+    val demoWhichBranch: String
+    val demoDone: String
+    val demoTestsFailed: String
+    val demoRateLimited: String
+    val demoIdle: String
 
     // ── Notification channels ───────────────────────────────────────────────────────────────────────
     val channelLink: String
@@ -300,6 +329,27 @@ private object English : Words {
     override val busyOrAsleep = "The computer is busy or asleep. Try again."
     override val brokeDuringHello = "The connection broke while saying hello"
 
+    override fun reportHeader(appVersion: String, androidVersion: String, device: String) = "Kenai for Android $appVersion · Android $androidVersion · $device"
+    override fun reportComputer(host: String, via: String) = "Computer: $host · connected via: $via"
+    override val reportProblem = "PROBLEM"
+    override val reportSkipped = "SKIPPED"
+    override val viaDirectLink = "the direct link"
+    override val viaNotConnected = "not connected"
+    override val noComputer = "none"
+
+    override val demoComputer = "Demo"
+    override val demoReading = "Reading the project"
+    override val demoEditing = "Editing files"
+    override val demoSearching = "Searching the code"
+    override val demoWaiting = "Waiting for your approval"
+    override val demoTesting = "Running tests"
+    override val demoBuilding = "Building"
+    override val demoWhichBranch = "Which branch?"
+    override val demoDone = "Done"
+    override val demoTestsFailed = "Tests failed"
+    override val demoRateLimited = "Rate limited"
+    override val demoIdle = "Idle"
+
     override val channelLink = "Connection"
     override val channelLinkAbout = "Shows that Kenai is connected to your computer"
     override val channelUpdates = "Updates"
@@ -456,6 +506,27 @@ private object Spanish : Words {
     override val noAnswerToHello = "Sin respuesta al saludo"
     override val busyOrAsleep = "La computadora está ocupada o dormida. Probá de nuevo."
     override val brokeDuringHello = "La conexión se cortó durante el saludo"
+
+    override fun reportHeader(appVersion: String, androidVersion: String, device: String) = "Kenai para Android $appVersion · Android $androidVersion · $device"
+    override fun reportComputer(host: String, via: String) = "Computadora: $host · conectada por: $via"
+    override val reportProblem = "PROBLEMA"
+    override val reportSkipped = "SIN PROBAR"
+    override val viaDirectLink = "el enlace directo"
+    override val viaNotConnected = "sin conexión"
+    override val noComputer = "ninguna"
+
+    override val demoComputer = "Computadora demo"
+    override val demoReading = "Leyendo el proyecto"
+    override val demoEditing = "Editando archivos"
+    override val demoSearching = "Buscando en el código"
+    override val demoWaiting = "Esperando tu aprobación"
+    override val demoTesting = "Ejecutando los tests"
+    override val demoBuilding = "Compilando"
+    override val demoWhichBranch = "¿Qué rama uso?"
+    override val demoDone = "Listo"
+    override val demoTestsFailed = "Fallaron los tests"
+    override val demoRateLimited = "Llegó al límite"
+    override val demoIdle = "En reposo"
 
     override val channelLink = "Conexión"
     override val channelLinkAbout = "Muestra que Kenai está conectado a tu computadora"

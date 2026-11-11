@@ -503,11 +503,13 @@ class AppModel(private val context: Context) : LinkListener {
     fun diagnosticsReport(): String {
         val p = currentPairing
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "?"
+        val w = Words.current() // the copied report is in the phone's language, as the screen (kenai-0.1 S6)
         val via = when {
-            linkState != LinkState.CONNECTED -> "not connected"
-            else -> "the direct link"
+            linkState != LinkState.CONNECTED -> w.viaNotConnected
+            else -> w.viaDirectLink
         }
-        return Diagnostics.report(version, Build.VERSION.RELEASE, "${Build.MANUFACTURER} ${Build.MODEL}", diagResults, p?.let { Diagnostics.maskHost(it.host) } ?: "none", via)
+        val host = p?.let { Diagnostics.maskHost(it.host) } ?: w.noComputer // maskHost's words are the phone's too
+        return Diagnostics.report(version, Build.VERSION.RELEASE, "${Build.MANUFACTURER} ${Build.MODEL}", diagResults, host, via, w)
     }
 
     private fun onNetworkChanged(wifiUp: Boolean) {

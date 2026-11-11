@@ -16,7 +16,7 @@ enum class DiagStep {
     TOKEN,
     ;
 
-    /** Its name on the screen, in the phone's language ([Words]); the copied report uses the English one. */
+    /** Its name on the screen and in the copied report, in the phone's language ([Words]). */
     val title: String get() = Words.current().diagTitle(this)
 }
 
@@ -60,32 +60,38 @@ object Diagnostics {
 
     /**
      * "192.168.1.20" -> "192.168.x.x": enough to tell a home network from a hotspot, not enough to find a house. A name is "a name
-     * (hidden)", in English by default because the copied report is for support; the screen passes the phone's [Words].
+     * (hidden)", in the phone's language ([Words]) like the rest of the report.
      */
-    fun maskHost(host: String, w: Words = Words.EN): String {
+    fun maskHost(host: String, w: Words = Words.current()): String {
         val parts = host.split(".")
         return if (parts.size == 4 && parts.all { p -> p.isNotEmpty() && p.all(Char::isDigit) }) "${parts[0]}.${parts[1]}.x.x" else w.aNameHidden
     }
 
     /**
-     * The report the user can copy and send, for support: its frame and the names of the checks are English whatever the phone's
-     * language; what each check found is as the screen showed it. It names the checks and what they found; it never contains the pairing code,
-     * the certificate fingerprint, the computer's name, the full address or any key.
+     * The report the user can copy and send, for support, in the phone's language ([w], kenai-0.1 S6): its frame, the names of the
+     * checks and what each check found, as the screen showed it. It names the checks and what they found; it never contains the
+     * pairing code, the certificate fingerprint, the computer's name, the full address or any key. The marks are padded to one column.
      */
-    fun report(appVersion: String, androidVersion: String, device: String, results: List<Pair<DiagStep, DiagResult>>, hostMasked: String, via: String): String =
+    fun report(
+        appVersion: String, androidVersion: String, device: String, results: List<Pair<DiagStep, DiagResult>>, hostMasked: String, via: String,
+        w: Words = Words.current(),
+    ): String =
         buildString {
-            appendLine("Kenai for Android $appVersion · Android $androidVersion · $device")
-            appendLine("Computer: $hostMasked · connected via: $via")
+            appendLine(w.reportHeader(appVersion, androidVersion, device))
+            appendLine(w.reportComputer(hostMasked, via))
+            val width = maxOf(OK.length, w.reportProblem.length, w.reportSkipped.length) + 2
             for ((step, r) in results) {
-                appendLine(
-                    when (r) {
-                        is DiagResult.Ok -> "OK       ${Words.EN.diagTitle(step)}: ${r.detail}"
-                        is DiagResult.Problem -> "PROBLEM  ${Words.EN.diagTitle(step)}: ${r.problem}"
-                        is DiagResult.Skipped -> "SKIPPED  ${Words.EN.diagTitle(step)}: ${r.why}"
-                    },
-                )
+                val (mark, text) = when (r) {
+                    is DiagResult.Ok -> OK to r.detail
+                    is DiagResult.Problem -> w.reportProblem to r.problem
+                    is DiagResult.Skipped -> w.reportSkipped to r.why
+                }
+                appendLine("${mark.padEnd(width)}${w.diagTitle(step)}: $text")
             }
         }.trimEnd()
+
+    /** A passed check's mark: the same in every language, so it is not in [Words]. */
+    private const val OK = "OK"
 }
 
 /**

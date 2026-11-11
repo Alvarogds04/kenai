@@ -1,6 +1,7 @@
 package com.kenai.android.link
 
 import com.kenai.android.character.BotState
+import com.kenai.android.core.Words
 
 /**
  * Offline demo of the desktop link: a few fake sessions and one approval, so the app can be
@@ -35,7 +36,7 @@ class DemoLink(
         if (running) return
         running = true
         listener.onState(LinkState.CONNECTED)
-        listener.onWelcome("Demo", "demo")
+        listener.onWelcome(Words.current().demoComputer, "demo")
         if (autoRun) thread = Thread({
             try {
                 while (running) { step(); Thread.sleep(stepDelayMs) }
@@ -51,33 +52,37 @@ class DemoLink(
         listener.onState(LinkState.DISCONNECTED)
     }
 
-    /** Advances the script by one step; loops forever. Public so tests can drive it. */
+    /**
+     * Advances the script by one step; loops forever. Public so tests can drive it. Its texts are read in the phone's language at
+     * each step ([Words.current]), so a language change applies at the next one; agent names and the command are never translated.
+     */
     @Synchronized fun step() {
+        val w = Words.current()
         when (cursor % STEPS) {
-            0 -> listener.onSessions(listOf(session("integration_claude", "Claude Code", BotState.THINKING, "Reading the project", 1, 6)))
+            0 -> listener.onSessions(listOf(session("integration_claude", "Claude Code", BotState.THINKING, w.demoReading, 1, 6)))
             1 -> listener.onSessions(listOf(
-                session("integration_claude", "Claude Code", BotState.WORKING, "Editing files", 2, 6),
-                session("agent_codex", "Codex", BotState.SEARCHING, "Searching the code", 1, 4),
+                session("integration_claude", "Claude Code", BotState.WORKING, w.demoEditing, 2, 6),
+                session("agent_codex", "Codex", BotState.SEARCHING, w.demoSearching, 1, 4),
             ))
             2 -> {
                 val r = ApprovalRequest("integration_claude", FINGERPRINT, TOOL, COMMAND, clockMs())
                 approvals.add(r)
                 listener.onSessions(listOf(
-                    session("integration_claude", "Claude Code", BotState.APPROVAL, "Waiting for your approval", 3, 6),
-                    session("agent_codex", "Codex", BotState.WORKING, "Running tests", 2, 4),
+                    session("integration_claude", "Claude Code", BotState.APPROVAL, w.demoWaiting, 3, 6),
+                    session("agent_codex", "Codex", BotState.WORKING, w.demoTesting, 2, 4),
                 ))
                 listener.onApproval(r)
             }
             3 -> listener.onSessions(listOf(
-                session("integration_claude", "Claude Code", BotState.WORKING, "Building", 4, 6),
-                session("agent_codex", "Codex", BotState.QUESTION, "Which branch?", 3, 4),
+                session("integration_claude", "Claude Code", BotState.WORKING, w.demoBuilding, 4, 6),
+                session("agent_codex", "Codex", BotState.QUESTION, w.demoWhichBranch, 3, 4),
             ))
             4 -> listener.onSessions(listOf(
-                session("integration_claude", "Claude Code", BotState.FINISHED, "Done", 6, 6),
-                session("agent_codex", "Codex", BotState.ERROR, "Tests failed", 3, 4),
+                session("integration_claude", "Claude Code", BotState.FINISHED, w.demoDone, 6, 6),
+                session("agent_codex", "Codex", BotState.ERROR, w.demoTestsFailed, 3, 4),
             ))
-            5 -> listener.onSessions(listOf(session("agent_codex", "Codex", BotState.RATELIMIT, "Rate limited", 3, 4)))
-            6 -> listener.onSessions(listOf(session("agent_gemini", "Gemini CLI", BotState.SLEEPING, "Idle", 0, 0)))
+            5 -> listener.onSessions(listOf(session("agent_codex", "Codex", BotState.RATELIMIT, w.demoRateLimited, 3, 4)))
+            6 -> listener.onSessions(listOf(session("agent_gemini", "Gemini CLI", BotState.SLEEPING, w.demoIdle, 0, 0)))
             else -> {
                 if (approvals.resolve(FINGERPRINT) != null) listener.onApprovalResolved(FINGERPRINT)
                 listener.onSessions(emptyList())
