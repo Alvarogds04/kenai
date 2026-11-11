@@ -114,6 +114,10 @@ import com.kenai.android.ui.DiscoveryHint
 import com.kenai.android.ui.ApprovalSheet
 import com.kenai.android.ui.MessagePanel
 import com.kenai.android.ui.PairingScreen
+import com.kenai.android.ui.PasteSheet
+import com.kenai.android.ui.ScreenSheet
+import com.kenai.android.ui.SheetLayer
+import com.kenai.android.core.DiffState
 import com.kenai.android.ui.DiffSheet
 import com.kenai.android.ui.QuestionSheet
 import com.kenai.android.ui.ServicesPanel
@@ -177,10 +181,20 @@ class MainActivity : ComponentActivity() {
                 }
                 // The camera screen is black to the bottom edge, in both themes.
                 Surface(Modifier.fillMaxSize(), color = if (screen == Screen.SCAN) Color(IslandSurface.BLACK) else MaterialTheme.colorScheme.background) {
-                    Box(Modifier.fillMaxSize().windowInsetsPadding(if (screen == Screen.HOME || screen == Screen.SCAN) WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom) else WindowInsets.safeDrawing)) {
+                    Box(Modifier.fillMaxSize()) {
+                        // A screen's own sheet (Pairing's paste, Home's address) is held here and drawn in the sheet layer, over the bar.
+                        var screenSheetOpen by rememberSaveable { mutableStateOf<ScreenSheet?>(null) }
+                        val screenSheet = SheetLayer.shown(screenSheetOpen, screen, pairing = model.mode == Mode.NONE)
+                        // Its screen went away (paired or unpaired meanwhile): it must not rise again later by itself.
+                        LaunchedEffect(screenSheet) { if (screenSheet == null) screenSheetOpen = null }
+                        // A request for permission rises over whatever is on screen until it is decided or closed.
+                        val pending = ApprovalSheetPlan.next(model.approvals, closedApproval)
+                        val anySheet = (pending != null && screen != Screen.SCAN) || questionPill != null || model.diffState !is DiffState.Idle || screenSheet != null
+                        Box(Modifier.fillMaxSize().windowInsetsPadding(if (screen == Screen.HOME || screen == Screen.SCAN) WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom) else WindowInsets.safeDrawing)) {
                         val tabs = Nav.tabs()
                         val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-                        val barVisible = Nav.barVisible(screen, keyboardOpen)
+                        // Hidden while a sheet is up, like while the keyboard is open: a sheet's buttons sit where the bar would be.
+                        val barVisible = SheetLayer.barVisible(screen, keyboardOpen, sheetOpen = anySheet)
                         BackHandler(enabled = Nav.back(screen) != null) { Nav.back(screen)?.let { screen = it } }
                         // Chat keeps its message box above the bar; Home and Settings scroll under it (their own bottom padding).
                         Box(Modifier.fillMaxSize().padding(bottom = if (barVisible && screen == Screen.CHAT) BarClearance else 0.dp)) {
@@ -201,12 +215,15 @@ class MainActivity : ComponentActivity() {
                             Screen.LICENCES -> LicencesScreen(onBack = { screen = Screen.SETTINGS })
                             Screen.DIAGNOSTICS -> DiagnosticsScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HISTORY -> HistoryScreen(model, onBack = { screen = Screen.SETTINGS })
-                            Screen.HOME -> if (model.mode == Mode.NONE) PairingScreen(model, onScan = { screen = Screen.SCAN }, onAbout = { screen = Screen.SETTINGS }) else Home(
+                            Screen.HOME -> if (model.mode == Mode.NONE) PairingScreen(
+                                model, onScan = { screen = Screen.SCAN }, onAbout = { screen = Screen.SETTINGS },
+                                onPaste = { screenSheetOpen = ScreenSheet.PASTE },
+                            ) else Home(
                                 model, onApprove = ::approve, onOverlay = ::setOverlay,
                                 onSession = { detailPill = it; screen = Screen.SESSION },
                                 onScan = { screen = Screen.SCAN }, onReview = { closedApproval = null }, onQuestion = { questionPill = it },
                                 onHistory = { screen = Screen.HISTORY }, onDiagnostics = { screen = Screen.DIAGNOSTICS },
-                                onHeroOnTop = { heroOnTop = it },
+                                onAddress = { screenSheetOpen = ScreenSheet.ADDRESS }, onHeroOnTop = { heroOnTop = it },
                             )
                         }
                         }
@@ -216,11 +233,17 @@ class MainActivity : ComponentActivity() {
                                 alert = model.approvals.isNotEmpty(), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                             )
                         }
-                        // A request for permission rises over whatever is on screen until it is decided or closed.
-                        val pending = ApprovalSheetPlan.next(model.approvals, closedApproval)
+                        }
+                        // The sheet layer: after the screens and the bar, so it draws over both, and outside their inset padding, so a
+                        // dark sheet reaches the bottom edge (it keeps its own content above the navigation bar and the keyboard).
                         if (pending != null && screen != Screen.SCAN) ApprovalSheet(model, pending, onAllow = ::approve, onDismiss = { closedApproval = pending.fingerprint })
                         questionPill?.let { QuestionSheet(model, it, onDismiss = { questionPill = null }, onSend = ::sendAnswer) }
                         DiffSheet(model)
+                        when (screenSheet) {
+                            ScreenSheet.PASTE -> PasteSheet(model, onDismiss = { screenSheetOpen = null })
+                            ScreenSheet.ADDRESS -> AddressSheet(model) { screenSheetOpen = null }
+                            null -> {}
+                        }
                         // Pairing, chat, an approval and a question never show in screenshots or in the recent-apps card.
                         val secure = SecureScreens.needed(
                             screen, pairing = model.mode == Mode.NONE, approvalSheetShown = pending != null && screen != Screen.SCAN,
@@ -365,7 +388,7 @@ class MainActivity : ComponentActivity() {
 private fun Home(
     model: AppModel, onApprove: (ApprovalRequest) -> Unit, onOverlay: (Boolean) -> Unit, onSession: (String) -> Unit,
     onScan: () -> Unit, onHistory: () -> Unit, onReview: () -> Unit, onQuestion: (String) -> Unit, onDiagnostics: () -> Unit,
-    onHeroOnTop: (Boolean) -> Unit = {},
+    onAddress: () -> Unit, onHeroOnTop: (Boolean) -> Unit = {},
 ) {
     val engines = remember { HashMap<String, CharacterEngine>() }
     val miniEngines = remember { HashMap<String, CharacterEngine>() }
@@ -375,7 +398,6 @@ private fun Home(
     val listState = rememberLazyListState()
     // The hero is the list's first item: while it is the first one visible, it is what sits under the status bar.
     LaunchedEffect(listState) { snapshotFlow { listState.firstVisibleItemIndex == 0 }.collect { onHeroOnTop(it) } }
-    var addressOpen by rememberSaveable { mutableStateOf(false) }
 
     // Allow tapped on a notification before the link was back: open the prompt once the request is here.
     LaunchedEffect(model.approvals, model.wantAllow) {
@@ -429,7 +451,7 @@ private fun Home(
         if (model.batteryHintVisible) item { Box(Modifier.padding(horizontal = Gutter)) { BatteryCard(model) } }
         // The saved address failed and a search found nothing: a calm hint with two ways out.
         if (model.mode == Mode.PAIRED && model.linkState != LinkState.CONNECTED && model.discovery == DiscoveryState.NOT_FOUND) {
-            item { Box(Modifier.padding(horizontal = Gutter)) { DiscoveryHint(onPairAgain = onScan, onEnterAddress = { addressOpen = true }) } }
+            item { Box(Modifier.padding(horizontal = Gutter)) { DiscoveryHint(onPairAgain = onScan, onEnterAddress = onAddress) } }
         }
         model.message?.let { msg ->
             item { Box(Modifier.padding(horizontal = Gutter)) { MessagePanel(msg) { model.message = null } } }
@@ -466,8 +488,6 @@ private fun Home(
         if (model.overlayWished && !model.overlayPermission) item { Box(Modifier.padding(horizontal = Gutter)) { OverlayHint(onOverlay) } }
         item { Spacer(Modifier.height(Gutter)) }
     }
-    // After the list, so it draws over it.
-    if (addressOpen) AddressSheet(model) { addressOpen = false }
 }
 
 private const val HOME_KEY = "home"

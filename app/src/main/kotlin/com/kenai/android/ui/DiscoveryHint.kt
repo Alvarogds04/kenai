@@ -46,7 +46,8 @@ fun DiscoveryHint(onPairAgain: () -> Unit, onEnterAddress: () -> Unit) {
     }
 }
 
-/** The computer's address typed by hand ("192.168.1.20" or "192.168.1.20:47821"). Only the address changes: the pairing and the certificate stay. */
+/** The computer's address typed by hand ("192.168.1.20" or "192.168.1.20:47821"). Only the address changes: the pairing and the certificate stay.
+ * The activity draws it in the sheet layer, over the bottom bar. */
 @Composable
 fun AddressSheet(model: AppModel, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }

@@ -17,6 +17,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -53,8 +58,10 @@ import com.kenai.android.core.HomePanel
 import com.kenai.android.core.IconKind
 import com.kenai.android.core.IslandSurface
 import com.kenai.android.core.MotionSpec
+import com.kenai.android.core.Nav
 import com.kenai.android.core.Pills
 import com.kenai.android.core.QuestionFlow
+import com.kenai.android.core.Screen
 import com.kenai.android.link.AskedOption
 import com.kenai.android.link.QuestionRequest
 import com.kenai.android.core.Radii
@@ -68,9 +75,29 @@ import com.kenai.android.character.CharacterView
 import kotlinx.coroutines.delay
 
 /**
+ * The sheets a screen opens itself: Pairing's "Paste the link" and Home's address. The activity draws them in the same layer
+ * as the approval sheet, over the bottom bar, never inside the screen.
+ */
+enum class ScreenSheet { PASTE, ADDRESS }
+
+/** Where sheets sit relative to the bar. Pure, so the rules are unit tests (S7: the bar never covers a sheet's buttons). */
+object SheetLayer {
+    /** The bar shows as before ([Nav.barVisible]), and never while a sheet is up: the sheet's buttons sit where the bar would be. */
+    fun barVisible(screen: Screen, keyboardOpen: Boolean, sheetOpen: Boolean): Boolean = !sheetOpen && Nav.barVisible(screen, keyboardOpen)
+
+    /** The screen sheet to draw now: only over the screen that opened it (Paste while pairing, the address while paired, both on Home). */
+    fun shown(open: ScreenSheet?, screen: Screen, pairing: Boolean): ScreenSheet? = when (open) {
+        ScreenSheet.PASTE -> open.takeIf { screen == Screen.HOME && pairing }
+        ScreenSheet.ADDRESS -> open.takeIf { screen == Screen.HOME && !pairing }
+        null -> null
+    }
+}
+
+/**
  * A panel that rises from the bottom over whatever is on screen, with a dim scrim behind it. It is black in
  * both themes, like the island it comes from. Tapping the scrim or pressing Back closes it; taps on the
- * panel itself never reach the scrim.
+ * panel itself never reach the scrim. It reaches the bottom edge of the screen (drawn outside the screens' inset padding)
+ * and keeps its content above the navigation bar and the keyboard.
  */
 @Composable
 fun BottomSheetHost(onDismiss: () -> Unit, wash: Color? = null, content: @Composable ColumnScope.() -> Unit) {
@@ -91,6 +118,7 @@ fun BottomSheetHost(onDismiss: () -> Unit, wash: Color? = null, content: @Compos
                 Modifier.fillMaxWidth().clip(shape).background(Color(IslandSurface.PANEL)).border(1.dp, Color.White.copy(alpha = 0.08f), shape)
                     .then(if (wash != null) Modifier.drawBehind { drawWash(wash, 0.45f) } else Modifier)
                     .pointerInput(Unit) { detectTapGestures { } }
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
                     .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 20.dp),
                 content = {
                     AlwaysDark {

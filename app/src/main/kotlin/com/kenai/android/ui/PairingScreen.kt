@@ -50,12 +50,12 @@ import com.kenai.android.character.CharacterView
 
 /**
  * The first thing a new user sees: one clear action. A sleeping Kenai, a sentence, "Scan QR code" as the main
- * pill, and two quiet ones: paste the link (in a sheet, so no field sits on the screen) and try the demo.
+ * pill, and two quiet ones: paste the link (in a sheet, so no field sits on the screen) and try the demo. [onPaste] asks the
+ * activity for the [PasteSheet]: it is drawn in the sheet layer, over the bottom bar.
  */
 @Composable
-fun PairingScreen(model: AppModel, onScan: () -> Unit, onAbout: () -> Unit) {
+fun PairingScreen(model: AppModel, onScan: () -> Unit, onAbout: () -> Unit, onPaste: () -> Unit) {
     val t = tokens()
-    var pasteOpen by remember { mutableStateOf(false) }
     val engine = remember { CharacterEngine({ SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
     Column(
         Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).verticalScroll(rememberScrollState())
@@ -77,7 +77,7 @@ fun PairingScreen(model: AppModel, onScan: () -> Unit, onAbout: () -> Unit) {
         )
         Spacer(Modifier.size(Gap))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Gap)) {
-            PillButton(stringResource(R.string.pair_paste_short), { pasteOpen = true }, Modifier.weight(1f))
+            PillButton(stringResource(R.string.pair_paste_short), onPaste, Modifier.weight(1f))
             PillButton(stringResource(R.string.demo_try), { model.startDemo() }, Modifier.weight(1f))
         }
         Spacer(Modifier.size(32.dp))
@@ -88,12 +88,11 @@ fun PairingScreen(model: AppModel, onScan: () -> Unit, onAbout: () -> Unit) {
             style = TypeScale.SECONDARY.style(t.textDim.c()).copy(textDecoration = TextDecoration.Underline),
         )
     }
-    if (pasteOpen) PasteSheet(model, onDismiss = { pasteOpen = false })
 }
 
 /** The pairing link as text, for people who cannot scan. A link that is not a Kenai one is refused here, with the same words as everywhere. */
 @Composable
-private fun PasteSheet(model: AppModel, onDismiss: () -> Unit) {
+fun PasteSheet(model: AppModel, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
     var bad by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
