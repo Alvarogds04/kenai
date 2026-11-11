@@ -26,9 +26,9 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - [x] T4 (S2.7a) Vibration on an arriving approval or question · worker · 87cb0d8 (740 tests, 0 failures)
 - [x] T6 (S4) Keep the open screen when the phone switches light/dark · worker · 929c9d0 (781 tests, 0 failures)
 - [x] T7 (S1-S2) Emulator check: pairing with tools/dev-desktop.mjs and widgets placed on the home screen · parent · no code change
-- [ ] T8 (S5) Koda instead of Abito's clay character everywhere in the app · worker
-- [ ] T9 (S7) Bottom bar never covers a sheet's buttons · worker
-- [ ] T10 (S6) Demo texts and diagnostics report in Spanish · worker
+- [x] T8 (S5) Koda instead of Abito's clay character everywhere in the app · worker · a7e5951
+- [x] T9 (S7) Bottom bar never covers a sheet's buttons · worker · 85f5187
+- [x] T10 (S6) Demo texts and diagnostics report in Spanish · worker · 01ad329
 - [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
 ## Log
@@ -47,3 +47,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L13: T6 done in 929c9d0: the open screen, the viewed session, a closed approval and an open question are saved in onSaveInstanceState and restored before setContent (Nav.restore), so a light/dark switch, rotation, a language change or process death keeps the screen. Emulator: Ajustes stays through night yes/no. Parent re-ran the suite: 781 tests, 0 failures.
 - L14: T7 done on the emulator (pixel7 API 35, es-AR, APK with T6) against tools/dev-desktop.mjs (--fake-chat --details --answers --diffs --usage --services): pairing by deep link → «¿Emparejar con Alvaro PC?» → HELLO ok, «Conectado · Alvaro PC»; approval Allow with PIN → desktop DECISION allow, Deny → DECISION deny; chat «hola Kenai» → desktop CHAT send, answer shown; question 2 of 2 with multi-select → ANSWER accepted (2 question(s)), «Respuesta enviada»; plan usage and services on Home in Spanish; session details (project, files, steps) and the app.ts diff → GETDIFF; the «Ánimo de los agentes» widget placed on the home screen, it updated live (en reposo → pensando) and a tap opened the app. No crash in logcat. One "ANSWER refused" with --step 6000 came from the test pace (the desktop replaced the question before the adb-driven answer); with --step 40000 it was accepted. Not checked: placing the bigger widgets (the first page was full), the island over other apps, the camera scan.
 - L15: «todo en espaól, veo que el diseño tiene referencias visuales de abito cambiado eso por koda en la app, si arreglalo» — answers: 1 Koda menus in Spanish (and everything else Spanish too: S6); new S5 Koda instead of Abito's clay character; 3 fix the bar over the sheets (S7). The tile lock-screen question got no answer: it keeps hiding agent names. T8, T9, T10 run in parallel on disjoint files.
+- L16: T8 a7e5951 (Koda drawn by CharacterEngine/CharacterView/CharacterBitmap, widget previews, launcher and notification icons; parent removed the unused ClayModel.kt and switched Home's hero to CharacterView so taps show), T9 85f5187 (paste and address sheets drawn above the bar; the bar hides while any sheet is open; sheets reach the bottom edge), T10 01ad329 (demo statuses and the copied report through Words). Parent re-ran the suite: 803 tests, 0 failures; installed the committed APK on the emulator: Koda on Home, Gallery and approval sheet, Spanish everywhere checked, Deny round trip, no crash. Open: the Gallery's state labels (idle, working…) are internal names in English.
