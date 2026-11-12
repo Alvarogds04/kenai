@@ -40,4 +40,17 @@ class ApprovalSheetPlanTest {
     @Test fun earlyTapsAreIgnoredLikeOnTheIsland() {
         assertEquals(OverlayPolicy.TAP_GUARD_MS.toLong(), ApprovalSheetPlan.GUARD_MS)
     }
+
+    /** kenai-0.1 S9: on Home the first request is the hero, so the sheet never rises over it for that same request. */
+    @Test fun onHomeTheHeroHoldsTheFirstRequestAndTheSheetOnlyOpensForAnotherOneAskedFor() {
+        val list = listOf(r("a"), r("b"), r("c"))
+        assertNull("the hero already shows a", ApprovalSheetPlan.next(list, null, heroShown = true))
+        assertNull("not even after Review on the hero's own request", ApprovalSheetPlan.next(list, null, heroShown = true, review = "a"))
+        assertEquals("Review on the second one", "b", ApprovalSheetPlan.next(list, null, heroShown = true, review = "b")!!.fingerprint)
+        assertNull("a request that is gone", ApprovalSheetPlan.next(list, null, heroShown = true, review = "z"))
+        // Every other screen: the sheet rises as before.
+        assertEquals("a", ApprovalSheetPlan.next(list, null, heroShown = false, review = "b")!!.fingerprint)
+        assertEquals("a", ApprovalSheetPlan.hero(list)!!.fingerprint)
+        assertNull(ApprovalSheetPlan.hero(emptyList()))
+    }
 }

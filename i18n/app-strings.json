@@ -292,6 +292,21 @@
     "battery_title": "Keep the connection while the screen is off",
     "battery_body": "Android pauses background apps to save battery. If requests stop reaching you when the phone is locked, let Kenai run without restrictions. This is only a suggestion.",
     "battery_open": "Open settings",
-    "battery_not_now": "Not now"
+    "battery_not_now": "Not now",
+    "home_calm_title": "Nothing waits for you",
+    "home_also_waiting": "Also waiting for you",
+    "home_running_title": "Running · %1$d",
+    "home_others_title": "Other agents",
+    "home_answer": "Answer",
+    "home_review": "Review",
+    "home_unconfirmed": "Unconfirmed",
+    "home_offline_body": "Is the phone on the same Wi-Fi? Is the computer awake, with Koda open? Requests reach you as soon as the connection is back.",
+    "home_retry": "Try again",
+    "request_command": "Exact command",
+    "request_hint": "Allow asks for your fingerprint. Deny does not.",
+    "tab_home_waiting": "%1$s, %2$d waiting for you",
+    "confirm_title": "Confirm it's you",
+    "confirm_command": "Allow %1$s to run a command on %2$s",
+    "confirm_action": "Allow %1$s to %2$s on %3$s"
   }
 }

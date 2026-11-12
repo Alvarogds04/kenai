@@ -293,4 +293,19 @@
     <string name="battery_body">Android pausa las apps en segundo plano para ahorrar batería. Si los pedidos dejan de llegarte con el teléfono bloqueado, dejá que Kenai funcione sin restricciones. Es solo una sugerencia.</string>
     <string name="battery_open">Abrir ajustes</string>
     <string name="battery_not_now">Ahora no</string>
+    <string name="home_calm_title">Nada te espera</string>
+    <string name="home_also_waiting">También te espera</string>
+    <string name="home_running_title">En curso · %1$d</string>
+    <string name="home_others_title">Otros agentes</string>
+    <string name="home_answer">Responder</string>
+    <string name="home_review">Revisar</string>
+    <string name="home_unconfirmed">Sin confirmar</string>
+    <string name="home_offline_body">¿El teléfono está en el mismo Wi-Fi? ¿La computadora está despierta, con Koda abierto? Los pedidos te llegan apenas vuelva la conexión.</string>
+    <string name="home_retry">Volver a probar</string>
+    <string name="request_command">Comando exacto</string>
+    <string name="request_hint">Permitir pide tu huella. Denegar no.</string>
+    <string name="tab_home_waiting">%1$s, %2$d esperándote</string>
+    <string name="confirm_title">Confirmá que sos vos</string>
+    <string name="confirm_command">Permitir que %1$s ejecute un comando en %2$s</string>
+    <string name="confirm_action">Permitir que %1$s pueda %2$s en %3$s</string>
 </resources>

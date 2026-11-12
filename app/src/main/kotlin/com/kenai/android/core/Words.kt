@@ -72,6 +72,38 @@ interface Words {
     /** "You allowed Claude Code to run a command"; a blank agent is "an agent". */
     fun decision(allowed: Boolean, agent: String, action: String): String
 
+    // ── Inicio: the strip, the request hero, the calm card (kenai-0.1 S9) ───────────────────────────
+    /** The strip's title while a request waits: "Claude Code is waiting for your yes". */
+    fun waitsForYourYes(agent: String): String
+    /** The strip's title while only a question waits. */
+    fun asksYou(agent: String): String
+    /** "Alvaro PC · 3 agents". */
+    fun computerAgents(computer: String, n: Int): String
+    /** "Alvaro PC · all calm". */
+    fun computerCalm(computer: String): String
+    /** "No connection to Alvaro PC". */
+    fun offlineFrom(computer: String): String
+    /** "Last heard 3 min ago" ([ago] from LinkHealthText.ago). */
+    fun lastHeard(ago: String): String
+    /** The heading of the kept list while offline: "What we last knew · 3 min ago". */
+    fun lastKnown(ago: String): String
+    /** The strip's chip while calm: "2 running". */
+    fun runningCount(n: Int): String
+    /** What TalkBack says for the strip's count: "2 are waiting for you". */
+    fun waitingForYouCount(n: Int): String
+    /** "Expires in 1:59". */
+    fun expiresIn(clock: String): String
+    /** "Wants to run a command". */
+    fun wants(action: String): String
+    /** "Wants to run a command in kenai". */
+    fun wantsIn(action: String, project: String): String
+    /** What a recognised destructive command would do: "Deletes files". */
+    fun risk(kind: RiskKind): String
+    /** After the risk, where: "inside kenai.". */
+    fun riskWhere(project: String): String
+    /** The calm card while an agent works: "Codex is working in app. I'll tell you as soon as someone needs your yes."; a blank project is left out. */
+    fun calmWorking(agent: String, project: String): String
+
     // ── Tools ───────────────────────────────────────────────────────────────────────────────────────
     /** "Running a command". */
     fun toolLabel(kind: ToolKind): String
@@ -233,6 +265,32 @@ private object English : Words {
     override fun recent(allowed: Boolean, action: String) = (if (allowed) "Allowed: " else "Denied: ") + action
     override fun decision(allowed: Boolean, agent: String, action: String) =
         "You ${if (allowed) "allowed" else "denied"} ${agent.ifBlank { "an agent" }} to $action"
+
+    override fun waitsForYourYes(agent: String) = "$agent is waiting for your yes"
+    override fun asksYou(agent: String) = "$agent has a question"
+    override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agent", "$n agents")
+    override fun computerCalm(computer: String) = "$computer · all calm"
+    override fun offlineFrom(computer: String) = "No connection to $computer"
+    override fun lastHeard(ago: String) = "Last heard $ago ago"
+    override fun lastKnown(ago: String) = "What we last knew · $ago ago"
+    override fun runningCount(n: Int) = "$n running"
+    override fun waitingForYouCount(n: Int) = plural(n, "1 is waiting for you", "$n are waiting for you")
+    override fun expiresIn(clock: String) = "Expires in $clock"
+    override fun wants(action: String) = "Wants to $action"
+    override fun wantsIn(action: String, project: String) = "Wants to $action in $project"
+    override fun risk(kind: RiskKind) = when (kind) {
+        RiskKind.WIPES_DISK -> "Erases a disk"
+        RiskKind.DELETES_DATA -> "Deletes data"
+        RiskKind.DELETES_FILES -> "Deletes files"
+        RiskKind.REWRITES_HISTORY -> "Rewrites the git history"
+        RiskKind.DISCARDS_CHANGES -> "Throws away unsaved changes"
+        RiskKind.RUNS_DOWNLOADED_CODE -> "Runs code from the internet"
+        RiskKind.OPENS_PERMISSIONS -> "Opens the permissions to everyone"
+        RiskKind.EMPTIES_FILE -> "Empties a file"
+    }
+    override fun riskWhere(project: String) = "inside $project."
+    override fun calmWorking(agent: String, project: String) =
+        "$agent is working" + (if (project.isBlank()) "" else " in $project") + ". I'll tell you as soon as someone needs your yes."
 
     override fun toolLabel(kind: ToolKind) = when (kind) {
         ToolKind.ASK -> "Asking a question"
@@ -408,9 +466,35 @@ private object Spanish : Words {
     override val anAgent = "Un agente"
     override val week = "semana"
 
-    override fun recent(allowed: Boolean, action: String) = (if (allowed) "Permitido: " else "Denegado: ") + action
+    override fun recent(allowed: Boolean, action: String) = (if (allowed) "Permitiste: " else "Denegaste: ") + action
     override fun decision(allowed: Boolean, agent: String, action: String) =
         "Le ${if (allowed) "permitiste" else "denegaste"} a ${agent.ifBlank { "un agente" }} $action"
+
+    override fun waitsForYourYes(agent: String) = "$agent espera tu sí"
+    override fun asksYou(agent: String) = "$agent tiene una pregunta"
+    override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agente", "$n agentes")
+    override fun computerCalm(computer: String) = "$computer · todo tranquilo"
+    override fun offlineFrom(computer: String) = "Sin conexión con $computer"
+    override fun lastHeard(ago: String) = "Último dato hace $ago"
+    override fun lastKnown(ago: String) = "Lo último que sabemos · hace $ago"
+    override fun runningCount(n: Int) = "$n en curso"
+    override fun waitingForYouCount(n: Int) = plural(n, "1 te espera", "$n te esperan")
+    override fun expiresIn(clock: String) = "Caduca en $clock"
+    override fun wants(action: String) = "Quiere $action"
+    override fun wantsIn(action: String, project: String) = "Quiere $action en $project"
+    override fun risk(kind: RiskKind) = when (kind) {
+        RiskKind.WIPES_DISK -> "Borra un disco"
+        RiskKind.DELETES_DATA -> "Borra datos"
+        RiskKind.DELETES_FILES -> "Borra archivos"
+        RiskKind.REWRITES_HISTORY -> "Reescribe el historial de git"
+        RiskKind.DISCARDS_CHANGES -> "Descarta cambios sin guardar"
+        RiskKind.RUNS_DOWNLOADED_CODE -> "Ejecuta código de internet"
+        RiskKind.OPENS_PERMISSIONS -> "Abre los permisos a todos"
+        RiskKind.EMPTIES_FILE -> "Vacía un archivo"
+    }
+    override fun riskWhere(project: String) = "dentro de $project."
+    override fun calmWorking(agent: String, project: String) =
+        "$agent está trabajando" + (if (project.isBlank()) "" else " en $project") + ". Te aviso apenas alguien necesite tu sí."
 
     override fun toolLabel(kind: ToolKind) = when (kind) {
         ToolKind.ASK -> "Haciendo una pregunta"

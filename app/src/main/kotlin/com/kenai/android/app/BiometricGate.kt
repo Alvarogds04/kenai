@@ -15,11 +15,16 @@ object BiometricGate {
     fun available(activity: Activity): Boolean =
         activity.getSystemService(BiometricManager::class.java).canAuthenticate(AUTH) == BiometricManager.BIOMETRIC_SUCCESS
 
-    fun confirm(activity: Activity, title: String, subtitle: String, noLockMessage: String, onSuccess: () -> Unit, onFail: (String) -> Unit) {
+    /** [description]: the exact command for Allow (kenai-0.1 S9, L21), so the prompt itself repeats what is about to run. */
+    fun confirm(
+        activity: Activity, title: String, subtitle: String, noLockMessage: String, onSuccess: () -> Unit, onFail: (String) -> Unit,
+        description: String? = null,
+    ) {
         if (!available(activity)) { onFail(noLockMessage); return }
         BiometricPrompt.Builder(activity)
             .setTitle(title)
             .setSubtitle(subtitle)
+            .apply { if (!description.isNullOrBlank()) setDescription(description) }
             .setAllowedAuthenticators(AUTH)
             .build()
             .authenticate(

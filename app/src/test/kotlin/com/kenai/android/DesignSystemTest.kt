@@ -60,4 +60,11 @@ class DesignSystemTest {
         val theme = src("ui/Theme.kt")
         for (c in listOf("ONLINE", "BUSY", "OFFLINE")) assertTrue(c, theme.contains("StatusPalette.$c"))
     }
+
+    /** kenai-0.1 S9: Allow on Home's request is a go-green pill with dark ink, from design/system.md's roles, in both themes. */
+    @Test fun theGoPillUsesTheRoleColourAndItsInk() {
+        assertTrue(system.contains("enum class PillKind { PRIMARY, SECONDARY, DANGER, GO }"))
+        assertTrue(system.contains("kind == PillKind.GO -> KodaRole.GO"))
+        assertTrue(system.contains("kind == PillKind.GO -> KodaRole.ON_ROLE"))
+    }
 }

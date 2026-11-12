@@ -14,7 +14,7 @@ sealed interface IconShape {
     data class Arc(val cx: Double, val cy: Double, val r: Double, val start: Double, val sweep: Double) : IconShape
 }
 
-enum class IconKind { HOME, CHAT, SLIDERS, BACK, SEND, LOCK, SCAN, CHEVRON, CHECK, CLOSE }
+enum class IconKind { HOME, CHAT, SLIDERS, BACK, SEND, LOCK, SCAN, CHEVRON, CHECK, CLOSE, FINGERPRINT, WARNING, CLOCK }
 
 object IconSpec {
     const val GRID = 24.0
@@ -44,6 +44,16 @@ object IconSpec {
         IconKind.CHEVRON -> listOf(poly(9.5, 6.0, 15.5, 12.0, 9.5, 18.0))
         IconKind.CHECK -> listOf(poly(5.5, 12.5, 9.7, 16.7, 18.5, 7.5))
         IconKind.CLOSE -> listOf(poly(7.0, 7.0, 17.0, 17.0), poly(17.0, 7.0, 7.0, 17.0))
+        // Allow on Home's request: three nested ridges, the inner two running down into lines (kenai-0.1 S9).
+        IconKind.FINGERPRINT -> listOf(
+            IconShape.Arc(12.0, 12.0, 8.5, 200.0, 140.0),
+            IconShape.Arc(12.0, 12.5, 5.5, 180.0, 180.0), poly(6.5, 12.5, 6.5, 16.5), poly(17.5, 12.5, 17.5, 18.5),
+            IconShape.Arc(12.0, 12.5, 2.5, 180.0, 180.0), poly(9.5, 12.5, 9.5, 20.0), poly(14.5, 12.5, 14.5, 15.5),
+        )
+        // The risk line: a triangle with a mark.
+        IconKind.WARNING -> listOf(poly(12.0, 4.0, 21.0, 19.5, 3.0, 19.5, 12.0, 4.0), poly(12.0, 9.5, 12.0, 13.5), poly(12.0, 16.4, 12.0, 16.6))
+        // The expiry chip: a dial with two hands.
+        IconKind.CLOCK -> listOf(IconShape.Circle(12.0, 12.0, 8.5), poly(12.0, 7.5, 12.0, 12.0, 15.0, 14.0))
     }
 
     /** Every x and y the icon uses, including the extent of circles, rectangles and arcs. */

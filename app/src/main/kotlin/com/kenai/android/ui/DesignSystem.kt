@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kenai.android.character.KodaRole
 import com.kenai.android.core.IslandSurface
 import com.kenai.android.core.MotionSpec
 import com.kenai.android.core.Radii
@@ -103,11 +104,12 @@ fun HeroPanel(modifier: Modifier = Modifier, wash: Color? = null, content: @Comp
     }
 }
 
-enum class PillKind { PRIMARY, SECONDARY, DANGER }
+enum class PillKind { PRIMARY, SECONDARY, DANGER, GO }
 
 /**
  * The PC's buttons: one white (dark theme) or near-black (light theme) pill for the main action, grey pills for the rest, and a
- * grey pill with a red label for what is destructive. 48 dp high, whatever the font size.
+ * grey pill with a red label for what is destructive. [PillKind.GO] is Allow on Home's request (kenai-0.1 S9): the go role colour
+ * with its dark ink, the same in both themes (design/system.md). 48 dp high, whatever the font size.
  */
 @Composable
 fun PillButton(
@@ -117,11 +119,13 @@ fun PillButton(
     val t = tokens()
     // [onDark]: on the always-black hero panel and island, whatever the theme.
     val bg = when {
+        kind == PillKind.GO -> KodaRole.GO
         onDark -> if (kind == PillKind.PRIMARY) IslandSurface.TEXT else IslandSurface.BUTTON
         kind == PillKind.PRIMARY -> t.primaryButton
         else -> t.secondaryButton
     }
     val fg = when {
+        kind == PillKind.GO -> KodaRole.ON_ROLE
         kind == PillKind.DANGER && onDark -> Tokens.DARK.danger
         kind == PillKind.DANGER -> t.danger
         onDark -> if (kind == PillKind.PRIMARY) IslandSurface.ON_PRIMARY else IslandSurface.TEXT

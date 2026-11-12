@@ -292,6 +292,21 @@
     "battery_title": "Mantener la conexión con la pantalla apagada",
     "battery_body": "Android pausa las apps en segundo plano para ahorrar batería. Si los pedidos dejan de llegarte con el teléfono bloqueado, dejá que Kenai funcione sin restricciones. Es solo una sugerencia.",
     "battery_open": "Abrir ajustes",
-    "battery_not_now": "Ahora no"
+    "battery_not_now": "Ahora no",
+    "home_calm_title": "Nada te espera",
+    "home_also_waiting": "También te espera",
+    "home_running_title": "En curso · %1$d",
+    "home_others_title": "Otros agentes",
+    "home_answer": "Responder",
+    "home_review": "Revisar",
+    "home_unconfirmed": "Sin confirmar",
+    "home_offline_body": "¿El teléfono está en el mismo Wi-Fi? ¿La computadora está despierta, con Koda abierto? Los pedidos te llegan apenas vuelva la conexión.",
+    "home_retry": "Volver a probar",
+    "request_command": "Comando exacto",
+    "request_hint": "Permitir pide tu huella. Denegar no.",
+    "tab_home_waiting": "%1$s, %2$d esperándote",
+    "confirm_title": "Confirmá que sos vos",
+    "confirm_command": "Permitir que %1$s ejecute un comando en %2$s",
+    "confirm_action": "Permitir que %1$s pueda %2$s en %3$s"
   }
 }

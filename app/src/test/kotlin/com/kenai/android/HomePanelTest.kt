@@ -1,9 +1,12 @@
 package com.kenai.android
 
 import com.kenai.android.core.HomePanel
+import com.kenai.android.core.Words
+import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.link.SessionInfo
 import com.kenai.android.character.BotState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -75,5 +78,89 @@ class HomePanelTest {
 
     @Test fun stepsAreListedNewestFirst() {
         assertEquals(listOf("c", "b", "a"), HomePanel.stepsNewestFirst(s("a", BotState.IDLE).copy(steps = listOf("a", "b", "c"))))
+    }
+
+    // ── Inicio with a request as the hero (kenai-0.1 S9, T13) ──────────────────────────────────────
+
+    private fun r(pill: String, fp: String = pill) = ApprovalRequest(pill, fp, "Bash", "npm test", 0L)
+    private val names = mapOf("a" to "Claude Code", "b" to "Gemini CLI", "c" to "Codex", "d" to "Aider")
+    private fun name(id: String) = names[id] ?: "An agent"
+
+    @Test fun homeHasFourScenesAndOfflineWinsBecauseNothingCanBeAnswered() {
+        val q = listOf(s("b", BotState.QUESTION))
+        assertEquals(HomePanel.Scene.OFFLINE, HomePanel.scene(paired = true, connected = false, approvals = 0, sessions = q))
+        assertEquals(HomePanel.Scene.REQUEST, HomePanel.scene(paired = true, connected = true, approvals = 1, sessions = q))
+        assertEquals("the demo is never offline", HomePanel.Scene.REQUEST, HomePanel.scene(paired = false, connected = false, approvals = 1, sessions = emptyList()))
+        assertEquals(HomePanel.Scene.WAITING, HomePanel.scene(paired = true, connected = true, approvals = 0, sessions = q))
+        assertEquals(HomePanel.Scene.CALM, HomePanel.scene(paired = true, connected = true, approvals = 0, sessions = listOf(s("c", BotState.WORKING))))
+        assertEquals(HomePanel.Scene.CALM, HomePanel.scene(paired = false, connected = false, approvals = 0, sessions = emptyList()))
+    }
+
+    @Test fun theOthersAreSplitIntoWaitingRunningAndTheRest() {
+        val list = listOf(
+            s("a", BotState.APPROVAL), s("b", BotState.QUESTION), s("c", BotState.WORKING), s("d", BotState.FINISHED),
+            s("e", BotState.APPROVAL), s("f", BotState.THINKING), s("g", BotState.ERROR), s("h", BotState.SEARCHING),
+        )
+        val g = HomePanel.groups(list, heroPillId = "a")
+        assertEquals("the hero's agent is not listed again", listOf("b", "e"), g.waiting.map { it.pillId })
+        assertEquals(listOf("c", "f", "h"), g.running.map { it.pillId })
+        assertEquals(listOf("d", "g"), g.rest.map { it.pillId })
+        assertEquals(listOf("a", "b", "e"), HomePanel.groups(list, heroPillId = null).waiting.map { it.pillId })
+        // An agent still waiting on the computer for a request the phone does not hold (decided, or not arrived) is not «waiting for you».
+        val held = HomePanel.groups(list, heroPillId = "a", requestPills = setOf("a"))
+        assertEquals(listOf("b"), held.waiting.map { it.pillId })
+        assertEquals(listOf("d", "e", "g"), held.rest.map { it.pillId })
+        val empty = HomePanel.groups(emptyList(), null)
+        assertTrue(empty.waiting.isEmpty() && empty.running.isEmpty() && empty.rest.isEmpty())
+    }
+
+    @Test fun theBadgeCountsRequestsAndQuestions() {
+        val list = listOf(s("a", BotState.APPROVAL), s("b", BotState.QUESTION), s("c", BotState.QUESTION), s("d", BotState.WORKING))
+        assertEquals(3, HomePanel.waitingCount(1, list))
+        assertEquals(0, HomePanel.waitingCount(0, listOf(s("d", BotState.WORKING))))
+        assertEquals(2, HomePanel.waitingCount(2, emptyList()))
+    }
+
+    @Test fun aRequestExpiresTwoMinutesAfterItArrivedOnThisPhone() {
+        assertEquals(120_000L, HomePanel.remainingMs(arrivedMs = 1_000, nowMs = 1_000))
+        assertEquals(60_000L, HomePanel.remainingMs(arrivedMs = 1_000, nowMs = 61_000))
+        assertEquals("never below zero", 0L, HomePanel.remainingMs(arrivedMs = 0, nowMs = 500_000))
+        assertEquals("a clock set back never adds time", 120_000L, HomePanel.remainingMs(arrivedMs = 10_000, nowMs = 0))
+        assertEquals("2:00", HomePanel.clock(120_000))
+        assertEquals("rounded up: it still says 2:00 in the first second", "2:00", HomePanel.clock(119_001))
+        assertEquals("1:59", HomePanel.clock(119_000))
+        assertEquals("0:05", HomePanel.clock(4_200))
+        assertEquals("0:00", HomePanel.clock(0))
+        assertEquals("Caduca en 1:30", HomePanel.expiry(90_000, Words.ES))
+        assertEquals("Expires in 2:00", HomePanel.expiry(120_000, Words.EN))
+        assertEquals(1f, HomePanel.expiryFraction(120_000), 1e-6f)
+        assertEquals(0.25f, HomePanel.expiryFraction(30_000), 1e-6f)
+        assertEquals(0f, HomePanel.expiryFraction(-5), 1e-6f)
+    }
+
+    @Test fun theStripSaysWhoWaitsOrThatAllIsCalmOrThatTheComputerIsAway() {
+        val list = listOf(s("a", BotState.APPROVAL), s("b", BotState.QUESTION), s("c", BotState.WORKING))
+        val req = HomePanel.strip(HomePanel.Scene.REQUEST, "Alvaro PC", list, listOf(r("a")), ::name, lostAtMs = null, connecting = false, nowMs = 0, w = Words.ES)
+        assertEquals(HomePanel.Tone.WAITING, req.tone)
+        assertEquals("Claude Code espera tu sí", req.title)
+        assertEquals("Alvaro PC · 3 agentes", req.subtitle)
+        assertEquals(2, req.count)
+        val ask = HomePanel.strip(HomePanel.Scene.WAITING, "Alvaro PC", list, emptyList(), ::name, null, false, 0, Words.ES)
+        assertEquals("Gemini CLI tiene una pregunta", ask.title)
+        assertEquals(HomePanel.Tone.WAITING, ask.tone)
+        val calm = HomePanel.strip(HomePanel.Scene.CALM, "Alvaro PC", listOf(s("c", BotState.WORKING)), emptyList(), ::name, null, false, 0, Words.ES)
+        assertEquals(HomePanel.Tone.CALM, calm.tone)
+        assertEquals("Alvaro PC · todo tranquilo", calm.title)
+        assertEquals("Conectado", calm.subtitle)
+        assertEquals("the chip counts what runs", 1, calm.count)
+        val away = HomePanel.strip(HomePanel.Scene.OFFLINE, "Alvaro PC", list, emptyList(), ::name, lostAtMs = 0, connecting = false, nowMs = 3 * 60_000, w = Words.ES)
+        assertEquals(HomePanel.Tone.OFFLINE, away.tone)
+        assertEquals("Sin conexión con Alvaro PC", away.title)
+        assertEquals("Último dato hace 3 min", away.subtitle)
+        assertEquals(0, away.count)
+        val never = HomePanel.strip(HomePanel.Scene.OFFLINE, "Alvaro PC", emptyList(), emptyList(), ::name, null, connecting = true, nowMs = 0, w = Words.ES)
+        assertEquals("Conectando…", never.subtitle)
+        assertEquals("1 agent", "Alvaro PC · 1 agent", HomePanel.strip(HomePanel.Scene.REQUEST, "Alvaro PC", list.take(1), listOf(r("a")), ::name, null, false, 0, Words.EN).subtitle)
+        assertFalse(req.title.contains("npm"))
     }
 }

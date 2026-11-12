@@ -108,9 +108,15 @@ import com.kenai.android.ui.AddressSheet
 import com.kenai.android.ui.BatteryCard
 import com.kenai.android.ui.DiagnosticsScreen
 import com.kenai.android.ui.LicencesScreen
-import com.kenai.android.ui.LinkHealthPanel
-import com.kenai.android.ui.AgentRows
-import com.kenai.android.ui.DiscoveryHint
+import com.kenai.android.ui.AgentSection
+import com.kenai.android.ui.AlsoWaiting
+import com.kenai.android.ui.CalmHero
+import com.kenai.android.ui.OfflineHero
+import com.kenai.android.ui.RequestHero
+import com.kenai.android.ui.StatusStrip
+import com.kenai.android.link.LinkHealthText
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
 import com.kenai.android.ui.ApprovalSheet
 import com.kenai.android.ui.MessagePanel
 import com.kenai.android.ui.PairingScreen
@@ -149,6 +155,8 @@ class MainActivity : ComponentActivity() {
     private var detailPill by mutableStateOf<String?>(null)
     /** The approval the user closed without deciding (the sheet stays down for it), and the session whose question is open. */
     private var closedApproval by mutableStateOf<String?>(null)
+    /** A request other than the one on Home's hero that the user asked to see ("Revisar", or its notification): its sheet rises over Home. */
+    private var reviewApproval by mutableStateOf<String?>(null)
     private var questionPill by mutableStateOf<String?>(null)
     /** Home's list shows its black hero under the status bar (the bar icons stay light then). */
     private var heroOnTop by mutableStateOf(true)
@@ -188,8 +196,10 @@ class MainActivity : ComponentActivity() {
                         val screenSheet = SheetLayer.shown(screenSheetOpen, screen, pairing = model.mode == Mode.NONE)
                         // Its screen went away (paired or unpaired meanwhile): it must not rise again later by itself.
                         LaunchedEffect(screenSheet) { if (screenSheet == null) screenSheetOpen = null }
-                        // A request for permission rises over whatever is on screen until it is decided or closed.
-                        val pending = ApprovalSheetPlan.next(model.approvals, closedApproval)
+                        // A request for permission rises over whatever is on screen until it is decided or closed; on Home the first one
+                        // is the hero itself (kenai-0.1 S9), so the sheet only rises there for another request the user asked to review.
+                        val homeHero = screen == Screen.HOME && model.mode != Mode.NONE && model.approvals.isNotEmpty()
+                        val pending = ApprovalSheetPlan.next(model.approvals, closedApproval, heroShown = homeHero, review = reviewApproval)
                         val anySheet = (pending != null && screen != Screen.SCAN) || questionPill != null || model.diffState !is DiffState.Idle || screenSheet != null
                         Box(Modifier.fillMaxSize().windowInsetsPadding(if (screen == Screen.HOME || screen == Screen.SCAN) WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom) else WindowInsets.safeDrawing)) {
                         val tabs = Nav.tabs()
@@ -222,7 +232,7 @@ class MainActivity : ComponentActivity() {
                             ) else Home(
                                 model, onApprove = ::approve, onOverlay = ::setOverlay,
                                 onSession = { detailPill = it; screen = Screen.SESSION },
-                                onScan = { screen = Screen.SCAN }, onReview = { closedApproval = null }, onQuestion = { questionPill = it },
+                                onScan = { screen = Screen.SCAN }, onReview = { fp -> reviewApproval = fp; closedApproval = null }, onQuestion = { questionPill = it },
                                 onHistory = { screen = Screen.HISTORY }, onDiagnostics = { screen = Screen.DIAGNOSTICS },
                                 onAddress = { screenSheetOpen = ScreenSheet.ADDRESS }, onHeroOnTop = { heroOnTop = it },
                             )
@@ -231,13 +241,13 @@ class MainActivity : ComponentActivity() {
                         if (barVisible) {
                             BottomBar(
                                 tabs, Nav.tabOf(screen), onSelect = { screen = Nav.screenOf(it) },
-                                alert = model.approvals.isNotEmpty(), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+                                waiting = HomePanel.waitingCount(model.approvals.size, model.sessions), modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
                             )
                         }
                         }
                         // The sheet layer: after the screens and the bar, so it draws over both, and outside their inset padding, so a
                         // dark sheet reaches the bottom edge (it keeps its own content above the navigation bar and the keyboard).
-                        if (pending != null && screen != Screen.SCAN) ApprovalSheet(model, pending, onAllow = ::approve, onDismiss = { closedApproval = pending.fingerprint })
+                        if (pending != null && screen != Screen.SCAN) ApprovalSheet(model, pending, onAllow = ::approve, onDismiss = { closedApproval = pending.fingerprint; reviewApproval = null })
                         questionPill?.let { QuestionSheet(model, it, onDismiss = { questionPill = null }, onSend = ::sendAnswer) }
                         DiffSheet(model)
                         when (screenSheet) {
@@ -245,10 +255,12 @@ class MainActivity : ComponentActivity() {
                             ScreenSheet.ADDRESS -> AddressSheet(model) { screenSheetOpen = null }
                             null -> {}
                         }
-                        // Pairing, chat, an approval and a question never show in screenshots or in the recent-apps card.
+                        // Pairing, chat, an approval (its sheet, and Home while one waits: the hero shows the exact command) and a question
+                        // never show in screenshots or in the recent-apps card.
                         val secure = SecureScreens.needed(
                             screen, pairing = model.mode == Mode.NONE, approvalSheetShown = pending != null && screen != Screen.SCAN,
                             questionSheetShown = questionPill != null, pairConfirmShown = model.pairRequest != null,
+                            approvalPending = model.approvals.isNotEmpty(),
                         )
                         SideEffect {
                             if (secure) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
@@ -336,6 +348,7 @@ class MainActivity : ComponentActivity() {
             if (request != null) {
                 if (screen == Screen.SCAN) screen = Screen.HOME
                 closedApproval = null
+                reviewApproval = fp // on Home a request that is not the hero's gets its sheet; the hero's own needs none
             }
             return
         }
@@ -365,15 +378,23 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    /** Allow: only after the biometric / screen-lock check. */
+    /**
+     * Allow: only after the biometric / screen-lock check. The system prompt says «Confirmá que sos vos», who and where
+     * («Permitir que Claude Code ejecute un comando en Alvaro PC») and repeats the exact command as its description (kenai-0.1 S9).
+     */
     private fun approve(r: ApprovalRequest) {
         if (confirming) return // a second tap must not open a second prompt
         if (!ApprovalSheetPlan.canAllowHere(r)) { model.message = getString(R.string.approval_on_computer); return }
         confirming = true
+        val agent = model.agentName(r.pillId)
+        val computer = HomeText.computer(model.desktopName, demo = model.mode == Mode.DEMO)
+        val subtitle = if (HomeText.isCommand(r.tool)) getString(R.string.confirm_command, agent, computer)
+        else getString(R.string.confirm_action, agent, ApprovalSheetPlan.action(r.tool), computer)
         BiometricGate.confirm(
-            this, getString(R.string.action_allow), "${r.tool}: ${r.command}", getString(R.string.msg_need_lock),
+            this, getString(R.string.confirm_title), subtitle, getString(R.string.msg_need_lock),
             onSuccess = { confirming = false; model.decide(r.fingerprint, allow = true) },
             onFail = { confirming = false; if (it.isNotBlank()) model.message = it },
+            description = r.command,
         )
     }
 
@@ -388,14 +409,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Home(
     model: AppModel, onApprove: (ApprovalRequest) -> Unit, onOverlay: (Boolean) -> Unit, onSession: (String) -> Unit,
-    onScan: () -> Unit, onHistory: () -> Unit, onReview: () -> Unit, onQuestion: (String) -> Unit, onDiagnostics: () -> Unit,
+    onScan: () -> Unit, onHistory: () -> Unit, onReview: (String?) -> Unit, onQuestion: (String) -> Unit, onDiagnostics: () -> Unit,
     onAddress: () -> Unit, onHeroOnTop: (Boolean) -> Unit = {},
 ) {
     val engines = remember { HashMap<String, CharacterEngine>() }
-    val miniEngines = remember { HashMap<String, CharacterEngine>() }
     val touches = remember { HashMap<String, CharacterTouch>() }
     val clock = remember { { SystemClock.elapsedRealtimeNanos() / 1e6 } }
-    var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     // The hero is the list's first item: while it is the first one visible, it is what sits under the status bar.
     LaunchedEffect(listState) { snapshotFlow { listState.firstVisibleItemIndex == 0 }.collect { onHeroOnTop(it) } }
@@ -409,20 +428,36 @@ private fun Home(
         }
     }
 
-    // The PC's Home panel: the agent that matters in a big card, the others as pills.
-    val focus = HomePanel.focus(model.sessions, selected)
+    // Inicio, «Decidí en un toque» (kenai-0.1 S9): a request is the hero; else a question in the agent card; else calm; or the computer is away.
+    val paired = model.mode == Mode.PAIRED
+    val connected = model.linkState == LinkState.CONNECTED
+    val scene = HomePanel.scene(paired, connected, model.approvals.size, model.sessions)
+    val hero = ApprovalSheetPlan.hero(model.approvals)
+    val now by produceState(System.currentTimeMillis()) {
+        while (true) {
+            delay(15_000)
+            value = System.currentTimeMillis()
+        }
+    }
+    val computer = HomeText.computer(model.desktopName, demo = model.mode == Mode.DEMO)
+    val strip = HomePanel.strip(
+        scene, computer, model.sessions, model.approvals, model::agentName,
+        lostAtMs = model.health.lostAtMs, connecting = model.linkState == LinkState.CONNECTING, nowMs = now,
+    )
+    val stripView: @Composable () -> Unit = { StatusStrip(strip) }
+
+    // While only questions wait, the agent card holds the first agent with a question; its own Kenai in its colour.
+    val focus = if (scene == HomePanel.Scene.WAITING) HomePanel.focus(model.sessions.filter { it.state == BotState.QUESTION }, null) else null
     val key = focus?.pillId ?: HOME_KEY
     val engine = engines.getOrPut(key) { CharacterEngine(clock, sound = model.sounds) }
     val touch = touches.getOrPut(key) { CharacterTouch(engine, model.sounds) { model.sessions.firstOrNull { it.pillId == key }?.state ?: BotState.IDLE } }
-    val state = focus?.state ?: BotState.SLEEPING // no agent: a sleeping Kenai
+    // Calm: Koda rests while an agent works and sleeps when nothing runs.
+    val state = if (focus != null) focus.state else if (HomeText.running(model.sessions) > 0) BotState.IDLE else BotState.SLEEPING
     if (engine.state != state && !touch.dizzy) engine.setState(state)
-
-    // The hero's Kenai wears its agent's colour, like the small ones (never white by default).
     engine.bodyColor = focus?.let { HomePanel.colorHex(it) }?.let { HomePanel.rgb(it) }
 
+    val groups = HomePanel.groups(model.sessions, heroPillId = focus?.pillId ?: hero?.pillId, requestPills = model.approvals.map { it.pillId }.toSet())
     val pair = HomePanel.link(model.isPaired, model.mode == Mode.DEMO, hasApproval = model.approvals.isNotEmpty())
-    // Items, in order: the hero, [message], then the other agents, ask, recent.
-    val others = HomePanel.others(model.sessions, focus)
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -430,53 +465,63 @@ private fun Home(
         verticalArrangement = Arrangement.spacedBy(Gap),
     ) {
         item {
-            HeroCard(
-                focus, engine, touch.modifier, pair, HomeText.running(model.sessions),
-                linkDot = linkDotColor(model), linkText = linkStatusText(model),
-                onDetails = if (focus != null && HomePanel.hasDetails(focus)) ({ onSession(focus.pillId) }) else null,
-                onQuestion = if (focus != null && focus.state == BotState.QUESTION) ({ onQuestion(focus.pillId) }) else null,
-                canAnswer = focus != null && model.questionFor(focus.pillId) != null,
-                onLink = {
-                    when (pair) {
-                        HomePanel.Link.PAIR -> onScan() // not reachable on Home (no computer shows the pairing screen), harmless
-                        HomePanel.Link.APPROVAL -> onReview()
-                        HomePanel.Link.NONE -> {}
-                    }
-                },
-            )
-        }
-        // The link had worked and ended: what happened and how long ago, instead of a silent state. And, only if it would help, the battery setting.
-        if (model.mode == Mode.PAIRED && model.linkState != LinkState.CONNECTED) {
-            item { Box(Modifier.padding(horizontal = Gutter)) { LinkHealthPanel(model, onDiagnostics) } }
+            when (scene) {
+                HomePanel.Scene.REQUEST -> if (hero != null) RequestHero(model, hero, stripView, onAllow = onApprove)
+                HomePanel.Scene.OFFLINE -> OfflineHero(
+                    why = LinkHealthText.lines(connected, model.health, now)?.second,
+                    // The saved address failed and a search found nothing: the two ways out of the discovery hint.
+                    notFound = model.discovery == DiscoveryState.NOT_FOUND,
+                    strip = stripView, onRetry = { model.retryNow() }, onHelp = onDiagnostics, onPairAgain = onScan, onAddress = onAddress,
+                )
+                HomePanel.Scene.CALM -> CalmHero(engine, touch.modifier, HomeText.calm(model.sessions, model::agentName), stripView)
+                HomePanel.Scene.WAITING -> HeroCard(
+                    focus, engine, touch.modifier, pair, HomeText.running(model.sessions),
+                    linkDot = linkDotColor(model), linkText = linkStatusText(model),
+                    onDetails = if (focus != null && HomePanel.hasDetails(focus)) ({ onSession(focus.pillId) }) else null,
+                    onQuestion = if (focus != null && focus.state == BotState.QUESTION) ({ onQuestion(focus.pillId) }) else null,
+                    canAnswer = focus != null && model.questionFor(focus.pillId) != null,
+                    onLink = {
+                        when (pair) {
+                            HomePanel.Link.PAIR -> onScan() // not reachable on Home (no computer shows the pairing screen), harmless
+                            HomePanel.Link.APPROVAL -> onReview(null)
+                            HomePanel.Link.NONE -> {}
+                        }
+                    },
+                    strip = stripView,
+                )
+            }
         }
         if (model.batteryHintVisible) item { Box(Modifier.padding(horizontal = Gutter)) { BatteryCard(model) } }
-        // The saved address failed and a search found nothing: a calm hint with two ways out.
-        if (model.mode == Mode.PAIRED && model.linkState != LinkState.CONNECTED && model.discovery == DiscoveryState.NOT_FOUND) {
-            item { Box(Modifier.padding(horizontal = Gutter)) { DiscoveryHint(onPairAgain = onScan, onEnterAddress = onAddress) } }
-        }
         model.message?.let { msg ->
             item { Box(Modifier.padding(horizontal = Gutter)) { MessagePanel(msg) { model.message = null } } }
         }
 
-
-        if (others.isNotEmpty()) {
-            item {
+        val open: (com.kenai.android.link.SessionInfo) -> Unit = { onSession(it.pillId) }
+        if (scene == HomePanel.Scene.OFFLINE) {
+            // What the phone last heard, marked as not confirmed: nothing on it is current.
+            if (model.sessions.isNotEmpty()) item {
+                val heading = model.health.lostAtMs?.let { com.kenai.android.core.Words.current().lastKnown(LinkHealthText.ago(now - it)) }
+                    ?: stringResource(R.string.home_others_title)
+                Box(Modifier.padding(horizontal = Gutter)) { AgentSection(heading, model.sessions, unconfirmed = true, onOpen = open) }
+            }
+        } else {
+            if (groups.waiting.isNotEmpty()) item {
                 Box(Modifier.padding(horizontal = Gutter)) {
-                    AgentRows(
-                        others,
-                        engineFor = { s ->
-                            miniEngines.getOrPut(s.pillId) {
-                                CharacterEngine(clock).apply {
-                                    isMini = true
-                                    bodyColor = HomePanel.colorHex(s)?.let { HomePanel.rgb(it) }
-                                }
-                            }.also {
-                                it.bodyColor = HomePanel.colorHex(s)?.let { hex -> HomePanel.rgb(hex) }
-                                if (it.state != s.state) it.setState(s.state)
-                            }
-                        },
-                        onPick = { selected = it.pillId },
+                    AlsoWaiting(
+                        groups.waiting,
+                        reviewFor = { s -> model.approvals.drop(1).firstOrNull { it.pillId == s.pillId }?.fingerprint },
+                        onQuestion = onQuestion, onReview = { onReview(it) },
                     )
+                }
+            }
+            if (groups.running.isNotEmpty()) item {
+                Box(Modifier.padding(horizontal = Gutter)) {
+                    AgentSection(stringResource(R.string.home_running_title, groups.running.size), groups.running, unconfirmed = false, onOpen = open)
+                }
+            }
+            if (groups.rest.isNotEmpty()) item {
+                Box(Modifier.padding(horizontal = Gutter)) {
+                    AgentSection(stringResource(R.string.home_others_title), groups.rest, unconfirmed = false, onOpen = open)
                 }
             }
         }

@@ -39,12 +39,33 @@ class SheetsTest {
         assertTrue(sheets.contains("verticalScroll(rememberScrollState())"))
     }
 
-    @Test fun homeNoLongerDrawsARawCommand() {
-        // the only place left is the lock prompt, which must keep repeating the exact command
-        assertEquals(1, Regex("""r\.command""").findAll(main).count())
-        assertTrue(main.contains("\"${'$'}{r.tool}: ${'$'}{r.command}\""))
-        assertFalse(main.contains("fun ApprovalCard"))
+    /**
+     * kenai-0.1 S9, L21 «a»: the exact command is on Home, inside the request hero only (never in the agent rows or the hero card),
+     * Home hides from screenshots while it is there, and the lock prompt still repeats the exact command as its description.
+     */
+    @Test fun homeDrawsTheCommandOnlyInsideTheRequestHero() {
+        val ui = File("src/main/kotlin/com/kenai/android/ui").listFiles().orEmpty().filter { it.extension == "kt" }
+        val drawing = ui.filter { it.readText().contains(".command") }.map { it.name }.sorted()
+        assertEquals(listOf("RequestHero.kt", "Sheets.kt"), drawing)
+        val hero = src("ui/RequestHero.kt")
+        assertEquals("the hero draws it in exactly one place", 1, Regex("""Text\(\s*r\.command""").findAll(hero).count())
+        // and otherwise only hands it to the local risk detector
+        assertEquals(2, Regex("""r\.command""").findAll(hero).count())
+        assertTrue(hero.contains("HomeText.riskLine(r.command"))
         assertFalse(src("ui/HomePanel.kt").contains(".command"))
+        // the activity names it once: the lock prompt's description
+        assertEquals(1, Regex("""r\.command""").findAll(main).count())
+        assertTrue(main.contains("description = r.command"))
+        assertFalse("the old subtitle (tool: command) is gone", main.contains("\"${'$'}{r.tool}: ${'$'}{r.command}\""))
+        assertTrue(main.contains("R.string.confirm_title"))
+        assertTrue(main.contains("R.string.confirm_command") && main.contains("R.string.confirm_action"))
+        assertFalse(main.contains("fun ApprovalCard"))
+    }
+
+    @Test fun theLockPromptCarriesTheCommandAsItsDescription() {
+        val gate = src("app/BiometricGate.kt")
+        assertTrue(gate.contains("description: String? = null"))
+        assertTrue(gate.contains("setDescription("))
     }
 
     @Test fun theSheetSaysTheKindOfActionAndNotTheTool() {
@@ -69,7 +90,9 @@ class SheetsTest {
         assertTrue(sheets.contains("BackHandler(onBack = onDismiss)"))
         assertTrue(sheets.contains("detectTapGestures { }"))
         assertTrue(main.contains("closedApproval = pending.fingerprint"))
-        assertTrue("Review request reopens it", main.contains("onReview = { closedApproval = null }"))
+        // Review on a second request on Home opens the sheet for that one; the hero's own request never gets the sheet over it.
+        assertTrue("Review opens the sheet", main.contains("onReview = { fp -> reviewApproval = fp; closedApproval = null }"))
+        assertTrue(main.contains("ApprovalSheetPlan.next(model.approvals, closedApproval, heroShown = homeHero, review = reviewApproval)"))
     }
 
     @Test fun aQuestionIsAnsweredOnlyAfterTheScreenLock() {

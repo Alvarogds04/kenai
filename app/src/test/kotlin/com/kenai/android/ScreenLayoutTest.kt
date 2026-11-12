@@ -42,4 +42,28 @@ class ScreenLayoutTest {
         assertTrue(history.contains("HomeText.decision("))
         assertFalse("no raw command or tool: command line", history.contains("d.command") || history.contains("Monospace"))
     }
+
+    /** kenai-0.1 S9: the request hero, the strip and the sections say what agents do in sentences, never the raw status text. */
+    @Test fun theNewHomePartsNeverShowTheRawStatusText() {
+        for (f in listOf("ui/RequestHero.kt", "ui/StatusStrip.kt", "ui/HomePanel.kt")) {
+            val text = src(f)
+            assertFalse("$f draws statusText", Regex("""Text\(\s*[\w.?]*statusText""").containsMatchIn(text))
+            assertFalse("$f reads statusText", text.contains(".statusText"))
+        }
+        assertTrue(homePanel.contains("HomeText.line("))
+        assertTrue("the request names the action", src("ui/RequestHero.kt").contains("HomeText.wants("))
+    }
+
+    /** kenai-0.1 S9: Inicio's three states, each from the pure rule, and the strip on top of every one. */
+    @Test fun homeIsBuiltFromItsScenes() {
+        val home = main.substringAfter("private fun Home(")
+        assertTrue(home.contains("HomePanel.scene("))
+        for (scene in listOf("Scene.REQUEST", "Scene.WAITING", "Scene.CALM", "Scene.OFFLINE")) assertTrue(scene, home.contains(scene))
+        assertTrue(home.contains("RequestHero(") && home.contains("CalmHero(") && home.contains("OfflineHero(") && home.contains("HeroCard("))
+        assertTrue(home.contains("StatusStrip("))
+        assertTrue(home.contains("HomePanel.groups("))
+        assertTrue("the offline card replaces the link panel and the discovery hint", !home.contains("LinkHealthPanel(") && !home.contains("DiscoveryHint("))
+        assertTrue("Volver a probar reconnects now", home.contains("model.retryNow()"))
+        assertTrue(src("app/AppModel.kt").contains("fun retryNow()"))
+    }
 }

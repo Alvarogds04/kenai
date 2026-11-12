@@ -87,6 +87,8 @@ class AppModel(private val context: Context) : LinkListener {
     var desktopName by mutableStateOf<String?>(null); private set
     var sessions by mutableStateOf<List<SessionInfo>>(emptyList()); private set
     var approvals by mutableStateOf<List<ApprovalRequest>>(emptyList()); private set
+    /** When each pending request arrived, by this phone's elapsed-time clock, for Home's "Expires in m:ss" (kenai-0.1 S9). */
+    var arrivals by mutableStateOf<Map<String, Long>>(emptyMap()); private set
     /** Questions Claude Code asks that this phone may answer (only with the `answers` capability); kept in memory, never written. */
     var questions by mutableStateOf<List<QuestionRequest>>(emptyList()); private set
     var message by mutableStateOf<String?>(null)
@@ -450,6 +452,13 @@ class AppModel(private val context: Context) : LinkListener {
         }
     }
 
+    /** "Try again" on Home while the computer is away: reconnect now instead of waiting out the backoff. */
+    fun retryNow() {
+        if (mode != Mode.PAIRED) return
+        if (link == null) resume() else link?.retryNow()
+        if (mayDiscover()) finder.request()
+    }
+
     /** The periodic alarm. If Android had stopped the app, this is also what brings the link back (the pairing is stored). */
     fun keepAliveTick() {
         if (mode == Mode.NONE) resume()
@@ -597,12 +606,14 @@ class AppModel(private val context: Context) : LinkListener {
         expiry.clear()
         approvals.forEach { notifier.cancelApproval(it.fingerprint) }
         approvals = emptyList()
+        arrivals = emptyMap()
         refreshIsland()
     }
 
     private fun removeApproval(fingerprint: String) {
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         approvals = approvals.filter { it.fingerprint != fingerprint }
+        arrivals = arrivals - fingerprint
         notifier.cancelApproval(fingerprint)
         refreshIsland()
     }
@@ -697,6 +708,8 @@ class AppModel(private val context: Context) : LinkListener {
     override fun onApproval(request: ApprovalRequest) {
         main.post {
             approvals = approvals.filter { it.fingerprint != request.fingerprint } + request
+            // The same clock as the expiry below: offered again after a reconnection, it counts from now, as the removal does.
+            arrivals = arrivals + (request.fingerprint to android.os.SystemClock.elapsedRealtime())
             // One announcement only: the island if it can show, else the heads-up notification.
             refreshIsland()
             val alert = OverlayPolicy.approvalAlert(overlay.isShowingRequest())

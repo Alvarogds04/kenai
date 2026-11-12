@@ -67,4 +67,15 @@ class BottomBarOverSheetsTest {
         assertTrue(sheetLayer.contains("ApprovalSheet(") && sheetLayer.contains("PasteSheet(") && sheetLayer.contains("AddressSheet("))
         assertFalse(sheetLayer.substringBefore("PairConfirm(").contains("windowInsetsPadding("))
     }
+
+    /** kenai-0.1 S9: Inicio carries a count badge (requests and questions) in the sun colour, and TalkBack hears «Inicio, n esperándote». */
+    @Test fun homeTabCarriesTheWaitingCount() {
+        val bar = src("ui/BottomBar.kt")
+        assertTrue(bar.contains("waiting: Int"))
+        assertFalse("the old dot is gone", bar.contains("alert: Boolean"))
+        assertTrue(bar.contains("KodaRole.SUN") && bar.contains("KodaRole.ON_ROLE"))
+        assertTrue(bar.contains("R.string.tab_home_waiting"))
+        assertTrue(bar.contains("contentDescription ="))
+        assertTrue(main.contains("waiting = HomePanel.waitingCount(model.approvals.size, model.sessions)"))
+    }
 }

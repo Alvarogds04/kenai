@@ -116,8 +116,9 @@ class WordsTest {
 
     @Test fun homeTalksAboutDecisionsInSpanish() {
         spanish()
-        assertEquals("Permitido: editar archivos", HomeText.recent(true, "Edit"))
-        assertEquals("Denegado: ejecutar un comando", HomeText.recent(false, "Bash"))
+        // Said to you, as the artboard (kenai-0.1 S9): «Permitiste: …», «Denegaste: …».
+        assertEquals("Permitiste: editar archivos", HomeText.recent(true, "Edit"))
+        assertEquals("Denegaste: ejecutar un comando", HomeText.recent(false, "Bash"))
         assertEquals("Le permitiste a Claude Code ejecutar un comando", HomeText.decision(true, "Claude Code", "Bash"))
         assertEquals("Le denegaste a un agente leer archivos", HomeText.decision(false, "", "Read"))
     }
@@ -274,6 +275,26 @@ class WordsTest {
             out = out.flatMap { prefix -> choices.map { prefix + it } }
         }
         return out
+    }
+
+    /** Inicio's new words (kenai-0.1 S9, T13): the strip, the request, the calm card and the bar's badge, with voseo. */
+    @Test fun inicioSpeaksSpanishWithVoseo() {
+        val w = Words.ES
+        assertEquals("Claude Code espera tu sí", w.waitsForYourYes("Claude Code"))
+        assertEquals("Alvaro PC · 3 agentes", w.computerAgents("Alvaro PC", 3))
+        assertEquals("Alvaro PC · 1 agente", w.computerAgents("Alvaro PC", 1))
+        assertEquals("Alvaro PC · todo tranquilo", w.computerCalm("Alvaro PC"))
+        assertEquals("Sin conexión con Alvaro PC", w.offlineFrom("Alvaro PC"))
+        assertEquals("Último dato hace 3 min", w.lastHeard("3 min"))
+        assertEquals("Lo último que sabemos · hace 3 min", w.lastKnown("3 min"))
+        assertEquals("2 en curso", w.runningCount(2))
+        assertEquals("2 te esperan", w.waitingForYouCount(2))
+        assertEquals("1 te espera", w.waitingForYouCount(1))
+        assertEquals("Caduca en 1:59", w.expiresIn("1:59"))
+        assertEquals("Quiere ejecutar un comando", w.wants("ejecutar un comando"))
+        assertEquals("Quiere ejecutar un comando en kenai", w.wantsIn("ejecutar un comando", "kenai"))
+        assertEquals("dentro de kenai.", w.riskWhere("kenai"))
+        assertEquals("Gemini CLI tiene una pregunta", w.asksYou("Gemini CLI"))
     }
 
     // ── Any other language: English ───────────────────────────────────────────────────────────────

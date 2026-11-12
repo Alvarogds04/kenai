@@ -41,4 +41,12 @@ class IconSpecTest {
     @Test fun strokeIsTheSameAsThePc() {
         assertEquals(1.9, IconSpec.STROKE, 0.0)
     }
+
+    /** kenai-0.1 S9: the request hero's fingerprint on Allow, the risk line's warning and the expiry clock, drawn in code. */
+    @Test fun theRequestHeroIconsExist() {
+        for (k in listOf("FINGERPRINT", "WARNING", "CLOCK")) assertTrue(k, IconKind.entries.any { it.name == k })
+        assertTrue("a warning is a triangle", IconSpec.shapes(IconKind.WARNING).any { it is IconShape.Poly && it.points.size >= 8 })
+        assertTrue("a clock is a circle with hands", IconSpec.shapes(IconKind.CLOCK).any { it is IconShape.Circle })
+        assertTrue("a fingerprint is made of arcs", IconSpec.shapes(IconKind.FINGERPRINT).count { it is IconShape.Arc } >= 2)
+    }
 }

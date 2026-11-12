@@ -1,5 +1,8 @@
 package com.kenai.android.core
 
+import com.kenai.android.link.ApprovalRequest
+import com.kenai.android.link.LinkHealthText
+import com.kenai.android.link.Protocol
 import com.kenai.android.link.SessionInfo
 import com.kenai.android.character.BotState
 import com.kenai.android.character.Rgb
@@ -50,5 +53,85 @@ object HomePanel {
         if (h.length != 6) return null
         val v = h.toIntOrNull(16) ?: return null
         return Rgb(((v shr 16) and 0xFF) / 255.0, ((v shr 8) and 0xFF) / 255.0, (v and 0xFF) / 255.0)
+    }
+
+    // ── Inicio, "Decidí en un toque" (kenai-0.1 S9, T13) ──
+
+    /**
+     * What Inicio is about now. OFFLINE: a paired computer is not connected (nothing can be answered; requests were dropped).
+     * REQUEST: a request waits; it is the hero. WAITING: only a question waits; the agent card offers it. CALM: nothing waits.
+     */
+    enum class Scene { REQUEST, WAITING, CALM, OFFLINE }
+
+    fun scene(paired: Boolean, connected: Boolean, approvals: Int, sessions: List<SessionInfo>): Scene = when {
+        paired && !connected -> Scene.OFFLINE
+        approvals > 0 -> Scene.REQUEST
+        sessions.any { it.state == BotState.QUESTION } -> Scene.WAITING
+        else -> Scene.CALM
+    }
+
+    private val WAITS = setOf(BotState.APPROVAL, BotState.QUESTION)
+    private val RUNS = setOf(BotState.WORKING, BotState.THINKING, BotState.SEARCHING)
+
+    /** "También te espera" (a request or a question, but not the hero's agent), "En curso" (busy), and the rest; each in the desktop's order. */
+    data class Groups(val waiting: List<SessionInfo>, val running: List<SessionInfo>, val rest: List<SessionInfo>)
+
+    /**
+     * [requestPills]: the agents whose request is on the phone (null: not known, every APPROVAL counts). An agent in APPROVAL with no
+     * request here (already decided, or not arrived yet) cannot be answered from the phone, so it is listed with the rest.
+     */
+    fun groups(sessions: List<SessionInfo>, heroPillId: String?, requestPills: Set<String>? = null): Groups {
+        val shown = sessions.filter { it.pillId != heroPillId || it.state !in WAITS }
+        fun waits(s: SessionInfo) = s.state == BotState.QUESTION || (s.state == BotState.APPROVAL && (requestPills == null || s.pillId in requestPills))
+        return Groups(
+            waiting = shown.filter { waits(it) },
+            running = shown.filter { it.state in RUNS },
+            rest = shown.filter { !waits(it) && it.state !in RUNS },
+        )
+    }
+
+    /** The bar's badge on Inicio: the requests plus the questions that wait. */
+    fun waitingCount(approvals: Int, sessions: List<SessionInfo>): Int = approvals + sessions.count { it.state == BotState.QUESTION }
+
+    /** What is left of a request's 120 s, counted from its arrival on this phone's clock; never below zero or above the whole. */
+    fun remainingMs(arrivedMs: Long, nowMs: Long, ttlMs: Long = Protocol.APPROVAL_TTL_MS): Long =
+        (ttlMs - (nowMs - arrivedMs).coerceAtLeast(0)).coerceIn(0, ttlMs)
+
+    /** "1:59", rounded up to the second, so the first second still reads 2:00 and 0:00 means it is gone. */
+    fun clock(remainingMs: Long): String {
+        val s = (remainingMs.coerceAtLeast(0) + 999) / 1000
+        return "${s / 60}:${(s % 60).toString().padStart(2, '0')}"
+    }
+
+    /** "Caduca en 1:59". */
+    fun expiry(remainingMs: Long, w: Words = Words.current()): String = w.expiresIn(clock(remainingMs))
+
+    /** How full the expiry bar is: 1 at arrival, 0 when it expires. */
+    fun expiryFraction(remainingMs: Long, ttlMs: Long = Protocol.APPROVAL_TTL_MS): Float =
+        (remainingMs.coerceIn(0, ttlMs).toDouble() / ttlMs).toFloat()
+
+    /** The strip's role: sun while something waits, go while calm, red while the computer is away. */
+    enum class Tone { WAITING, CALM, OFFLINE }
+
+    /** The strip at the top of Inicio: title, subtitle and the chip's number (what waits, or what runs while calm; 0 hides it). */
+    data class Strip(val tone: Tone, val title: String, val subtitle: String, val count: Int)
+
+    fun strip(
+        scene: Scene, computer: String, sessions: List<SessionInfo>, approvals: List<ApprovalRequest>, nameOf: (String) -> String,
+        lostAtMs: Long?, connecting: Boolean, nowMs: Long, w: Words = Words.current(),
+    ): Strip = when (scene) {
+        Scene.OFFLINE -> Strip(
+            Tone.OFFLINE, w.offlineFrom(computer),
+            lostAtMs?.let { w.lastHeard(LinkHealthText.ago(nowMs - it, w)) } ?: if (connecting) w.connecting else w.notConnected, 0,
+        )
+        Scene.REQUEST -> Strip(
+            Tone.WAITING, w.waitsForYourYes(approvals.firstOrNull()?.let { nameOf(it.pillId) } ?: w.anAgent), w.computerAgents(computer, sessions.size),
+            waitingCount(approvals.size, sessions),
+        )
+        Scene.WAITING -> Strip(
+            Tone.WAITING, w.asksYou(sessions.firstOrNull { it.state == BotState.QUESTION }?.let { nameOf(it.pillId) } ?: w.anAgent), w.computerAgents(computer, sessions.size),
+            waitingCount(approvals.size, sessions),
+        )
+        Scene.CALM -> Strip(Tone.CALM, w.computerCalm(computer), w.connected, HomeText.running(sessions))
     }
 }

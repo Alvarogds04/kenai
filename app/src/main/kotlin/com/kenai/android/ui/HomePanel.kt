@@ -22,7 +22,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -84,6 +86,8 @@ fun HeroCard(
     onQuestion: (() -> Unit)? = null,
     /** The phone can answer this question here (the `answers` capability): the button says so. */
     canAnswer: Boolean = false,
+    /** Inicio's status strip (kenai-0.1 S9): when given, it replaces the link row at the top. */
+    strip: (@Composable () -> Unit)? = null,
 ) {
     val state = focus?.state ?: BotState.SLEEPING
     val wash = Color(KodaRole.of(state))
@@ -94,7 +98,7 @@ fun HeroCard(
             Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(start = Spacing.INSIDE.dp, end = Spacing.INSIDE.dp, top = 12.dp, bottom = 18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            if (strip != null) strip() else Row(verticalAlignment = Alignment.CenterVertically) {
                 StateDot(linkDot)
                 Spacer(Modifier.width(8.dp))
                 Text(linkText, Modifier.weight(1f), style = TypeScale.LABEL.style(dim), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -170,6 +174,132 @@ fun AgentRows(others: List<SessionInfo>, engineFor: (SessionInfo) -> CharacterEn
     }
 }
 
+// ── Inicio, "Decidí en un toque" (kenai-0.1 S9, T13) ─────────────────────────────────────────────────────────────
+
+/** The hero while nothing waits: a big resting Koda, "Nada te espera", and who is working where (or how to start one). */
+@Composable
+fun CalmHero(engine: CharacterEngine, touch: Modifier, sentence: String?, strip: @Composable () -> Unit) {
+    val dim = Color(IslandSurface.TEXT_DIM)
+    val white = Color(IslandSurface.TEXT)
+    HeroPanel {
+        Column(
+            Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(start = Spacing.INSIDE.dp, end = Spacing.INSIDE.dp, top = 12.dp, bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            strip()
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                CharacterView(engine, Modifier.size(128.dp).then(touch), stringResource(R.string.koda_description))
+                Text(stringResource(R.string.home_calm_title), Modifier.semantics { heading() }, style = TypeScale.TITLE.style(white))
+                Text(sentence ?: stringResource(R.string.home_empty_hint), style = TypeScale.SECONDARY.style(dim).copy(textAlign = TextAlign.Center), maxLines = 3)
+            }
+        }
+    }
+}
+
+/**
+ * The hero while the paired computer is away: what to check, "Volver a probar" (reconnect now) and "¿No se conecta?" (the checks).
+ * It says what the link panel and the discovery hint said, in one place; when the search found nothing it keeps their two ways out.
+ */
+@Composable
+fun OfflineHero(
+    why: String?, notFound: Boolean, strip: @Composable () -> Unit, onRetry: () -> Unit, onHelp: () -> Unit,
+    onPairAgain: () -> Unit, onAddress: () -> Unit,
+) {
+    val dim = Color(IslandSurface.TEXT_DIM)
+    val white = Color(IslandSurface.TEXT)
+    HeroPanel(wash = Color(KodaRole.RED)) {
+        Column(
+            Modifier.windowInsetsPadding(WindowInsets.statusBars).padding(start = Spacing.INSIDE.dp, end = Spacing.INSIDE.dp, top = 12.dp, bottom = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            strip()
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                KodaView(BotState.ERROR, Modifier.size(56.dp))
+                Text(stringResource(R.string.discovery_title), Modifier.weight(1f).semantics { heading() }, style = TypeScale.HEADLINE.style(white))
+            }
+            if (!why.isNullOrBlank()) Text(why, style = TypeScale.SECONDARY.style(white))
+            Text(stringResource(R.string.home_offline_body), style = TypeScale.SECONDARY.style(dim))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                PillButton(stringResource(R.string.home_retry), onRetry, Modifier.weight(1f), PillKind.PRIMARY, onDark = true)
+                PillButton(stringResource(R.string.diag_title), onHelp, Modifier.weight(1f), onDark = true)
+            }
+            if (notFound) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PillButton(stringResource(R.string.discovery_pair_again), onPairAgain, Modifier.weight(1f), onDark = true)
+                    PillButton(stringResource(R.string.discovery_enter_address), onAddress, Modifier.weight(1f), onDark = true)
+                }
+            }
+        }
+    }
+}
+
+/** One agent row of Inicio's sections: its Koda, its name, one plain line, and something at the end (a button or a chip). */
+@Composable
+private fun SectionRow(s: SessionInfo, name: String, line: String, onClick: (() -> Unit)?, trailing: @Composable () -> Unit) {
+    val t = tokens()
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 64.dp)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(horizontal = Spacing.INSIDE.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.GAP.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        KodaView(s.state, Modifier.size(40.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, style = TypeScale.BODY.style(t.text.c()).copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (line.isNotBlank()) Text(line, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        trailing()
+    }
+}
+
+private fun nameOf(s: SessionInfo) = s.agent.ifBlank { Pills.byId(s.pillId)?.name.orEmpty() }
+
+/**
+ * "También te espera": the other agents with a question ("Responder" opens it) or a request ("Revisar" opens its sheet; null
+ * when the phone has no request of theirs to show).
+ */
+@Composable
+fun AlsoWaiting(waiting: List<SessionInfo>, reviewFor: (SessionInfo) -> String?, onQuestion: (String) -> Unit, onReview: (String) -> Unit) {
+    if (waiting.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeading(stringResource(R.string.home_also_waiting))
+        Panel {
+            waiting.forEachIndexed { i, s ->
+                if (i > 0) RowDivider()
+                val line = HomeText.line(s) ?: stringResource(stateLabel(s.state))
+                SectionRow(s, nameOf(s), line, null) {
+                    if (s.state == BotState.QUESTION) PillButton(stringResource(R.string.home_answer), { onQuestion(s.pillId) })
+                    else reviewFor(s)?.let { fp -> PillButton(stringResource(R.string.home_review), { onReview(fp) }) }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "En curso · n" (busy agents with a live chip in their state colour), or the kept list while the computer is away ([unconfirmed]:
+ * a grey "Sin confirmar" chip, since nothing on it is current). [heading] is the section's title. A row with details opens them.
+ */
+@Composable
+fun AgentSection(heading: String, sessions: List<SessionInfo>, unconfirmed: Boolean, onOpen: (SessionInfo) -> Unit) {
+    if (sessions.isEmpty()) return
+    val t = tokens()
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeading(heading)
+        Panel {
+            sessions.forEachIndexed { i, s ->
+                if (i > 0) RowDivider()
+                val state = stringResource(stateLabel(s.state))
+                // The chip already names the state: the line says what it does, else where (never the state twice).
+                SectionRow(s, nameOf(s), HomeText.line(s) ?: s.project.orEmpty(), if (HomePanel.hasDetails(s)) ({ onOpen(s) }) else null) {
+                    if (unconfirmed) Chip(stringResource(R.string.home_unconfirmed), tint = t.textDim.c())
+                    else Chip(state, tint = Color(KodaRole.of(s.state)))
+                }
+            }
+        }
+    }
+}
+
 /** The last few things you allowed or denied, in plain words, with "See all" to the full list. */
 @Composable
 fun RecentPanel(decisions: List<Decision>, onAll: () -> Unit) {
@@ -201,9 +331,12 @@ fun RecentPanel(decisions: List<Decision>, onAll: () -> Unit) {
                     Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button, onClick = onAll).padding(horizontal = Spacing.INSIDE.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(Spacing.GAP.dp), verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    StateDot(if (d.allowed) StatusColors.online else t.danger.c())
-                    Text(HomeText.recent(d.allowed, d.tool), Modifier.weight(1f), style = TypeScale.BODY.style(t.text.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(whenText, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1)
+                    KenaiIcon(if (d.allowed) IconKind.CHECK else IconKind.CLOSE, tint = if (d.allowed) StatusColors.online else t.danger.c(), size = 20.dp)
+                    // «Permitiste: editar archivos» over «Claude Code · Ayer» (kenai-0.1 S9).
+                    Column(Modifier.weight(1f)) {
+                        Text(HomeText.recent(d.allowed, d.tool), style = TypeScale.BODY.style(t.text.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(listOf(d.agent, whenText).filter { it.isNotBlank() }.joinToString(" · "), style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
