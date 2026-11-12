@@ -13,7 +13,6 @@ import android.net.Uri
 import android.util.Log
 import com.kenai.android.MainActivity
 import com.kenai.android.R
-import com.kenai.android.core.ApprovalSheetPlan
 import com.kenai.android.core.Glance
 import com.kenai.android.core.GlanceTone
 import com.kenai.android.core.OverlayPolicy
@@ -25,8 +24,8 @@ import com.kenai.android.character.BotState
 
 /**
  * Notifications: one quiet ongoing notification for the link, and a loud one per approval.
- * Deny acts straight from the notification. Allow always opens the app for the biometric
- * check first, and the command is hidden on the lock screen.
+ * Deny acts straight from the notification; «Review request» opens the app on it, where Allow takes the biometric check.
+ * The command is never in a notification.
  */
 class Notifications(private val context: Context) {
     private val nm = context.getSystemService(NotificationManager::class.java)
@@ -123,12 +122,18 @@ class Notifications(private val context: Context) {
         )
         val publicVersion = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_kenai).setContentTitle(context.getString(R.string.approval_title)).setContentText(context.getString(R.string.notif_unlock)).build()
+        // «Claude Code necesita tu aprobación» / «Quiere ejecutar un comando» (kenai-0.1 S9, screen 5): the kind of action, never the
+        // command. The time left is only in the header, counted down live, so no fixed text can disagree with it.
+        val notice = SafeText.approvalNotice(agentName, r.tool)
         val n = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_kenai)
-            .setContentTitle(agentName)
-            .setSubText(context.getString(R.string.approval_title))
-            // A label and at most the program's name: the exact command is on the approval sheet, behind a tap.
-            .setContentText(SafeText.requestLabel(r.tool, r.command))
+            .setContentTitle(notice.title)
+            .setContentText(notice.line)
+            // The chronometer sits in the header («· 1:59»): a live countdown to the moment the request stops being offered (posted on arrival).
+            .setShowWhen(true)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+            .setWhen(System.currentTimeMillis() + com.kenai.android.link.Protocol.APPROVAL_TTL_MS)
             .setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
@@ -136,10 +141,9 @@ class Notifications(private val context: Context) {
             .setTimeoutAfter(com.kenai.android.link.Protocol.APPROVAL_TTL_MS)
             .setContentIntent(open(r.fingerprint, false, id))
             .addAction(Notification.Action.Builder(null, context.getString(R.string.action_deny), deny).build())
-            .apply {
-                // A command the phone cannot show in full is answered on the computer: no Allow here.
-                if (ApprovalSheetPlan.canAllowHere(r)) addAction(Notification.Action.Builder(null, context.getString(R.string.action_allow), open(r.fingerprint, true, id + 1)).build())
-            }
+            // «Revisar el pedido»: the app on that request (Home's hero, or its sheet), like a tap on the notification. Saying yes
+            // always takes the app and the fingerprint, so there is no Allow here.
+            .addAction(Notification.Action.Builder(null, context.getString(R.string.action_review), open(r.fingerprint, false, id + 1)).build())
             .build()
         runCatching { nm.notify(id, n) } // POST_NOTIFICATIONS may be denied: the in-app card still works
         if (alert == OverlayPolicy.ApprovalAlert.HEADS_UP) wakeScreen()
@@ -217,7 +221,7 @@ class Notifications(private val context: Context) {
         const val ACTION_DENY = "com.kenai.android.DENY"
         const val EXTRA_FP = "fingerprint"
         const val EXTRA_ALLOW = "allow"
-        /** Even ids for the request, +1 for its Allow action; never collides with ONGOING_ID. */
+        /** Even ids for the request, +1 for its «Review request» action; never collides with ONGOING_ID. */
         fun idFor(fp: String) = (fp.hashCode() and 0x3fffffff) * 2 + 2
     }
 }

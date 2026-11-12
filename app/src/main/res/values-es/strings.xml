@@ -10,6 +10,7 @@
     <string name="about_assets">Kenai no usa el nombre de Coucou, el personaje Mochi, el ícono de Coucou ni sus sonidos, que son © Louis Raillé. El código tomado de Coucou for Android es © Rhytam Biswas y se publica bajo la MIT License.</string>
     <string name="action_allow">Permitir</string>
     <string name="action_deny">Denegar</string>
+    <string name="action_review">Revisar el pedido</string>
     <string name="action_close">Cerrar</string>
     <string name="widget_description">Quién está trabajando y qué te espera.</string>
     <string name="widget_glance_label">Resumen de agentes</string>
@@ -64,7 +65,8 @@
     <string name="widget_sample_finished">Terminó</string>
     <string name="widget_sample_header">Te esperan</string>
     <string name="widget_sample_one">1</string>
-    <string name="widget_sample_two_waiting">2 esperando</string>
+    <string name="widget_sample_two_waiting">2 te esperan</string>
+    <string name="widget_sample_pc">Tu computadora</string>
     <string name="widget_sample_ring_pct">68%</string>
     <string name="widget_sample_ring_label">Claude · 5 h</string>
     <string name="widget_sample_pct_a">68%</string>

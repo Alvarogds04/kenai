@@ -274,6 +274,26 @@ class WidgetButtonsTest {
         assertTrue("the steps are in order", minHeight < medium && medium < large)
     }
 
+    // ── «Aprobaciones pendientes» ─────────────────────────────────────────────────────────────────────────
+
+    @Test fun theAlertsReviewButtonIsOnePrimaryButtonThatOnlyOpensHome() {
+        val root = element(read(res + "layout/widget_alert.xml"))
+        val button = byId(root, "alert_review")
+        assertEquals("@string/action_review", button.getAttribute("android:text"))
+        // The primary look of the artboard: the waiting tone with the dark text of the badge, a full-width button of 48dp or more.
+        assertEquals("@drawable/widget_badge_bg", button.getAttribute("android:background"))
+        assertEquals("@color/widget_on_tone", button.getAttribute("android:textColor"))
+        assertEquals("match_parent", button.getAttribute("android:layout_width"))
+        assertEquals("@dimen/widget_row_min", button.getAttribute("android:minHeight"))
+        assertEquals("Review request", strings["action_review"])
+        // Inside the wide arrangement only: the 2x2 card has no room for it.
+        assertTrue(byId(root, "alert_wide").descendants().contains(button))
+        val src = read(main + "app/WaitingAlertWidget.kt")
+        for (word in listOf("PendingLaunch", "launch.request", "ActionReceiver", "approve", "Allow", "Deny", "decide", "BiometricGate", "putExtra")) {
+            assertFalse("WaitingAlertWidget uses $word", src.contains(word, ignoreCase = word != "Allow" && word != "Deny"))
+        }
+    }
+
     // ── Nothing here can approve, deny or send ──────────────────────────────────────────────────────
 
     @Test fun everyButtonOpensAScreenOfTheClosedListAndNothingElse() {

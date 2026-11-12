@@ -222,4 +222,7 @@ object WidgetHub {
     const val CODE_BIG_USAGE_SETTINGS = 0x5D00
     const val CODE_BIG_USAGE_APP = 0x5E00
     const val CODE_MIDNIGHT = 0x5F00
+
+    /** «Revisar el pedido» on «Aprobaciones pendientes»: Home, whose hero is the first request. */
+    const val CODE_ALERT_BUTTON = 0x6000
 }

@@ -39,6 +39,18 @@ object SafeText {
         return if (program != null) "$label · $program" else label
     }
 
+    /** What an approval notification says: a title naming the agent and one line with what it wants. */
+    data class ApprovalNotice(val title: String, val line: String)
+
+    /**
+     * The approval notification (kenai-0.1 S9, screen 5): «Claude Code necesita tu aprobación» and «Quiere ejecutar un comando». It
+     * takes the tool's name and no command at all: what it wants is the kind of action ([ToolLabels.action]), so neither the lock
+     * screen nor the shade ever shows an argument, a path or a secret. The time left is not in the text: the notification's header
+     * counts it down live, and a fixed «Caduca en 2:00» beside it would soon say something else.
+     */
+    fun approvalNotice(agent: String, tool: String, w: Words = Words.current()): ApprovalNotice =
+        ApprovalNotice(w.needsYourApproval(agent.trim().ifEmpty { w.anAgent }), w.wants(ToolLabels.action(tool, w)))
+
     /**
      * Prose the agent wrote (its last message) for a surface that is not behind a tap: every word that looks like a
      * path, a URL, an address with a user name, a NAME=value pair or a long token is replaced with an ellipsis.

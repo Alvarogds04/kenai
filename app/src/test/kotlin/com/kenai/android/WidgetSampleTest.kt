@@ -70,13 +70,15 @@ class WidgetSampleTest {
     }
 
     @Test fun waiting() {
+        // The artboard's widget (kenai-0.1 S9, screen 5): a request and a question, so «2 te esperan» with one row each.
         val c = sample(WidgetSample.WAITING)
         assertEquals(WidgetTone.ATTENTION, c.look)
-        assertEquals(1, c.waiting)
-        assertEquals("1 waiting", c.alertLine)
-        assertEquals("Claude Code", c.alertSub)
+        assertEquals(2, c.waiting)
+        assertEquals("2 wait for you", c.alertLine)
+        assertEquals("Your PC", c.alertSub)
         assertEquals(BotState.APPROVAL, c.mood)
-        assertEquals("a request on top, then the others by urgency", listOf("Claude Code", "Codex", "Gemini CLI"), c.tiles.map { it.name })
+        assertEquals("a request on top, then the others by urgency", listOf("Claude Code", "Gemini CLI", "Codex"), c.tiles.map { it.name })
+        assertEquals(listOf("Claude Code" to "Waiting for your OK", "Gemini CLI" to "Has a question"), c.alertRows.map { it.name to it.word })
         assertEquals(com.kenai.android.core.UsageTone.CLOSE, c.ring!!.tone)
     }
 

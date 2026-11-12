@@ -120,11 +120,42 @@ class WidgetDataTest {
 
     @Test fun theAlertIsCalmUntilSomethingWaits() {
         assertEquals("All calm", build(emptyList()).alertLine)
-        assertEquals("1 waiting", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).alertLine)
-        assertEquals("3 waiting", build(listOf(s("agent_codex", BotState.QUESTION)), approvals = 2).alertLine)
+        assertEquals("1 waits for you", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).alertLine)
+        assertEquals("3 wait for you", build(listOf(s("agent_codex", BotState.QUESTION)), approvals = 2).alertLine)
         assertEquals("Not connected", build(emptyList(), link = LinkState.DISCONNECTED).alertLine)
         assertEquals(WidgetTone.ATTENTION, build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).look)
         assertEquals("connected with nothing to list is calm", WidgetTone.IDLE, build(emptyList()).look)
+    }
+
+    // ── «Aprobaciones pendientes» (kenai-0.1 S9, screen 5) ───────────────────────────────────────
+
+    @Test fun underTheCountTheAlertNamesTheComputer() {
+        val sessions = listOf(s("agent_codex", BotState.APPROVAL))
+        val named = WidgetData.build(glance(sessions, 1), sessions, nameOf = { names[it] ?: "An agent" }, desktop = "Alvaro PC")
+        assertEquals("Alvaro PC", named.desktop)
+        assertEquals("Alvaro PC", named.alertSub)
+        assertEquals("no name yet: the plain words", "Your PC", build(sessions, approvals = 1).alertSub)
+        assertEquals("Your PC", WidgetData.build(glance(sessions, 1), sessions, nameOf = { "x" }, desktop = "  ").alertSub)
+        // Calm and away say what they always said.
+        assertEquals("Nothing needs you", WidgetData.build(glance(emptyList()), emptyList(), nameOf = { "x" }, desktop = "Alvaro PC").alertSub)
+        assertEquals("Waiting for your PC", build(emptyList(), link = LinkState.DISCONNECTED).alertSub)
+    }
+
+    @Test fun theAlertRowsAreTheAgentsThatWaitWithTheirOwnColourAndAShortWord() {
+        val sessions = listOf(
+            s("agent_amp", BotState.WORKING), s("agent_codex", BotState.APPROVAL, color = "#D97757"), s("agent_gemini", BotState.QUESTION, color = "#4285F4"),
+        )
+        val rows = build(sessions, approvals = 1).alertRows
+        assertEquals(listOf("Codex", "Gemini CLI"), rows.map { it.name })
+        assertEquals(listOf("Waiting for your OK", "Has a question"), rows.map { it.word })
+        assertEquals(listOf(0xFFD97757.toInt(), 0xFF4285F4.toInt()), rows.map { it.argb })
+        assertEquals(listOf("agent_codex", "agent_gemini"), rows.map { it.pillId })
+        // Three at most, and none when nothing waits or the computer is away.
+        val many = (0 until 5).map { s("p$it", BotState.APPROVAL) }
+        assertEquals(WidgetData.ALERT_ROWS, build(many, approvals = 5).alertRows.size)
+        assertEquals(3, WidgetData.ALERT_ROWS)
+        assertTrue(build(listOf(s("agent_amp", BotState.WORKING))).alertRows.isEmpty())
+        assertTrue(build(sessions, approvals = 1, link = LinkState.DISCONNECTED).alertRows.isEmpty())
     }
 
     private val now = 1_000_000L

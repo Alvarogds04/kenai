@@ -62,6 +62,12 @@ data class WidgetTile(val pillId: String, val name: String, val state: BotState,
 }
 
 /**
+ * One row of «Aprobaciones pendientes» (kenai-0.1 S9, screen 5): an agent that waits for you, its own colour for the dot, its name and
+ * a short word («Espera tu sí», «Tiene una pregunta»). Names and words only, like every Widget.
+ */
+data class AlertRow(val pillId: String, val name: String, val word: String, val argb: Int)
+
+/**
  * The colours of plan usage: their own palette, so that a plan close to its limit never looks like "waiting for you" (orange) or like a
  * working agent (blue). Teal while there is room, yellow when getting close, red at the limit. In res/values/colors.xml as
  * `widget_usage_<name>`; a test keeps the two in step.
@@ -165,6 +171,8 @@ data class WidgetContent(
     val today: Int = 0,
     /** Kenai Big's plan usage: Claude then Codex, each with its main window; empty when the computer sends none or is not connected. */
     val usageRows: List<UsageRing> = emptyList(),
+    /** The paired computer's name («Alvaro PC»), under the alert's count; null while the app does not know it. */
+    val desktop: String? = null,
 ) {
     /** Which of the three things Kenai Big's right side shows. */
     val usageSide: UsageSide get() = when {
@@ -183,19 +191,28 @@ data class WidgetContent(
         else -> Words.current().noAgentsRunning
     }
 
-    /** The Waiting Alert's line: "2 waiting" in orange, or a calm word. */
+    /** The Waiting Alert's line: «2 te esperan» in orange, or a calm word. */
     val alertLine: String get() = when {
         !connected -> Words.current().notConnected
-        waiting > 0 -> Words.current().waiting(waiting)
+        waiting > 0 -> Words.current().alertCount(waiting)
         else -> Words.current().allCalm
     }
 
-    /** The line under the alert: who is waiting, or why there is nothing to say. */
+    /** The line under the alert: the computer that waits for you, or why there is nothing to say. */
     val alertSub: String get() = when {
         !connected -> Words.current().waitingForPc
-        waiting > 0 -> top?.name.orEmpty()
+        waiting > 0 -> desktop?.trim()?.takeIf { it.isNotEmpty() } ?: Words.current().yourPc
         else -> Words.current().nothingNeedsYou
     }
+
+    /** The alert's rows: the agents that wait for you (a request or a question), most urgent first, at most [WidgetData.ALERT_ROWS]. */
+    val alertRows: List<AlertRow> get() = tiles
+        .filter { it.state == BotState.APPROVAL || it.state == BotState.QUESTION }
+        .take(WidgetData.ALERT_ROWS)
+        .map { t ->
+            val w = Words.current()
+            AlertRow(t.pillId, t.name, if (t.state == BotState.APPROVAL) w.waitingForYourOk else w.hasAQuestion, t.argb)
+        }
 
     /** Kenai's face on the Today widget: pleased once something finished today, calm before. */
     val todayMood: BotState get() = if (today > 0) BotState.FINISHED else BotState.IDLE
@@ -249,6 +266,9 @@ fun Glance.mood(): BotState = lines.firstOrNull()?.state ?: if (connected) BotSt
 object WidgetData {
     /** Rows on the List widget. */
     const val MAX_ROWS = 5
+
+    /** Rows on «Aprobaciones pendientes». */
+    const val ALERT_ROWS = 3
     private val FALLBACK = GlanceTone.CALM.argb
 
     fun build(
@@ -258,6 +278,7 @@ object WidgetData {
         usage: UsageSnapshot? = null,
         today: Int = 0,
         nowMs: Long = 0L,
+        desktop: String? = null,
     ): WidgetContent {
         val tiles = if (!glance.connected) emptyList() else sessions
             .sortedBy { GlanceBuilder.rank(it.state) }
@@ -265,7 +286,7 @@ object WidgetData {
             .map { WidgetTile(it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it)) }
         val ring = if (glance.connected) ring(usage, nowMs) else null
         val rows = if (glance.connected) usageRows(usage, nowMs) else emptyList()
-        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows)
+        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows, desktop)
     }
 
     /**
@@ -292,10 +313,11 @@ object WidgetData {
                 SessionInfo("agent_codex", "Codex", BotState.THINKING, "", 0, 0, 0L),
                 SessionInfo("agent_gemini", "Gemini CLI", BotState.IDLE, "", 0, 0, 0L),
             )
+            // A request and a question, as on the artboard (kenai-0.1 S9, screen 5): «2 te esperan» with one row each.
             WidgetSample.WAITING -> listOf(
                 SessionInfo("integration_claude", "Claude Code", BotState.APPROVAL, "", 0, 0, 0L),
                 SessionInfo("agent_codex", "Codex", BotState.WORKING, "", 0, 0, 0L),
-                SessionInfo("agent_gemini", "Gemini CLI", BotState.FINISHED, "", 0, 0, 0L),
+                SessionInfo("agent_gemini", "Gemini CLI", BotState.QUESTION, "", 0, 0, 0L),
             )
             WidgetSample.DONE -> listOf(
                 SessionInfo("integration_claude", "Claude Code", BotState.FINISHED, "", 0, 0, 0L),

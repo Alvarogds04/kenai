@@ -27,10 +27,13 @@ class SheetsTest {
         // Allow is drawn only under the check, and the notice is not behind a tap.
         assertTrue(sheets.substringAfter("val canAllow").substringBefore("PillKind.PRIMARY").contains("if (canAllow)"))
         assertFalse(sheets.substringAfter("approval_too_long").substringBefore("canAllow").contains("showCommand"))
-        // The same rule at every door: the sheet's callback, the model, the notification and the island.
+        // The same rule at every door: the sheet's callback, the model and the island. The notification has no Allow at all
+        // (kenai-0.1 S9, screen 5: «Revisar el pedido» opens the app instead), so it cannot offer one for a cut command either.
         assertTrue(main.contains("ApprovalSheetPlan.canAllowHere(r)"))
         assertTrue(src("app/AppModel.kt").substringAfter("fun decide(fingerprint").substringBefore("link?.decide").contains("canAllowHere(request)"))
-        assertTrue(src("app/Notifications.kt").contains("if (ApprovalSheetPlan.canAllowHere(r)) addAction"))
+        val notifications = src("app/Notifications.kt")
+        assertFalse("no Allow action in the notification", notifications.contains("R.string.action_allow"))
+        assertFalse("no action opens the app on Allow", notifications.substringAfter("fun showApproval(").substringBefore("private fun wakeScreen").contains("open(r.fingerprint, true"))
         assertTrue(src("ui/IslandOverlay.kt").contains("if (s.canAllow)"))
     }
 

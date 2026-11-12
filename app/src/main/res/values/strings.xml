@@ -10,6 +10,7 @@
     <string name="about_assets">Kenai does not use Coucou\'s name, the Mochi character, Coucou\'s icon or its sounds, which are © Louis Raillé. The code taken from Coucou for Android is © Rhytam Biswas, released under the MIT License.</string>
     <string name="action_allow">Allow</string>
     <string name="action_deny">Deny</string>
+    <string name="action_review">Review request</string>
     <string name="action_close">Close</string>
     <string name="widget_description">Who is working and what waits for you.</string>
     <string name="widget_glance_label">Agents summary</string>
@@ -64,7 +65,8 @@
     <string name="widget_sample_finished">Finished</string>
     <string name="widget_sample_header">Waiting for you</string>
     <string name="widget_sample_one">1</string>
-    <string name="widget_sample_two_waiting">2 waiting</string>
+    <string name="widget_sample_two_waiting">2 wait for you</string>
+    <string name="widget_sample_pc">Your PC</string>
     <string name="widget_sample_ring_pct">68%</string>
     <string name="widget_sample_ring_label">Claude · 5 h</string>
     <string name="widget_sample_pct_a">68%</string>

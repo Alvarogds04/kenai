@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The picture the Widget picker shows on Android 11 (no previewLayout there): the card, its gradient and the character in the state of the sample. -->
+<!-- The picture the Widget picker shows on Android 11 (no previewLayout there): the waiting card, anxious Koda in the top corner where
+     the count sits beside him, and «Revisar el pedido» as the orange bar along the bottom. A layer list cannot hold text. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@drawable/widget_card_attention" />
     <item
@@ -9,10 +10,17 @@
         android:bottom="1dp"
         android:drawable="@drawable/widget_tint_attention" />
     <item
-        android:width="84dp"
-        android:height="84dp"
-        android:left="0dp"
-        android:top="0dp"
-        android:gravity="center"
+        android:width="44dp"
+        android:height="44dp"
+        android:left="12dp"
+        android:top="12dp"
+        android:gravity="top|start"
         android:drawable="@drawable/preview_char_waiting" />
+    <item
+        android:height="48dp"
+        android:left="12dp"
+        android:right="12dp"
+        android:bottom="12dp"
+        android:gravity="bottom|fill_horizontal"
+        android:drawable="@drawable/widget_badge_bg" />
 </layer-list>

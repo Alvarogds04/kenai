@@ -75,6 +75,12 @@ interface Words {
     // ── Inicio: the strip, the request hero, the calm card (kenai-0.1 S9) ───────────────────────────
     /** The strip's title while a request waits: "Claude Code is waiting for your yes". */
     fun waitsForYourYes(agent: String): String
+    /** The approval notification's title: "Claude Code needs your approval" (kenai-0.1 S9, screen 5). */
+    fun needsYourApproval(agent: String): String
+    /** A waiting agent's row on «Aprobaciones pendientes»: "Waiting for your OK" (the same words as the app's state label). */
+    val waitingForYourOk: String
+    /** The count on «Aprobaciones pendientes», short enough to sit beside Koda on a 3x2: "2 wait for you". */
+    fun alertCount(n: Int): String
     /** The strip's title while only a question waits. */
     fun asksYou(agent: String): String
     /** The strip's subtitle over a question while a request waits too: a tap reviews it (T15). */
@@ -295,6 +301,9 @@ private object English : Words {
         "You ${if (allowed) "allowed" else "denied"} ${agent.ifBlank { "an agent" }} to $action"
 
     override fun waitsForYourYes(agent: String) = "$agent is waiting for your yes"
+    override fun needsYourApproval(agent: String) = "$agent needs your approval"
+    override val waitingForYourOk = "Waiting for your OK"
+    override fun alertCount(n: Int) = plural(n, "1 waits for you", "$n wait for you")
     override fun asksYou(agent: String) = "$agent has a question"
     override val tapToReview = "Tap to review the request"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agent", "$n agents")
@@ -521,6 +530,9 @@ private object Spanish : Words {
         "Le ${if (allowed) "permitiste" else "denegaste"} a ${agent.ifBlank { "un agente" }} $action"
 
     override fun waitsForYourYes(agent: String) = "$agent espera tu sí"
+    override fun needsYourApproval(agent: String) = "$agent necesita tu aprobación"
+    override val waitingForYourOk = "Espera tu sí"
+    override fun alertCount(n: Int) = plural(n, "1 te espera", "$n te esperan")
     override fun asksYou(agent: String) = "$agent tiene una pregunta"
     override val tapToReview = "Tocá para revisar el pedido"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agente", "$n agentes")

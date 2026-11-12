@@ -143,7 +143,7 @@ class WidgetPreviewTest {
         assertEquals(listOf("Claude", "Working"), text("pill"))
         // The pill shows its four buttons: home, chat, settings and recent, in that order.
         assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
-        assertEquals(listOf("2 waiting", "Claude Code"), text("alert"))
+        assertEquals(listOf("2 wait for you", "Your PC", "Claude Code", "Waiting for your OK", "Gemini CLI", "Has a question", "Review request"), text("alert"))
         assertEquals(listOf("68%", "Claude · 5 h"), text("ring"))
         assertTrue(text("today").containsAll(listOf("5", "done today")))
         assertTrue("the Mood preview shows only a face", text("mood").isEmpty())
@@ -159,6 +159,32 @@ class WidgetPreviewTest {
         assertTrue(preview("mood").contains("preview_char_done") && preview("today").contains("preview_char_done"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
         assertTrue(preview("ring").contains("preview_ring_68"))
+    }
+
+    @Test fun theAlertPreviewIsTheWaitingSampleOnTheWideCard() {
+        // «Aprobaciones pendientes» (kenai-0.1 S9, screen 5): the picker shows exactly what the WAITING sample draws, in the same order.
+        val c = com.kenai.android.core.WidgetData.sample(com.kenai.android.core.WidgetSample.WAITING)
+        val shown = Regex("""@string/(\w+)""").findAll(preview("alert")).map { strings.getValue(it.groupValues[1]) }.toList()
+        assertEquals(listOf(c.alertLine, c.alertSub) + c.alertRows.flatMap { listOf(it.name, it.word) } + strings.getValue("action_review"), shown)
+        // Koda anxious beside the count, one dot per row, and the primary button in the waiting tone with the badge's dark text.
+        val xml = preview("alert")
+        assertTrue(xml.contains("@drawable/preview_char_waiting"))
+        assertEquals(2, Regex("""@drawable/widget_dot""").findAll(xml).count())
+        assertTrue(xml.contains("""android:background="@drawable/widget_badge_bg"""") && xml.contains("""android:textColor="@color/widget_on_tone""""))
+        assertTrue(xml.contains("""android:minHeight="@dimen/widget_row_min""""))
+        // The Android 11 picture: the same card, Koda in the corner and the button along the bottom.
+        val image = read(res + "drawable/widget_preview_image_alert.xml")
+        assertTrue(image.contains("@drawable/preview_char_waiting") && image.contains("@drawable/widget_badge_bg"))
+    }
+
+    @Test fun theAlertCountFitsBesideKodaOnA3x2() {
+        // A 3x2 about 250dp wide: padding 12 + 12, Koda 44 and 8 beside him; the count is 20sp bold, the computer 13sp.
+        val room = 250 - 24 - 44 - 8
+        for (n in listOf(1, 2, 3)) for (w in listOf(com.kenai.android.core.Words.EN, com.kenai.android.core.Words.ES)) {
+            val count = w.alertCount(n)
+            assertTrue("'$count' needs ${width(count, 20.0, true).toInt()}dp of $room", width(count, 20.0, true) <= room)
+        }
+        assertTrue(width(sample("widget_sample_pc"), 13.0, false) <= room)
     }
 
     @Test fun theBadgeAndTheAlertAreOrange() {

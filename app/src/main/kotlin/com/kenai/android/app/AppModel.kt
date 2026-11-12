@@ -358,9 +358,9 @@ class AppModel(private val context: Context) : LinkListener {
         mode != Mode.NONE || isPaired, linkState, desktopName, sessions, approvals.size, this::agentName,
     )
 
-    /** What the Widgets draw now: the glance, the sessions, the plan usage the computer sent and today's finished tasks. */
+    /** What the Widgets draw now: the glance, the sessions, the plan usage the computer sent, today's finished tasks and the computer's name. */
     fun widgetContent(g: com.kenai.android.core.Glance = glance()): com.kenai.android.core.WidgetContent =
-        com.kenai.android.core.WidgetData.build(g, sessions, this::agentName, usage, todayCounter.count(), System.currentTimeMillis())
+        com.kenai.android.core.WidgetData.build(g, sessions, this::agentName, usage, todayCounter.count(), System.currentTimeMillis(), desktopName)
 
     /** The small surfaces follow every change of sessions, requests and link; none of them runs a timer. */
     private fun pushGlance() {

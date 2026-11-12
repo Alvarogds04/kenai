@@ -85,7 +85,7 @@ class WidgetSurfacesTest {
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(15, codes.size)
+        assertEquals(16, codes.size)
         assertEquals(codes.size, codes.toSet().size)
         // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()
@@ -222,7 +222,7 @@ class WidgetSurfacesTest {
         val strings = read("src/main/res/values/strings.xml")
         val expected = mapOf(
             "kenai_solo_widget_info" to (2 to 2), "kenai_list_widget_info" to (4 to 3), "kenai_big_widget_info" to (4 to 4),
-            "kenai_pill_widget_info" to (4 to 1), "kenai_alert_widget_info" to (2 to 2), "kenai_ring_widget_info" to (2 to 2),
+            "kenai_pill_widget_info" to (4 to 1), "kenai_alert_widget_info" to (3 to 2), "kenai_ring_widget_info" to (2 to 2),
             "kenai_today_widget_info" to (2 to 2), "kenai_mood_widget_info" to (1 to 1), "kenai_widget_info" to (3 to 2),
         )
         assertEquals(widgets.map { it.second }.toSet(), expected.keys)
@@ -245,6 +245,36 @@ class WidgetSurfacesTest {
             val label = Regex("""android:name="\.app\.$cls"[^>]*android:label="@string/(\w+)"""").find(manifest)!!.groupValues[1]
             assertTrue("$cls label $label", strings.contains("""name="$label""""))
         }
+    }
+
+    // ── «Aprobaciones pendientes» (kenai-0.1 S9, screen 5) ───────────────────────────────────────
+
+    @Test fun theAlertIsWideWithRowsAndStillFitsTwoByTwo() {
+        val info = read("src/main/res/xml/kenai_alert_widget_info.xml")
+        // Placed 3x2 by default (as wide as the row allows), and never smaller than 2x2.
+        assertEquals("110", attr(info, "minResizeWidth")!!.removeSuffix("dp"))
+        assertEquals("110", attr(info, "minResizeHeight")!!.removeSuffix("dp"))
+        assertEquals("horizontal|vertical", attr(info, "resizeMode"))
+        val src = read(main + "app/WaitingAlertWidget.kt")
+        assertTrue(src.contains("WidgetHub.responsive(MEDIUM_AT, LARGE_AT)"))
+        val layout = read("src/main/res/layout/widget_alert.xml")
+        for (id in listOf("alert_column", "alert_wide", "alert_wide_face", "alert_wide_count", "alert_wide_sub", "alert_rows", "alert_review")) assertTrue(id, layout.contains("@+id/$id"))
+        for (i in 0 until 3) for (part in listOf("row", "dot", "name", "state")) assertTrue("alert_${part}$i", layout.contains("@+id/alert_${part}$i"))
+        // The rows: the agent's own colour on the dot, its name and the short word; never more than the data's three.
+        assertTrue(src.contains("c.alertRows"))
+        assertTrue(src.contains("setColorFilter\", row.argb"))
+        assertTrue(src.contains("row.name") && src.contains("row.word"))
+        // The calm card is the one of before: Koda resting and the calm words, centred.
+        assertTrue(src.contains("val wide = waiting && size != WidgetHub.Size.SMALL"))
+    }
+
+    @Test fun theAlertOpensTheAppAndItsButtonOpensHome() {
+        val src = read(main + "app/WaitingAlertWidget.kt")
+        // A tap anywhere opens the app; «Revisar el pedido» opens Home, whose hero is the first request.
+        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_root, WidgetHub.openApp(context, WidgetHub.CODE_ALERT))"))
+        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_review, WidgetHub.openScreen(context, WidgetHub.CODE_ALERT_BUTTON, LaunchScreen.HOME))"))
+        assertTrue(src.contains("setContentDescription(R.id.alert_review"))
+        assertTrue(src.contains("R.string.action_review"))
     }
 
     @Test fun theListNeverGoesBelowTwoRowsAndTheBigOneKeepsItsBubble() {
