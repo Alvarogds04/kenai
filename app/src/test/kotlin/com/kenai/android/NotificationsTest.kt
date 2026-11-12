@@ -72,6 +72,33 @@ class NotificationsTest {
         assertTrue(approval.contains("setTimeoutAfter(com.kenai.android.link.Protocol.APPROVAL_TTL_MS)"))
     }
 
+    // ── One request, one notification ───────────────────────────────────────────────────────────────
+
+    @Test fun aWaitingRequestStepsTheQuietNotificationAside() {
+        // Android bundles an app's notifications and counts them: the request's loud notification next to this quiet one read
+        // as "2" for a single approval (kenai-0.1 L29). While a request has its own, this one leaves the shade, and comes
+        // back when nothing waits.
+        val body = n.substringAfter("fun updateOngoing(").substringBefore("fun showApproval(")
+        assertTrue("withdraws the quiet notification", body.contains("nm.cancel(ONGOING_ID)"))
+        assertTrue("only while a request waits", body.contains("model.approvals.isNotEmpty()"))
+        assertTrue("and comes back when nothing waits", body.contains("nm.notify(ONGOING_ID, ongoing(g))"))
+        assertTrue(
+            "nothing is posted after stepping aside",
+            body.substringAfter("nm.cancel(ONGOING_ID)").substringBefore("nm.notify").contains("return"),
+        )
+    }
+
+    @Test fun theQuietNotificationNeverAnnouncesARequestThatHasItsOwn() {
+        // The same rule when the link service starts, which has to post one: the summary of a waiting request is the request's
+        // own notification, never a second «Te está esperando» line.
+        val call = n.substringAfter("fun ongoing(model: AppModel?)").substringBefore("private fun ongoing(g: Glance?)")
+        assertTrue("the quiet one asks for its own content", call.contains("quietGlance"))
+        val body = n.substringAfter("private fun quietGlance(").substringBefore("fun updateOngoing(")
+        assertTrue(body.contains("model.approvals.isEmpty()"))
+        assertTrue("the link's own state, from the same builder", body.contains("GlanceBuilder.build("))
+        assertTrue("no request is counted in it", body.contains("approvals = 0"))
+    }
+
     @Test fun itStaysPrivateOnTheLockScreenAndLoud() {
         assertTrue(approval.contains("VISIBILITY_PRIVATE"))
         assertTrue(approval.contains("setPublicVersion(publicVersion)"))

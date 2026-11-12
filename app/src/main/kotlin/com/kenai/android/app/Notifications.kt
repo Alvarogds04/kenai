@@ -14,6 +14,7 @@ import android.util.Log
 import com.kenai.android.MainActivity
 import com.kenai.android.R
 import com.kenai.android.core.Glance
+import com.kenai.android.core.GlanceBuilder
 import com.kenai.android.core.GlanceTone
 import com.kenai.android.core.OverlayPolicy
 import com.kenai.android.core.SafeText
@@ -77,11 +78,11 @@ class Notifications(private val context: Context) {
     }
 
     /**
-     * The quiet notification that keeps the link alive: the headline of [Glance] as its title, the detail under it and,
+     * The quiet notification that keeps the link alive: the headline of the link's [Glance] as its title, the detail under it and,
      * when expanded, one line per agent ("Claude Code: Working"). Only states, never a command or a path. On a locked
      * screen it shows the plain "Connected" line, like the other notifications of the app.
      */
-    fun ongoing(model: AppModel?): Notification = ongoing(model?.glance())
+    fun ongoing(model: AppModel?): Notification = ongoing(model?.let { quietGlance(it) })
 
     private fun ongoing(g: Glance?): Notification {
         val title = g?.headline ?: context.getString(R.string.status_connecting)
@@ -109,8 +110,35 @@ class Notifications(private val context: Context) {
     }
 
     fun updateOngoing(model: AppModel, g: Glance = model.glance()) {
-        if (model.mode == Mode.PAIRED) runCatching { nm.notify(ONGOING_ID, ongoing(g)) }
+        if (model.mode != Mode.PAIRED) return
+        // One request, one notification (kenai-0.1 T20): while a waiting request has its own loud notification in the shade,
+        // this quiet one steps aside. Android bundles an app's notifications and counts them, so the request next to this
+        // one read as "2" for a single approval (L29). It comes back with the next change once nothing waits.
+        if (model.approvals.isNotEmpty()) {
+            runCatching { nm.cancel(ONGOING_ID) }
+            return
+        }
+        runCatching { nm.notify(ONGOING_ID, ongoing(g)) }
     }
+
+    /**
+     * What the quiet ongoing notification says: the link at a glance. A request waiting for the user already has its own loud
+     * notification with its own actions, so this one never repeats it — a second «Te está esperando» line — and is built with
+     * no requests at all: the link's own state.
+     */
+    private fun quietGlance(model: AppModel): Glance =
+        if (model.approvals.isEmpty()) {
+            model.glance()
+        } else {
+            GlanceBuilder.build(
+                paired = true,
+                link = model.linkState,
+                desktop = model.desktopName,
+                sessions = model.sessions,
+                approvals = 0,
+                nameOf = model::agentName,
+            )
+        }
 
     fun showApproval(r: ApprovalRequest, agentName: String, alert: OverlayPolicy.ApprovalAlert = OverlayPolicy.ApprovalAlert.HEADS_UP) {
         val channel = if (alert == OverlayPolicy.ApprovalAlert.QUIET) CH_APPROVAL_QUIET else CH_APPROVAL
