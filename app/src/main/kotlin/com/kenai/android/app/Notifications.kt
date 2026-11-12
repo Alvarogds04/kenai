@@ -27,6 +27,10 @@ import com.kenai.android.character.BotState
  * Notifications: one quiet ongoing notification for the link, and a loud one per approval.
  * Deny acts straight from the notification; «Review request» opens the app on it, where Allow takes the biometric check.
  * The command is never in a notification.
+ *
+ * Each kind carries its own group key ([GROUP_APPROVALS], [GROUP_LINK], [GROUP_STATUS]) and none of them posts a summary:
+ * Android only autogroups the notifications of an app that have no group of their own (kenai-0.1 T20), so an approval next
+ * to the ongoing one no longer reads as one group of «2», and a group with no summary is drawn as a plain entry.
  */
 class Notifications(private val context: Context) {
     private val nm = context.getSystemService(NotificationManager::class.java)
@@ -94,6 +98,10 @@ class Notifications(private val context: Context) {
             .setColor(g?.tone?.argb ?: GlanceTone.CALM.argb)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
+            // Its own group: autogrouping leaves it alone whatever else the app posts (T20). No summary, so it keeps its own
+            // alert instead of handing it to one that never exists.
+            .setGroup(GROUP_LINK)
+            .setGroupAlertBehavior(Notification.GROUP_ALERT_ALL)
             .setShowWhen(false)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(
@@ -111,14 +119,11 @@ class Notifications(private val context: Context) {
 
     fun updateOngoing(model: AppModel, g: Glance = model.glance()) {
         if (model.mode != Mode.PAIRED) return
-        // One request, one notification (kenai-0.1 T20): while a waiting request has its own loud notification in the shade,
-        // this quiet one steps aside. Android bundles an app's notifications and counts them, so the request next to this
-        // one read as "2" for a single approval (L29). It comes back with the next change once nothing waits.
-        if (model.approvals.isNotEmpty()) {
-            runCatching { nm.cancel(ONGOING_ID) }
-            return
-        }
-        runCatching { nm.notify(ONGOING_ID, ongoing(g)) }
+        // One request, one notification (kenai-0.1 T20). The quiet one never steps aside: the link service holds this id with
+        // startForeground, so on API 35 a cancel here is ignored and the record stays next to the approval (L31). It is always
+        // posted, and while something waits it carries the link's own state (quietGlance) instead of repeating the request,
+        // which has its own loud notification in its own group: nothing to bundle, no «2».
+        runCatching { nm.notify(ONGOING_ID, ongoing(if (model.approvals.isEmpty()) g else quietGlance(model))) }
     }
 
     /**
@@ -163,6 +168,10 @@ class Notifications(private val context: Context) {
             .setChronometerCountDown(true)
             .setWhen(System.currentTimeMillis() + com.kenai.android.link.Protocol.APPROVAL_TTL_MS)
             .setCategory(Notification.CATEGORY_ALARM)
+            // Its own group, so Android's autogrouping never bundles it with the ongoing notification (T20). No summary is
+            // posted, so this one keeps its own heads-up: its alert is never handed to a child or a summary.
+            .setGroup(GROUP_APPROVALS)
+            .setGroupAlertBehavior(Notification.GROUP_ALERT_ALL)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion)
             .setAutoCancel(true)
@@ -207,6 +216,8 @@ class Notifications(private val context: Context) {
             .setContentText(what)
             .setSubText(ToolLabels.label(statusText).takeIf { it.isNotBlank() })
             .setCategory(Notification.CATEGORY_STATUS)
+            // A third group: a status notice is never bundled with a request or with the link (T20).
+            .setGroup(GROUP_STATUS)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setPublicVersion(
                 Notification.Builder(context, CH_UPDATES).setSmallIcon(R.drawable.ic_stat_kenai)
@@ -246,6 +257,10 @@ class Notifications(private val context: Context) {
         const val CH_UPDATES = "updates"
         private const val STATUS_TAG = "status"
         const val ONGOING_ID = 1
+        /** One explicit group per kind of notification: Android only autogroups the ones that have no group (T20). */
+        const val GROUP_APPROVALS = "kenai.approvals"
+        const val GROUP_LINK = "kenai.link"
+        const val GROUP_STATUS = "kenai.status"
         const val ACTION_DENY = "com.kenai.android.DENY"
         const val EXTRA_FP = "fingerprint"
         const val EXTRA_ALLOW = "allow"

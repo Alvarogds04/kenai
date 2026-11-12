@@ -74,18 +74,38 @@ class NotificationsTest {
 
     // ── One request, one notification ───────────────────────────────────────────────────────────────
 
-    @Test fun aWaitingRequestStepsTheQuietNotificationAside() {
-        // Android bundles an app's notifications and counts them: the request's loud notification next to this quiet one read
-        // as "2" for a single approval (kenai-0.1 L29). While a request has its own, this one leaves the shade, and comes
-        // back when nothing waits.
+    @Test fun aWaitingRequestNeverCancelsTheForegroundNotification() {
+        // Stepping aside did not work on API 35: the link service holds ONGOING_ID with startForeground, so the cancel is
+        // ignored and the record stays (kenai-0.1 L31). The quiet one stays posted with the link's own state, and the
+        // request keeps its own loud notification; nothing is taken out of the shade.
+        assertFalse("nothing cancels the id the link service holds", n.contains("nm.cancel(ONGOING_ID)"))
         val body = n.substringAfter("fun updateOngoing(").substringBefore("fun showApproval(")
-        assertTrue("withdraws the quiet notification", body.contains("nm.cancel(ONGOING_ID)"))
-        assertTrue("only while a request waits", body.contains("model.approvals.isNotEmpty()"))
-        assertTrue("and comes back when nothing waits", body.contains("nm.notify(ONGOING_ID, ongoing(g))"))
-        assertTrue(
-            "nothing is posted after stepping aside",
-            body.substringAfter("nm.cancel(ONGOING_ID)").substringBefore("nm.notify").contains("return"),
-        )
+        assertTrue("it is always posted", body.contains("nm.notify(ONGOING_ID"))
+        assertTrue("with the link's own state, never the request's", body.contains("quietGlance(model)"))
+        assertFalse("no branch leaves the request out of the shade", body.contains("approvals.isNotEmpty()"))
+        // The foreground service notification must stay a foreground service notification: ongoing and not dismissible.
+        val ongoing = n.substringAfter("private fun ongoing(g: Glance?)").substringBefore("fun updateOngoing(")
+        assertTrue(ongoing.contains(".setOngoing(true)"))
+        assertTrue(File("src/main/kotlin/com/kenai/android/app/LinkService.kt").readText().contains("startForeground(Notifications.ONGOING_ID"))
+    }
+
+    @Test fun eachKindOfNotificationHasItsOwnExplicitGroup() {
+        // Android autogroups an app's notifications that have no group of their own (GroupHelper: only non-app-grouped
+        // ones are bundled), so one approval next to the ongoing one read as one group of «2» (kenai-0.1 L29/L31). An
+        // explicit group takes a notification out of autogrouping, and a group with no summary is drawn as a plain
+        // entry, not as a count (ShadeListBuilder.pruneIncompleteGroups).
+        val ongoing = n.substringAfter("private fun ongoing(g: Glance?)").substringBefore("fun updateOngoing(")
+        val status = n.substringAfter("fun showStatus(").substringBefore("fun cancelStatus(")
+        assertTrue("the request", approval.contains("setGroup(GROUP_APPROVALS)"))
+        assertTrue("the link", ongoing.contains("setGroup(GROUP_LINK)"))
+        assertTrue("a status notice", status.contains("setGroup(GROUP_STATUS)"))
+        val groups = Regex("""const val (GROUP_\w+) = "([^"]+)"""").findAll(n).associate { it.groupValues[1] to it.groupValues[2] }
+        assertEquals("one group per kind", 3, groups.size)
+        assertEquals("never the same group for two kinds", 3, groups.values.toSet().size)
+        assertFalse("no summary is posted: it would bring the group count back", n.contains("setGroupSummary(true)"))
+        // A request is the loud one: its own alert is never handed to a summary that does not exist.
+        assertTrue(approval.contains("setGroupAlertBehavior(Notification.GROUP_ALERT_ALL)"))
+        assertTrue(ongoing.contains("setGroupAlertBehavior(Notification.GROUP_ALERT_ALL)"))
     }
 
     @Test fun theQuietNotificationNeverAnnouncesARequestThatHasItsOwn() {
