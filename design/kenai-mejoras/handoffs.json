@@ -3,13 +3,13 @@
   "chosen": "01-decidi-en-un-toque.html",
   "handoffs": {
     "01-decidi-en-un-toque.html": {
-      "status": "in_progress",
+      "status": "implemented",
       "queued": false,
       "sentAt": "2026-11-12T07:54:22.823Z",
       "startedAt": "2026-11-12T07:55:20.984Z",
-      "implementedAt": null,
+      "implementedAt": "2026-11-12T10:21:29.060Z",
       "feature": "odd/tasks/kenai-0.1.md",
-      "note": "Mapping the artboard to the app's components; implementation tasks T13+ in odd/tasks/kenai-0.1.md"
+      "note": "Implemented in release/0.1 (T13–T18): request hero on Home with command, risk, expiry and Denegar/Permitir; result states with haptics; question screen; notification «Revisar el pedido»; «Aprobaciones pendientes» widget. 910 tests, 0 failures; checked on the pixel7 emulator against tools/dev-desktop.mjs. Native app: no loopback preview URL."
     }
   }
 }
