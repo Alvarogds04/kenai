@@ -46,6 +46,9 @@ class WidgetSampleTest {
         assertEquals("Claude Code", c.top!!.name)
         assertEquals(3, c.tiles.size)
         assertEquals(0, c.waiting)
+        // Nothing waits: the alert stays calm even though agents work (T18).
+        assertEquals(WidgetTone.IDLE, c.alertLook)
+        assertEquals(BotState.IDLE, c.alertMood)
         assertEquals("Claude", c.ring!!.plan)
         assertEquals(42, c.ring!!.pct)
         assertEquals(com.kenai.android.core.UsageTone.CALM, c.ring!!.tone)
@@ -79,6 +82,13 @@ class WidgetSampleTest {
         assertEquals(BotState.APPROVAL, c.mood)
         assertEquals("a request on top, then the others by urgency", listOf("Claude Code", "Gemini CLI", "Codex"), c.tiles.map { it.name })
         assertEquals(listOf("Claude Code" to "Waiting for your OK", "Gemini CLI" to "Has a question"), c.alertRows.map { it.name to it.word })
+        // The phone's own request and question (T18): the count and the two rows agree, the alert has its own look and button.
+        assertEquals(listOf("integration_claude"), c.waitingRequests)
+        assertEquals(listOf("agent_gemini"), c.waitingQuestions)
+        assertEquals(c.alertRows.size, c.alertCount)
+        assertEquals(WidgetTone.ATTENTION, c.alertLook)
+        assertEquals(BotState.APPROVAL, c.alertMood)
+        assertEquals("Review request", c.alertButton)
         assertEquals(com.kenai.android.core.UsageTone.CLOSE, c.ring!!.tone)
     }
 

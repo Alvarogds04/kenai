@@ -274,7 +274,19 @@ class WidgetSurfacesTest {
         assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_root, WidgetHub.openApp(context, WidgetHub.CODE_ALERT))"))
         assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_review, WidgetHub.openScreen(context, WidgetHub.CODE_ALERT_BUTTON, LaunchScreen.HOME))"))
         assertTrue(src.contains("setContentDescription(R.id.alert_review"))
-        assertTrue(src.contains("R.string.action_review"))
+        // The button says what waits (T18): «Revisar el pedido», or «Responder la pregunta» when only questions wait; its description says the same.
+        assertTrue(src.contains("v.setTextViewText(R.id.alert_review, c.alertButton)"))
+        assertTrue(src.contains("v.setContentDescription(R.id.alert_review, c.alertButton)"))
+    }
+
+    @Test fun theAlertWearsItsOwnToneNotTheTopAgents() {
+        // An agent in error with nothing waiting must not paint a calm line on a red card (L27, T18): the alert has its own look and mood.
+        val src = read(main + "app/WaitingAlertWidget.kt")
+        assertTrue(src.contains("c.alertLook") && src.contains("c.alertMood"))
+        for (shared in listOf("c.look", "c.mood")) assertFalse("WaitingAlertWidget uses $shared", Regex(Regex.escape(shared) + "\\b").containsMatchIn(src))
+        // The count is the phone's: what it holds for you, so the count and the rows agree.
+        assertTrue(src.contains("c.alertCount"))
+        assertFalse(src.contains("c.waiting"))
     }
 
     @Test fun theListNeverGoesBelowTwoRowsAndTheBigOneKeepsItsBubble() {

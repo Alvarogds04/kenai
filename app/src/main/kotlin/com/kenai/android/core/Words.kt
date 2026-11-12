@@ -81,6 +81,10 @@ interface Words {
     val waitingForYourOk: String
     /** The count on «Aprobaciones pendientes», short enough to sit beside Koda on a 3x2: "2 wait for you". */
     fun alertCount(n: Int): String
+    /** The alert's button while a request waits: the same words as the notification's action, "Review request". */
+    val reviewTheRequest: String
+    /** The alert's button while only questions wait: "Answer the question" (T18). */
+    val replyToTheQuestion: String
     /** The strip's title while only a question waits. */
     fun asksYou(agent: String): String
     /** The strip's subtitle over a question while a request waits too: a tap reviews it (T15). */
@@ -304,6 +308,8 @@ private object English : Words {
     override fun needsYourApproval(agent: String) = "$agent needs your approval"
     override val waitingForYourOk = "Waiting for your OK"
     override fun alertCount(n: Int) = plural(n, "1 waits for you", "$n wait for you")
+    override val reviewTheRequest = "Review request"
+    override val replyToTheQuestion = "Answer the question"
     override fun asksYou(agent: String) = "$agent has a question"
     override val tapToReview = "Tap to review the request"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agent", "$n agents")
@@ -533,6 +539,8 @@ private object Spanish : Words {
     override fun needsYourApproval(agent: String) = "$agent necesita tu aprobación"
     override val waitingForYourOk = "Espera tu sí"
     override fun alertCount(n: Int) = plural(n, "1 te espera", "$n te esperan")
+    override val reviewTheRequest = "Revisar el pedido"
+    override val replyToTheQuestion = "Responder la pregunta"
     override fun asksYou(agent: String) = "$agent tiene una pregunta"
     override val tapToReview = "Tocá para revisar el pedido"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agente", "$n agentes")

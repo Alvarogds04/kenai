@@ -173,7 +173,41 @@ data class WidgetContent(
     val usageRows: List<UsageRing> = emptyList(),
     /** The paired computer's name («Alvaro PC»), under the alert's count; null while the app does not know it. */
     val desktop: String? = null,
+    /** The requests this phone holds for you, oldest first, as their agents' pillIds (one per request). Empty while not connected. */
+    val waitingRequests: List<String> = emptyList(),
+    /**
+     * The questions waiting for you, as pillIds: the ones this phone holds, then any agent the computer shows asking with no card on the
+     * phone (a computer that keeps its questions to itself). One per agent. Empty while not connected.
+     */
+    val waitingQuestions: List<String> = emptyList(),
 ) {
+    /**
+     * What «Aprobaciones pendientes» counts: the phone's requests and questions, one per row, so «2 te esperan» always has two rows
+     * (kenai-0.1 T18). It can differ from [waiting], which counts the questions from the agents' states.
+     */
+    val alertCount: Int get() = waitingRequests.size + waitingQuestions.size
+
+    /**
+     * The alert's own look (T18), not the top agent's: an agent stopped on an error does not paint a calm card red. Not connected: muted.
+     * Something waits: orange. Otherwise: calm grey.
+     */
+    val alertLook: WidgetTone get() = when {
+        !connected -> WidgetTone.MUTED
+        alertCount > 0 -> WidgetTone.ATTENTION
+        else -> WidgetTone.IDLE
+    }
+
+    /** Koda on the alert: asleep when away, anxious for a request, asking for a question, else resting, whatever the agents do. */
+    val alertMood: BotState get() = when {
+        !connected -> BotState.SLEEPING
+        waitingRequests.isNotEmpty() -> BotState.APPROVAL
+        waitingQuestions.isNotEmpty() -> BotState.QUESTION
+        else -> BotState.IDLE
+    }
+
+    /** The alert's button: «Revisar el pedido» while a request waits, «Responder la pregunta» when only questions do. It opens Home either way. */
+    val alertButton: String get() = Words.current().let { w -> if (waitingQuestions.isNotEmpty() && waitingRequests.isEmpty()) w.replyToTheQuestion else w.reviewTheRequest }
+
     /** Which of the three things Kenai Big's right side shows. */
     val usageSide: UsageSide get() = when {
         !connected -> UsageSide.NOT_CONNECTED
@@ -194,25 +228,32 @@ data class WidgetContent(
     /** The Waiting Alert's line: «2 te esperan» in orange, or a calm word. */
     val alertLine: String get() = when {
         !connected -> Words.current().notConnected
-        waiting > 0 -> Words.current().alertCount(waiting)
+        alertCount > 0 -> Words.current().alertCount(alertCount)
         else -> Words.current().allCalm
     }
 
     /** The line under the alert: the computer that waits for you, or why there is nothing to say. */
     val alertSub: String get() = when {
         !connected -> Words.current().waitingForPc
-        waiting > 0 -> desktop?.trim()?.takeIf { it.isNotEmpty() } ?: Words.current().yourPc
+        alertCount > 0 -> desktop?.trim()?.takeIf { it.isNotEmpty() } ?: Words.current().yourPc
         else -> Words.current().nothingNeedsYou
     }
 
-    /** The alert's rows: the agents that wait for you (a request or a question), most urgent first, at most [WidgetData.ALERT_ROWS]. */
-    val alertRows: List<AlertRow> get() = tiles
-        .filter { it.state == BotState.APPROVAL || it.state == BotState.QUESTION }
-        .take(WidgetData.ALERT_ROWS)
-        .map { t ->
-            val w = Words.current()
-            AlertRow(t.pillId, t.name, if (t.state == BotState.APPROVAL) w.waitingForYourOk else w.hasAQuestion, t.argb)
-        }
+    /**
+     * The alert's rows, from what the phone holds (T18): one per request («Espera tu sí»), then one per question («Tiene una pregunta»),
+     * so an agent with both has two rows, the request first; at most [WidgetData.ALERT_ROWS]. Each row takes its agent's name and colour
+     * from its tile, else from the pill catalogue, else its id and the calm grey.
+     */
+    val alertRows: List<AlertRow> get() {
+        val w = Words.current()
+        return (waitingRequests.map { it to w.waitingForYourOk } + waitingQuestions.map { it to w.hasAQuestion })
+            .take(WidgetData.ALERT_ROWS)
+            .map { (id, word) ->
+                val tile = tiles.firstOrNull { it.pillId == id }
+                val pill = Pills.byId(id)
+                AlertRow(id, tile?.name ?: pill?.name ?: id, word, tile?.argb ?: WidgetData.parse(pill?.colorHex) ?: GlanceTone.CALM.argb)
+            }
+    }
 
     /** Kenai's face on the Today widget: pleased once something finished today, calm before. */
     val todayMood: BotState get() = if (today > 0) BotState.FINISHED else BotState.IDLE
@@ -279,6 +320,8 @@ object WidgetData {
         today: Int = 0,
         nowMs: Long = 0L,
         desktop: String? = null,
+        requests: List<String> = emptyList(),
+        questions: List<String> = emptyList(),
     ): WidgetContent {
         val tiles = if (!glance.connected) emptyList() else sessions
             .sortedBy { GlanceBuilder.rank(it.state) }
@@ -286,7 +329,14 @@ object WidgetData {
             .map { WidgetTile(it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it)) }
         val ring = if (glance.connected) ring(usage, nowMs) else null
         val rows = if (glance.connected) usageRows(usage, nowMs) else emptyList()
-        return WidgetContent(glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows, desktop)
+        val waitingRequests = if (glance.connected) requests else emptyList()
+        // The phone's questions, then an agent the computer shows asking with no card here (a computer that keeps its questions to itself): it waits all the same.
+        val waitingQuestions = if (!glance.connected) emptyList() else
+            (questions + sessions.filter { it.state == BotState.QUESTION }.map { it.pillId }).distinct()
+        return WidgetContent(
+            glance.headline, glance.tone, glance.connected, glance.waiting, tiles, ring, today.coerceAtLeast(0), rows, desktop,
+            waitingRequests, waitingQuestions,
+        )
     }
 
     /**
@@ -346,7 +396,10 @@ object WidgetData {
             WidgetSample.WORKING, WidgetSample.WAITING -> 3
             WidgetSample.DONE -> 5
         }
-        return build(glance, sessions, { names[it] ?: w.anAgent }, usage, today, nowMs)
+        // The phone holds Claude Code's request and Gemini CLI's question: «2 te esperan», two rows.
+        val requests = if (which == WidgetSample.WAITING) listOf("integration_claude") else emptyList()
+        val questions = if (which == WidgetSample.WAITING) listOf("agent_gemini") else emptyList()
+        return build(glance, sessions, { names[it] ?: w.anAgent }, usage, today, nowMs, requests = requests, questions = questions)
     }
 
     private const val HOUR_MS = 3_600_000L

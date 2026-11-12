@@ -360,7 +360,11 @@ class AppModel(private val context: Context) : LinkListener {
 
     /** What the Widgets draw now: the glance, the sessions, the plan usage the computer sent, today's finished tasks and the computer's name. */
     fun widgetContent(g: com.kenai.android.core.Glance = glance()): com.kenai.android.core.WidgetContent =
-        com.kenai.android.core.WidgetData.build(g, sessions, this::agentName, usage, todayCounter.count(), System.currentTimeMillis(), desktopName)
+        com.kenai.android.core.WidgetData.build(
+            g, sessions, this::agentName, usage, todayCounter.count(), System.currentTimeMillis(), desktopName,
+            // What the phone holds for you, so the alert's count and rows agree (kenai-0.1 T18).
+            requests = approvals.map { it.pillId }, questions = questions.map { it.pillId },
+        )
 
     /** The small surfaces follow every change of sessions, requests and link; none of them runs a timer. */
     private fun pushGlance() {
@@ -783,6 +787,8 @@ class AppModel(private val context: Context) : LinkListener {
     override fun onQuestion(request: QuestionRequest) {
         main.post {
             questions = questions.filter { it.fingerprint != request.fingerprint } + request
+            // The alert widget lists the phone's questions: it follows their arrival and their going (T18).
+            pushGlance()
             buzzOnArrival(Arrival.QUESTION, request.pillId, request.fingerprint)
             // Offered for 120 s from now, like an approval; the computer drops it at 115 s.
             expiry.remove(request.fingerprint)?.let { main.removeCallbacks(it) }
@@ -803,6 +809,7 @@ class AppModel(private val context: Context) : LinkListener {
     private fun removeQuestion(fingerprint: String) {
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         questions = questions.filter { it.fingerprint != fingerprint }
+        pushGlance()
     }
 
     /** One short buzz for an arriving request or question, when the user wants it (main thread). */

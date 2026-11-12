@@ -86,14 +86,20 @@ class WordsTest {
 
     @Test fun theWidgetLinesSpeakSpanish() {
         spanish()
-        val waiting = WidgetData.build(glance(listOf(s("a", BotState.APPROVAL)), approvals = 2), listOf(s("a", BotState.APPROVAL)), { names[it] ?: "?" })
+        val waiting = WidgetData.build(
+            glance(listOf(s("a", BotState.APPROVAL)), approvals = 2), listOf(s("a", BotState.APPROVAL)), { names[it] ?: "?" }, requests = listOf("a", "b"),
+        )
         assertEquals("2 te esperan", waiting.alertLine)
         assertEquals("Tu computadora", waiting.alertSub)
-        assertEquals(listOf("Espera tu sí"), waiting.alertRows.map { it.word })
-        val one = WidgetData.build(glance(listOf(s("a", BotState.QUESTION))), listOf(s("a", BotState.QUESTION)), { names[it] ?: "?" }, desktop = "Alvaro PC")
+        assertEquals(listOf("Espera tu sí", "Espera tu sí"), waiting.alertRows.map { it.word })
+        assertEquals("Revisar el pedido", waiting.alertButton)
+        val one = WidgetData.build(
+            glance(listOf(s("a", BotState.QUESTION))), listOf(s("a", BotState.QUESTION)), { names[it] ?: "?" }, desktop = "Alvaro PC", questions = listOf("a"),
+        )
         assertEquals("1 te espera", one.alertLine)
         assertEquals("Alvaro PC", one.alertSub)
         assertEquals(listOf("Tiene una pregunta"), one.alertRows.map { it.word })
+        assertEquals("Responder la pregunta", one.alertButton)
         val calm = WidgetData.build(glance(), emptyList(), { "?" })
         assertEquals("Todo tranquilo", calm.alertLine)
         assertEquals("Nada te necesita", calm.alertSub)
@@ -180,6 +186,15 @@ class WordsTest {
         val english = Diagnostics.report("0.1", "14", "Pixel", down, Diagnostics.maskHost("pc.local"), "not connected")
         assertTrue(english, english.contains("PROBLEM  Phone network: x"))
         assertTrue(english, english.contains("Computer: a name (hidden) · connected via: not connected"))
+    }
+
+    /** The alert's button (T18) says what the app's own buttons say, in both languages: «Revisar el pedido» and «Responder la pregunta». */
+    @Test fun theAlertButtonWordsAreTheAppsOwn() {
+        for ((file, w) in listOf("../i18n/app-strings.json" to Words.current(Locale.ENGLISH), "../i18n/app-strings.es.json" to Words.current(Locale.forLanguageTag("es-AR")))) {
+            val json = File(file).readText()
+            assertTrue("$file action_review", json.contains("\"action_review\": \"${w.reviewTheRequest}\""))
+            assertTrue("$file question_see_answer", json.contains("\"question_see_answer\": \"${w.replyToTheQuestion}\""))
+        }
     }
 
     /** The app's "connected via" and "no computer" words in the copied report come from the words, not from English literals. */

@@ -30,6 +30,10 @@ class WidgetDataTest {
     private fun build(sessions: List<SessionInfo>, approvals: Int = 0, link: LinkState = LinkState.CONNECTED) =
         WidgetData.build(glance(sessions, approvals, link), sessions, nameOf = { names[it] ?: "An agent" })
 
+    /** The alert as the app builds it: the phone's own requests and questions (pillIds), the glance counting the requests. */
+    private fun alert(sessions: List<SessionInfo>, requests: List<String> = emptyList(), questions: List<String> = emptyList(), link: LinkState = LinkState.CONNECTED) =
+        WidgetData.build(glance(sessions, requests.size, link), sessions, nameOf = { names[it] ?: "An agent" }, requests = requests, questions = questions)
+
     @Test fun theMostUrgentAgentComesFirstLikeOnTheOtherSurfaces() {
         val sessions = listOf(s("agent_amp", BotState.IDLE), s("agent_codex", BotState.WORKING), s("agent_gemini", BotState.APPROVAL))
         val c = build(sessions, approvals = 1)
@@ -120,22 +124,55 @@ class WidgetDataTest {
 
     @Test fun theAlertIsCalmUntilSomethingWaits() {
         assertEquals("All calm", build(emptyList()).alertLine)
-        assertEquals("1 waits for you", build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).alertLine)
-        assertEquals("3 wait for you", build(listOf(s("agent_codex", BotState.QUESTION)), approvals = 2).alertLine)
+        assertEquals("1 waits for you", alert(listOf(s("agent_codex", BotState.APPROVAL)), requests = listOf("agent_codex")).alertLine)
+        assertEquals("3 wait for you", alert(listOf(s("agent_codex", BotState.QUESTION)), requests = listOf("agent_amp", "agent_gemini")).alertLine)
         assertEquals("Not connected", build(emptyList(), link = LinkState.DISCONNECTED).alertLine)
         assertEquals(WidgetTone.ATTENTION, build(listOf(s("agent_codex", BotState.APPROVAL)), approvals = 1).look)
         assertEquals("connected with nothing to list is calm", WidgetTone.IDLE, build(emptyList()).look)
+    }
+
+    // ── The alert's own tone (kenai-0.1 T18): calm unless something waits ─────────────────────────
+
+    @Test fun anAgentInErrorWithNothingWaitingLeavesTheAlertCalm() {
+        val c = alert(listOf(s("agent_codex", BotState.ERROR), s("agent_amp", BotState.WORKING)))
+        assertEquals(WidgetTone.IDLE, c.alertLook)
+        assertEquals(BotState.IDLE, c.alertMood)
+        assertEquals("All calm", c.alertLine)
+        // The other widgets still show the top agent's trouble.
+        assertEquals(WidgetTone.TROUBLE, c.look)
+        assertEquals(BotState.ERROR, c.mood)
+    }
+
+    @Test fun theAlertTurnsOrangeWhenSomethingWaitsAndMutedWhenAway() {
+        val request = alert(listOf(s("agent_codex", BotState.ERROR), s("agent_amp", BotState.WORKING)), requests = listOf("agent_amp"))
+        assertEquals(WidgetTone.ATTENTION, request.alertLook)
+        assertEquals(BotState.APPROVAL, request.alertMood)
+        val question = alert(listOf(s("agent_codex", BotState.ERROR)), questions = listOf("agent_gemini"))
+        assertEquals(WidgetTone.ATTENTION, question.alertLook)
+        assertEquals("only a question waits", BotState.QUESTION, question.alertMood)
+        val both = alert(emptyList(), requests = listOf("agent_amp"), questions = listOf("agent_gemini"))
+        assertEquals(BotState.APPROVAL, both.alertMood)
+        val away = alert(listOf(s("agent_codex", BotState.ERROR)), requests = listOf("agent_codex"), link = LinkState.DISCONNECTED)
+        assertEquals(WidgetTone.MUTED, away.alertLook)
+        assertEquals(BotState.SLEEPING, away.alertMood)
+        assertEquals(0, away.alertCount)
+    }
+
+    @Test fun theAlertButtonSaysWhatWaits() {
+        assertEquals("Review request", alert(emptyList(), requests = listOf("agent_amp")).alertButton)
+        assertEquals("Review request", alert(emptyList(), requests = listOf("agent_amp"), questions = listOf("agent_gemini")).alertButton)
+        assertEquals("Answer the question", alert(emptyList(), questions = listOf("agent_gemini")).alertButton)
     }
 
     // ── «Aprobaciones pendientes» (kenai-0.1 S9, screen 5) ───────────────────────────────────────
 
     @Test fun underTheCountTheAlertNamesTheComputer() {
         val sessions = listOf(s("agent_codex", BotState.APPROVAL))
-        val named = WidgetData.build(glance(sessions, 1), sessions, nameOf = { names[it] ?: "An agent" }, desktop = "Alvaro PC")
+        val named = WidgetData.build(glance(sessions, 1), sessions, nameOf = { names[it] ?: "An agent" }, desktop = "Alvaro PC", requests = listOf("agent_codex"))
         assertEquals("Alvaro PC", named.desktop)
         assertEquals("Alvaro PC", named.alertSub)
-        assertEquals("no name yet: the plain words", "Your PC", build(sessions, approvals = 1).alertSub)
-        assertEquals("Your PC", WidgetData.build(glance(sessions, 1), sessions, nameOf = { "x" }, desktop = "  ").alertSub)
+        assertEquals("no name yet: the plain words", "Your PC", alert(sessions, requests = listOf("agent_codex")).alertSub)
+        assertEquals("Your PC", WidgetData.build(glance(sessions, 1), sessions, nameOf = { "x" }, desktop = "  ", requests = listOf("agent_codex")).alertSub)
         // Calm and away say what they always said.
         assertEquals("Nothing needs you", WidgetData.build(glance(emptyList()), emptyList(), nameOf = { "x" }, desktop = "Alvaro PC").alertSub)
         assertEquals("Waiting for your PC", build(emptyList(), link = LinkState.DISCONNECTED).alertSub)
@@ -145,17 +182,57 @@ class WidgetDataTest {
         val sessions = listOf(
             s("agent_amp", BotState.WORKING), s("agent_codex", BotState.APPROVAL, color = "#D97757"), s("agent_gemini", BotState.QUESTION, color = "#4285F4"),
         )
-        val rows = build(sessions, approvals = 1).alertRows
+        val rows = alert(sessions, requests = listOf("agent_codex"), questions = listOf("agent_gemini")).alertRows
         assertEquals(listOf("Codex", "Gemini CLI"), rows.map { it.name })
         assertEquals(listOf("Waiting for your OK", "Has a question"), rows.map { it.word })
         assertEquals(listOf(0xFFD97757.toInt(), 0xFF4285F4.toInt()), rows.map { it.argb })
         assertEquals(listOf("agent_codex", "agent_gemini"), rows.map { it.pillId })
         // Three at most, and none when nothing waits or the computer is away.
         val many = (0 until 5).map { s("p$it", BotState.APPROVAL) }
-        assertEquals(WidgetData.ALERT_ROWS, build(many, approvals = 5).alertRows.size)
+        assertEquals(WidgetData.ALERT_ROWS, alert(many, requests = many.map { it.pillId }).alertRows.size)
         assertEquals(3, WidgetData.ALERT_ROWS)
         assertTrue(build(listOf(s("agent_amp", BotState.WORKING))).alertRows.isEmpty())
-        assertTrue(build(sessions, approvals = 1, link = LinkState.DISCONNECTED).alertRows.isEmpty())
+        assertTrue(alert(sessions, requests = listOf("agent_codex"), link = LinkState.DISCONNECTED).alertRows.isEmpty())
+    }
+
+    @Test fun theRowsComeFromThePhonesRequestsAndQuestionsSoTheCountAgrees() {
+        // The bug of L27: the desktop shows the agent in QUESTION while the phone holds its request and its question.
+        val sessions = listOf(s("agent_codex", BotState.QUESTION), s("agent_amp", BotState.ERROR))
+        val c = alert(sessions, requests = listOf("agent_codex"), questions = listOf("agent_codex"))
+        assertEquals("one row per waiting thing, the request first", listOf("Codex" to "Waiting for your OK", "Codex" to "Has a question"), c.alertRows.map { it.name to it.word })
+        assertEquals(2, c.alertCount)
+        assertEquals("2 wait for you", c.alertLine)
+        // The count and the rows agree up to three rows; above, the count goes on and the rows stop at three.
+        for (n in 0..5) {
+            val ids = (0 until n).map { "p$it" }
+            val built = alert(emptyList(), requests = ids.take(n / 2), questions = ids.drop(n / 2))
+            assertEquals("$n waiting", n, built.alertCount)
+            assertEquals("$n waiting", minOf(n, WidgetData.ALERT_ROWS), built.alertRows.size)
+        }
+        // Requests before questions, whatever the desktop's states say.
+        val order = alert(listOf(s("agent_gemini", BotState.APPROVAL), s("agent_codex", BotState.WORKING)), requests = listOf("agent_codex", "agent_amp"), questions = listOf("agent_gemini"))
+        assertEquals(listOf("agent_codex", "agent_amp", "agent_gemini"), order.alertRows.map { it.pillId })
+    }
+
+    @Test fun aRowWithNoTileTakesThePillsNameAndColourElseItsId() {
+        // Not among the sessions: the catalogue's name and colour.
+        val known = alert(emptyList(), requests = listOf("agent_opencode")).alertRows.single()
+        assertEquals("OpenCode", known.name)
+        assertEquals(0xFF4ADE80.toInt(), known.argb)
+        // Not in the catalogue either: its id and the calm grey.
+        val unknown = alert(emptyList(), questions = listOf("agent_nobody")).alertRows.single()
+        assertEquals("agent_nobody", unknown.name)
+        assertEquals(GlanceTone.CALM.argb, unknown.argb)
+    }
+
+    @Test fun aQuestionTheDesktopShowsCountsEvenWhenThePhoneHasNoCardForIt() {
+        // Without the answers capability the phone holds no question, but the agent still waits: one row, as the glance counts it.
+        val c = alert(listOf(s("agent_gemini", BotState.QUESTION)))
+        assertEquals(listOf("agent_gemini"), c.waitingQuestions)
+        assertEquals(c.waiting, c.alertCount)
+        assertEquals(listOf("Gemini CLI" to "Has a question"), c.alertRows.map { it.name to it.word })
+        // The same agent's question held by the phone is not counted twice.
+        assertEquals(1, alert(listOf(s("agent_gemini", BotState.QUESTION)), questions = listOf("agent_gemini")).alertCount)
     }
 
     private val now = 1_000_000L

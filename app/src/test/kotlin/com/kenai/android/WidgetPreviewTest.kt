@@ -165,7 +165,12 @@ class WidgetPreviewTest {
         // «Aprobaciones pendientes» (kenai-0.1 S9, screen 5): the picker shows exactly what the WAITING sample draws, in the same order.
         val c = com.kenai.android.core.WidgetData.sample(com.kenai.android.core.WidgetSample.WAITING)
         val shown = Regex("""@string/(\w+)""").findAll(preview("alert")).map { strings.getValue(it.groupValues[1]) }.toList()
-        assertEquals(listOf(c.alertLine, c.alertSub) + c.alertRows.flatMap { listOf(it.name, it.word) } + strings.getValue("action_review"), shown)
+        assertEquals(listOf(c.alertLine, c.alertSub) + c.alertRows.flatMap { listOf(it.name, it.word) } + c.alertButton, shown)
+        // Two rows for «2 wait for you»: the count and the rows agree (T18), and the card wears the alert's own tone.
+        assertEquals(2, c.alertCount)
+        assertEquals(c.alertCount, c.alertRows.size)
+        assertEquals(WidgetTone.ATTENTION, c.alertLook)
+        assertTrue(preview("alert").contains("widget_card_" + c.alertLook.name.lowercase()))
         // Koda anxious beside the count, one dot per row, and the primary button in the waiting tone with the badge's dark text.
         val xml = preview("alert")
         assertTrue(xml.contains("@drawable/preview_char_waiting"))
