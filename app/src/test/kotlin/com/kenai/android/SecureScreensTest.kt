@@ -9,9 +9,9 @@ import org.junit.Test
 
 class SecureScreensTest {
     private fun needed(
-        screen: Screen, pairing: Boolean = false, approval: Boolean = false, question: Boolean = false, confirm: Boolean = false,
+        screen: Screen, pairing: Boolean = false, approval: Boolean = false, confirm: Boolean = false,
         pending: Boolean = false,
-    ) = SecureScreens.needed(screen, pairing, approval, question, confirm, approvalPending = pending)
+    ) = SecureScreens.needed(screen, pairing, approval, confirm, approvalPending = pending)
 
     @Test fun pairingChatApprovalAndQuestionAreHidden() {
         assertTrue("pairing screen", needed(Screen.HOME, pairing = true))
@@ -19,7 +19,7 @@ class SecureScreensTest {
         assertTrue("chat", needed(Screen.CHAT))
         assertTrue("approval over Home", needed(Screen.HOME, approval = true))
         assertTrue("approval over Settings", needed(Screen.SETTINGS, approval = true))
-        assertTrue("question", needed(Screen.HOME, question = true))
+        assertTrue("the question screen (kenai-0.1 S9, T15)", needed(Screen.QUESTION))
         assertTrue("pair confirmation", needed(Screen.HOME, confirm = true))
     }
 
@@ -44,7 +44,8 @@ class SecureScreensTest {
         assertTrue(src.contains("window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)"))
         assertTrue("cleared when the screen is no longer sensitive", src.contains("window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)"))
         // The decision sees every sheet that exists: a new sheet must be added to it.
-        for (sheet in listOf("ApprovalSheet(", "QuestionSheet(", "PairConfirm(")) assertTrue(sheet, src.contains(sheet))
+        for (sheet in listOf("ApprovalSheet(", "PairConfirm(")) assertTrue(sheet, src.contains(sheet))
+        assertFalse("the question is a screen now, not a sheet", src.contains("questionSheetShown"))
         assertTrue("Home's hero is part of the decision", src.contains("approvalPending = model.approvals.isNotEmpty()"))
     }
 }

@@ -3,8 +3,8 @@ package com.kenai.android.core
 /** The three places the bottom bar leads to. */
 enum class Tab { HOME, CHAT, SETTINGS }
 
-/** Every screen of the app. Tabs are the roots; the rest are one level down. */
-enum class Screen { HOME, CHAT, SETTINGS, HISTORY, GALLERY, DIAGNOSTICS, LICENCES, SESSION, SCAN }
+/** Every screen of the app. Tabs are the roots; the rest are one level down. QUESTION: an agent's question (kenai-0.1 S9, screen 4). */
+enum class Screen { HOME, CHAT, SETTINGS, HISTORY, GALLERY, DIAGNOSTICS, LICENCES, SESSION, SCAN, QUESTION }
 
 /**
  * Where the user is and where Back goes. Pure, so every rule is a unit test:
@@ -27,7 +27,7 @@ object Nav {
         Screen.HOME -> Tab.HOME
         Screen.CHAT -> Tab.CHAT
         Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES -> Tab.SETTINGS
-        Screen.SESSION, Screen.SCAN -> null
+        Screen.SESSION, Screen.SCAN, Screen.QUESTION -> null
     }
 
     fun barVisible(screen: Screen, keyboardOpen: Boolean): Boolean =
@@ -36,17 +36,22 @@ object Nav {
     /** One level up, or null when Back should leave the app. */
     fun back(screen: Screen): Screen? = when (screen) {
         Screen.HOME -> null
-        Screen.CHAT, Screen.SETTINGS, Screen.SESSION, Screen.SCAN -> Screen.HOME
+        Screen.CHAT, Screen.SETTINGS, Screen.SESSION, Screen.SCAN, Screen.QUESTION -> Screen.HOME
         Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES -> Screen.SETTINGS
     }
 
     /**
      * The screen a recreated activity reopens (a light/dark switch, a rotation, a language or font change, or the
      * process ended in the background): the one saved by name. Home when nothing valid was saved, or for a session
-     * page that lost its session.
+     * page that lost its session, or for a question that no longer waits ([questionPending]: answered, expired, or the process
+     * ended and took it along).
      */
-    fun restore(saved: String?, sessionPill: String?): Screen {
+    fun restore(saved: String?, sessionPill: String?, questionPending: Boolean = false): Screen {
         val screen = Screen.entries.firstOrNull { it.name == saved } ?: return Screen.HOME
-        return if (screen == Screen.SESSION && sessionPill == null) Screen.HOME else screen
+        return when {
+            screen == Screen.SESSION && sessionPill == null -> Screen.HOME
+            screen == Screen.QUESTION && !questionPending -> Screen.HOME
+            else -> screen
+        }
     }
 }

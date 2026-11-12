@@ -16,7 +16,7 @@ class NavigationTest {
 
     @Test fun theBarShowsOnTheThreeRootsOnly() {
         for (s in listOf(Screen.HOME, Screen.CHAT, Screen.SETTINGS)) assertTrue("$s", Nav.barVisible(s, keyboardOpen = false))
-        for (s in listOf(Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.SESSION, Screen.SCAN)) assertFalse("$s", Nav.barVisible(s, false))
+        for (s in listOf(Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.SESSION, Screen.SCAN, Screen.QUESTION)) assertFalse("$s", Nav.barVisible(s, false))
     }
 
     @Test fun theBarHidesWhileTheKeyboardIsOpen() {
@@ -29,6 +29,7 @@ class NavigationTest {
         assertEquals(Screen.HOME, Nav.back(Screen.SETTINGS))
         assertEquals(Screen.HOME, Nav.back(Screen.SESSION))
         assertEquals(Screen.HOME, Nav.back(Screen.SCAN))
+        assertEquals(Screen.HOME, Nav.back(Screen.QUESTION))
         assertEquals(Screen.SETTINGS, Nav.back(Screen.HISTORY))
         assertEquals(Screen.SETTINGS, Nav.back(Screen.GALLERY))
         assertEquals(Screen.SETTINGS, Nav.back(Screen.DIAGNOSTICS))
@@ -50,6 +51,7 @@ class NavigationTest {
         for (s in listOf(Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS)) assertEquals(Tab.SETTINGS, Nav.tabOf(s))
         assertNull(Nav.tabOf(Screen.SCAN))
         assertNull(Nav.tabOf(Screen.SESSION))
+        assertNull(Nav.tabOf(Screen.QUESTION))
     }
 
     @Test fun everyTabLeadsToItsOwnScreen() {
@@ -59,7 +61,7 @@ class NavigationTest {
     @Test fun aRecreatedActivityReopensTheScreenThatWasOpen() {
         // S4: a light/dark switch, a rotation or a language change must not send the user back to Home.
         assertEquals(Screen.SETTINGS, Nav.restore(Screen.SETTINGS.name, sessionPill = null))
-        for (s in Screen.entries) assertEquals("$s", s, Nav.restore(s.name, sessionPill = "pill-1"))
+        for (s in Screen.entries) assertEquals("$s", s, Nav.restore(s.name, sessionPill = "pill-1", questionPending = true))
     }
 
     @Test fun nothingOrSomethingUnknownSavedOpensHome() {
@@ -71,5 +73,13 @@ class NavigationTest {
 
     @Test fun aSessionPageWithoutItsSessionOpensHome() {
         assertEquals(Screen.HOME, Nav.restore(Screen.SESSION.name, sessionPill = null))
+    }
+
+    /** kenai-0.1 S9, T15: the question is a full screen; recreated, it comes back only while its question still waits. */
+    @Test fun aQuestionScreenComesBackOnlyWhileItsQuestionWaits() {
+        assertEquals(Screen.QUESTION, Nav.restore(Screen.QUESTION.name, sessionPill = null, questionPending = true))
+        assertEquals("answered or gone meanwhile", Screen.HOME, Nav.restore(Screen.QUESTION.name, sessionPill = null, questionPending = false))
+        assertEquals(Screen.HOME, Nav.restore(Screen.QUESTION.name, sessionPill = null))
+        assertEquals("other screens do not care", Screen.SETTINGS, Nav.restore(Screen.SETTINGS.name, sessionPill = null, questionPending = false))
     }
 }

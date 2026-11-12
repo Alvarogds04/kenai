@@ -2,6 +2,7 @@ package com.kenai.android.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -30,6 +32,7 @@ import com.kenai.android.character.BotState
 import com.kenai.android.character.KodaRole
 import com.kenai.android.character.KodaView
 import com.kenai.android.core.HomePanel
+import com.kenai.android.core.IconKind
 import com.kenai.android.core.IslandSurface
 import com.kenai.android.core.TypeScale
 import com.kenai.android.core.Words
@@ -39,10 +42,11 @@ import com.kenai.android.core.Words
  * something waits, go while calm, red while the computer is away), a small Koda in the matching pose, a title, a subtitle and a chip
  * with the count. It replaces the hero's old link row. TalkBack hears it as one polite live region, so a change is announced once.
  * After a decision (T14) it says what the computer got: live with a spinner while sending, go once allowed, faint when denied or
- * expired, red when it could not be sent.
+ * expired, red when it could not be sent. Over a question (T15) it can lead somewhere: with [onClick] the whole strip is one button
+ * and ends in a chevron (another request waits: a tap reviews it on Home).
  */
 @Composable
-fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
+fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val ring = Color(
         when (strip.tone) {
             HomePanel.Tone.WAITING -> KodaRole.SUN
@@ -65,6 +69,7 @@ fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
     val dim = Color(IslandSurface.TEXT_DIM)
     Row(
         modifier.fillMaxWidth().heightIn(min = 56.dp).clip(CircleShape).background(Color(IslandSurface.PANEL)).border(1.dp, ring, CircleShape)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
             .padding(start = 8.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
@@ -91,5 +96,6 @@ fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
                 else -> Chip(w.runningCount(strip.count), tint = Color(KodaRole.LIVE))
             }
         }
+        if (onClick != null) KenaiIcon(IconKind.CHEVRON, tint = white, size = 20.dp)
     }
 }

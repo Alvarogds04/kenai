@@ -23,7 +23,7 @@ class ConfigChangeTest {
     }
 
     @Test fun theSavedScreenComesBackBeforeTheFirstFrame() {
-        assertTrue(activity.contains("screen = Nav.restore(saved.getString(KEY_SCREEN), detailPill)"))
+        assertTrue(activity.contains("screen = Nav.restore(saved.getString(KEY_SCREEN), detailPill, questionPending = questionPill?.let(::questionWaits) == true)"))
         // Restored before setContent, so the first frame already shows it (no flash of Home).
         assertTrue(activity.indexOf("Nav.restore(") in 0 until activity.indexOf("setContent {"))
     }

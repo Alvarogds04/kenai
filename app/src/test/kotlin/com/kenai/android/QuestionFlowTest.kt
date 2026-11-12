@@ -1,6 +1,10 @@
 package com.kenai.android
 
+import com.kenai.android.core.HomePanel
 import com.kenai.android.core.QuestionFlow
+import com.kenai.android.core.QuestionPresence
+import com.kenai.android.core.Words
+import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.core.QuestionState
 import com.kenai.android.link.AskedOption
 import com.kenai.android.link.AskedQuestion
@@ -95,5 +99,34 @@ class QuestionFlowTest {
     @Test fun onlyAMultiPartQuestionShowsAPosition() {
         assertNull(QuestionFlow.position(listOf(single), QuestionFlow.start(listOf(single))))
         assertEquals(1 to 2, QuestionFlow.position(both, QuestionFlow.start(both)))
+    }
+
+    // ── The question screen (kenai-0.1 S9, screen 4; T15) ──
+
+    @Test fun theProgressHasOneSegmentPerQuestionFilledUpToTheCurrentOne() {
+        val three = both + single
+        var s = QuestionFlow.start(three)
+        assertEquals(listOf(true, false, false), QuestionFlow.segments(three, s))
+        s = QuestionFlow.next(three, QuestionFlow.toggle(three, s, "Postgres"))
+        assertEquals(listOf(true, true, false), QuestionFlow.segments(three, s))
+        assertEquals(listOf(true), QuestionFlow.segments(listOf(single), QuestionFlow.start(listOf(single))))
+        assertTrue(QuestionFlow.segments(emptyList(), QuestionFlow.start(emptyList())).isEmpty())
+    }
+
+    @Test fun theScreenAnswersWhileTheQuestionIsHereAndClosesOnceItIsGone() {
+        assertEquals(QuestionPresence.ANSWER, QuestionFlow.presence(hasRequest = true, seenRequest = false, asking = true))
+        assertEquals(QuestionPresence.ANSWER, QuestionFlow.presence(hasRequest = true, seenRequest = true, asking = false))
+        // Without the `answers` capability: whose question it is and where to answer, while the agent still asks.
+        assertEquals(QuestionPresence.ON_COMPUTER, QuestionFlow.presence(hasRequest = false, seenRequest = false, asking = true))
+        // Answered (or expired) on the computer while open: the screen closes itself.
+        assertEquals(QuestionPresence.GONE, QuestionFlow.presence(hasRequest = false, seenRequest = true, asking = true))
+        assertEquals(QuestionPresence.GONE, QuestionFlow.presence(hasRequest = false, seenRequest = false, asking = false))
+    }
+
+    @Test fun theStripOverAQuestionOffersTheRequestThatWaits() {
+        val r = ApprovalRequest("claude", "fp1", "Bash", "npm test", 0L)
+        val strip = QuestionFlow.strip(listOf(r, r.copy(pillId = "codex", fingerprint = "fp2")), { if (it == "claude") "Claude Code" else "Codex" }, Words.ES)
+        assertEquals(HomePanel.Strip(HomePanel.Tone.WAITING, "Claude Code espera tu sí", "Tocá para revisar el pedido", 0), strip)
+        assertNull("nothing else waits: the normal strip", QuestionFlow.strip(emptyList(), { it }, Words.ES))
     }
 }

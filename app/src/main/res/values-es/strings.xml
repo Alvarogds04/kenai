@@ -107,11 +107,12 @@
     <string name="question_next">Siguiente</string>
     <string name="question_back">Atrás</string>
     <string name="question_send">Enviar respuesta</string>
-    <string name="question_confirm_title">Enviar tu respuesta</string>
     <string name="question_sent">Respuesta enviada</string>
     <string name="question_not_sent">No se pudo enviar la respuesta. Puede que tu computadora ya haya respondido.</string>
     <string name="question_see">Ver la pregunta</string>
     <string name="question_ok">Aceptar</string>
+    <string name="question_hint_answers">Responder acá está activado en Koda, en tu computadora. Si ya respondiste allá, esta pregunta se cierra sola.</string>
+    <string name="question_gone">Esa pregunta ya no está esperando.</string>
     <string name="home_running">%1$d en curso</string>
     <string name="home_empty_title">No hay nada en curso</string>
     <string name="home_empty_hint">Iniciá un agente en tu computadora y va a aparecer acá.</string>
@@ -308,6 +309,7 @@
     <string name="confirm_title">Confirmá que sos vos</string>
     <string name="confirm_command">Permitir que %1$s ejecute un comando en %2$s</string>
     <string name="confirm_action">Permitir que %1$s pueda %2$s en %3$s</string>
+    <string name="confirm_answer">Responder a %1$s en %2$s</string>
     <string name="result_next">Lo siguiente</string>
     <string name="result_sending">Enviando…</string>
     <string name="result_retry">Volver a intentar</string>

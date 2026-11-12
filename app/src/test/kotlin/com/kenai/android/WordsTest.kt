@@ -295,6 +295,9 @@ class WordsTest {
         assertEquals("Quiere ejecutar un comando en kenai", w.wantsIn("ejecutar un comando", "kenai"))
         assertEquals("dentro de kenai.", w.riskWhere("kenai"))
         assertEquals("Gemini CLI tiene una pregunta", w.asksYou("Gemini CLI"))
+        // The strip over a question (T15): another request waits, a tap reviews it.
+        assertEquals("Tocá para revisar el pedido", w.tapToReview)
+        assertEquals("Tap to review the request", Words.EN.tapToReview)
     }
 
     /** The result of a decision (kenai-0.1 S9, screen 3; T14), with voseo. */

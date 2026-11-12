@@ -128,7 +128,8 @@ import com.kenai.android.ui.ScreenSheet
 import com.kenai.android.ui.SheetLayer
 import com.kenai.android.core.DiffState
 import com.kenai.android.ui.DiffSheet
-import com.kenai.android.ui.QuestionSheet
+import com.kenai.android.ui.QuestionScreen
+import com.kenai.android.core.QuestionFlow
 import com.kenai.android.ui.ServicesPanel
 import com.kenai.android.ui.UsagePanel
 import com.kenai.android.ui.HeroCard
@@ -156,7 +157,7 @@ class MainActivity : ComponentActivity() {
     private var screen by mutableStateOf(Screen.HOME)
     /** The session whose details are open. */
     private var detailPill by mutableStateOf<String?>(null)
-    /** The approval the user closed without deciding (the sheet stays down for it), and the session whose question is open. */
+    /** The approval the user closed without deciding (the sheet stays down for it), and the session whose question is open (Screen.QUESTION). */
     private var closedApproval by mutableStateOf<String?>(null)
     /** A request other than the one on Home's hero that the user asked to see ("Revisar", or its notification): its sheet rises over Home. */
     private var reviewApproval by mutableStateOf<String?>(null)
@@ -171,7 +172,8 @@ class MainActivity : ComponentActivity() {
             detailPill = saved.getString(KEY_SESSION)
             closedApproval = saved.getString(KEY_CLOSED_APPROVAL)
             questionPill = saved.getString(KEY_QUESTION)
-            screen = Nav.restore(saved.getString(KEY_SCREEN), detailPill)
+            screen = Nav.restore(saved.getString(KEY_SCREEN), detailPill, questionPending = questionPill?.let(::questionWaits) == true)
+            if (screen != Screen.QUESTION) questionPill = null
         }
         enableEdgeToEdge()
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
@@ -203,7 +205,9 @@ class MainActivity : ComponentActivity() {
                         // is the hero itself (kenai-0.1 S9), so the sheet only rises there for another request the user asked to review.
                         val homeHero = screen == Screen.HOME && model.mode != Mode.NONE && model.approvals.isNotEmpty()
                         val pending = ApprovalSheetPlan.next(model.approvals, closedApproval, heroShown = homeHero, review = reviewApproval)
-                        val anySheet = (pending != null && screen != Screen.SCAN) || questionPill != null || model.diffState !is DiffState.Idle || screenSheet != null
+                        // Not over the camera, and not over a question: its strip offers the request instead (kenai-0.1 S9, screen 4).
+                        val approvalSheet = pending != null && screen != Screen.SCAN && screen != Screen.QUESTION
+                        val anySheet = approvalSheet || model.diffState !is DiffState.Idle || screenSheet != null
                         Box(Modifier.fillMaxSize().windowInsetsPadding(if (screen == Screen.HOME || screen == Screen.SCAN) WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom) else WindowInsets.safeDrawing)) {
                         val tabs = Nav.tabs()
                         val keyboardOpen = WindowInsets.ime.getBottom(LocalDensity.current) > 0
@@ -227,6 +231,16 @@ class MainActivity : ComponentActivity() {
                                 onDiagnostics = { screen = Screen.DIAGNOSTICS }, onLicences = { screen = Screen.LICENCES },
                             )
                             Screen.LICENCES -> LicencesScreen(onBack = { screen = Screen.SETTINGS })
+                            // An agent's question, full screen (kenai-0.1 S9, screen 4): the strip on top offers the request that waits too.
+                            Screen.QUESTION -> questionPill?.let { pill ->
+                                val review = ApprovalSheetPlan.hero(model.approvals)?.fingerprint
+                                QuestionScreen(
+                                    model, pill, strip = QuestionFlow.strip(model.approvals, model::agentName) ?: normalStrip(),
+                                    onStrip = review?.let { fp -> { reviewFromQuestion(fp) } },
+                                    onBack = ::leaveQuestion, onSend = ::sendAnswer,
+                                    onGone = { model.message = getString(R.string.question_gone); leaveQuestion() },
+                                )
+                            } ?: LaunchedEffect(Unit) { leaveQuestion() }
                             Screen.DIAGNOSTICS -> DiagnosticsScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HISTORY -> HistoryScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HOME -> if (model.mode == Mode.NONE) PairingScreen(
@@ -235,7 +249,7 @@ class MainActivity : ComponentActivity() {
                             ) else Home(
                                 model, onApprove = ::approve, onOverlay = ::setOverlay,
                                 onSession = { detailPill = it; screen = Screen.SESSION },
-                                onScan = { screen = Screen.SCAN }, onReview = { fp -> reviewApproval = fp; closedApproval = null }, onQuestion = { questionPill = it },
+                                onScan = { screen = Screen.SCAN }, onReview = { fp -> reviewApproval = fp; closedApproval = null }, onQuestion = ::openQuestion,
                                 onHistory = { screen = Screen.HISTORY }, onDiagnostics = { screen = Screen.DIAGNOSTICS },
                                 onAddress = { screenSheetOpen = ScreenSheet.ADDRESS }, onHeroOnTop = { heroOnTop = it },
                             )
@@ -250,8 +264,7 @@ class MainActivity : ComponentActivity() {
                         }
                         // The sheet layer: after the screens and the bar, so it draws over both, and outside their inset padding, so a
                         // dark sheet reaches the bottom edge (it keeps its own content above the navigation bar and the keyboard).
-                        if (pending != null && screen != Screen.SCAN) ApprovalSheet(model, pending, onAllow = ::approve, onDismiss = { closedApproval = pending.fingerprint; reviewApproval = null })
-                        questionPill?.let { QuestionSheet(model, it, onDismiss = { questionPill = null }, onSend = ::sendAnswer) }
+                        if (approvalSheet && pending != null) ApprovalSheet(model, pending, onAllow = ::approve, onDismiss = { closedApproval = pending.fingerprint; reviewApproval = null })
                         DiffSheet(model)
                         when (screenSheet) {
                             ScreenSheet.PASTE -> PasteSheet(model, onDismiss = { screenSheetOpen = null })
@@ -259,10 +272,10 @@ class MainActivity : ComponentActivity() {
                             null -> {}
                         }
                         // Pairing, chat, an approval (its sheet, and Home while one waits: the hero shows the exact command) and a question
-                        // never show in screenshots or in the recent-apps card.
+                        // (its screen) never show in screenshots or in the recent-apps card.
                         val secure = SecureScreens.needed(
-                            screen, pairing = model.mode == Mode.NONE, approvalSheetShown = pending != null && screen != Screen.SCAN,
-                            questionSheetShown = questionPill != null, pairConfirmShown = model.pairRequest != null,
+                            screen, pairing = model.mode == Mode.NONE, approvalSheetShown = approvalSheet,
+                            pairConfirmShown = model.pairRequest != null,
                             approvalPending = model.approvals.isNotEmpty(),
                         )
                         SideEffect {
@@ -336,12 +349,9 @@ class MainActivity : ComponentActivity() {
         }
         // A tap on a widget button: a screen of the closed list ([LaunchScreen]), even when the app is locked, not connected or not paired.
         model.launch.takeScreen()?.let { screen = it.screen }
-        // A tap on the quick-settings tile while a question waits: its sheet, where the answer still goes behind the screen lock.
+        // A tap on the quick-settings tile while a question waits: its screen, where the answer still goes behind the screen lock.
         model.launch.takeQuestion()?.let { pill ->
-            if (model.questionFor(pill) != null) {
-                if (screen == Screen.SCAN) screen = Screen.HOME
-                questionPill = pill
-            }
+            if (model.questionFor(pill) != null) openQuestion(pill)
         }
         val launch = model.launch.take() ?: return
         val fp = launch.fingerprint
@@ -349,7 +359,8 @@ class MainActivity : ComponentActivity() {
         if (!launch.allow) {
             // A tap on a request's notification or on the tile: its sheet rises again, even if it was closed before.
             if (request != null) {
-                if (screen == Screen.SCAN) screen = Screen.HOME
+                // The camera and a question draw no request sheet: Home shows it.
+                if (screen == Screen.SCAN || screen == Screen.QUESTION) screen = Screen.HOME
                 closedApproval = null
                 reviewApproval = fp // on Home a request that is not the hero's gets its sheet; the hero's own needs none
             }
@@ -363,21 +374,62 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** An agent's question, on its own screen (kenai-0.1 S9, screen 4): Home's «Responder», «Lo siguiente», the tile. */
+    private fun openQuestion(pillId: String) {
+        questionPill = pillId
+        screen = Screen.QUESTION
+    }
+
+    /** Out of the question screen, back to Home (its back, Back, a question gone meanwhile). */
+    private fun leaveQuestion() {
+        questionPill = null
+        if (screen == Screen.QUESTION) screen = Screen.HOME
+    }
+
+    /** The strip over a question: Home with that request (Home's hero for the first one, its sheet for another). */
+    private fun reviewFromQuestion(fingerprint: String) {
+        questionPill = null
+        reviewApproval = fingerprint
+        closedApproval = null
+        screen = Screen.HOME
+    }
+
+    /** The question still waits: here to answer, or its agent still asks (answered on the computer, without `answers`). */
+    private fun questionWaits(pillId: String): Boolean =
+        model.questionFor(pillId) != null || model.sessions.any { it.pillId == pillId && it.state == BotState.QUESTION }
+
+    /** Home's strip, for the question screen when no request waits. */
+    private fun normalStrip(): HomePanel.Strip {
+        val scene = HomePanel.scene(
+            model.mode == Mode.PAIRED, model.linkState == LinkState.CONNECTED, model.approvals.size, model.sessions,
+            result = model.outcome, newestArrivalMs = model.arrivals.values.maxOrNull(),
+        )
+        return HomePanel.strip(
+            scene, HomeText.computer(model.desktopName, demo = model.mode == Mode.DEMO), model.sessions, model.approvals, model::agentName,
+            lostAtMs = model.health.lostAtMs, connecting = model.linkState == LinkState.CONNECTING, nowMs = System.currentTimeMillis(), result = model.outcome,
+        )
+    }
+
     /**
-     * An answer to a question: only after the same screen-lock check as Allow. The lock prompt shows what is about to be
-     * sent (the labels picked); nothing about it is logged or stored.
+     * An answer to a question: only after the same screen-lock check as Allow. The prompt says «Confirmá que sos vos», who and where
+     * («Responder a Claude Code en Alvaro PC») and repeats what is about to be sent (the labels picked) as its description; nothing about
+     * it is logged or stored. Then Home says «Respuesta enviada» (or that it could not be sent).
      */
     private fun sendAnswer(request: QuestionRequest, picks: List<List<String>>) {
         if (confirming) return
         confirming = true
+        val agent = model.agentName(request.pillId)
+        val computer = HomeText.computer(model.desktopName, demo = model.mode == Mode.DEMO)
         BiometricGate.confirm(
-            this, getString(R.string.question_confirm_title), picks.joinToString("; ") { it.joinToString(", ") }, getString(R.string.msg_need_lock),
+            this, getString(R.string.confirm_title), getString(R.string.confirm_answer, agent, computer), getString(R.string.msg_need_lock),
             onSuccess = {
                 confirming = false
                 questionPill = null
+                screen = Screen.HOME
                 model.message = getString(if (model.answerQuestion(request.fingerprint, picks)) R.string.question_sent else R.string.question_not_sent)
             },
             onFail = { confirming = false; if (it.isNotBlank()) model.message = it },
+            description = picks.joinToString("; ") { it.joinToString(", ") },
         )
     }
 

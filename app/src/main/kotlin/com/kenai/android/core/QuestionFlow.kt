@@ -1,10 +1,17 @@
 package com.kenai.android.core
 
+import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.link.AskedQuestion
 import com.kenai.android.link.Protocol
 
 /** Where the user is in answering a question from Claude Code: which question, and what is picked for each. */
 data class QuestionState(val index: Int, val picks: List<List<String>>)
+
+/**
+ * What the question screen shows (kenai-0.1 S9, T15). ANSWER: the question is here to answer (the `answers` capability). ON_COMPUTER:
+ * the agent asks but the phone may not answer (where to answer, as before). GONE: answered or expired on the computer: the screen closes.
+ */
+enum class QuestionPresence { ANSWER, ON_COMPUTER, GONE }
 
 /**
  * The rules of answering (docs/ANDROID_LINK.md, "Answering Claude Code's questions"), pure so each is a unit test. The
@@ -68,4 +75,26 @@ object QuestionFlow {
     /** "Question 2 of 3", or null for a single question. */
     fun position(questions: List<AskedQuestion>, s: QuestionState): Pair<Int, Int>? =
         if (questions.size > 1) (s.index + 1) to questions.size else null
+
+    // ── The question screen (kenai-0.1 S9, screen 4; T15) ──
+
+    /** The progress bar: one segment per question, filled up to the current one. */
+    fun segments(questions: List<AskedQuestion>, s: QuestionState): List<Boolean> = questions.indices.map { it <= s.index }
+
+    /**
+     * [hasRequest]: the phone holds the question now; [seenRequest]: it held it while the screen was open; [asking]: the agent is still
+     * in its question state. A question that was here and went (answered or expired on the computer) closes the screen.
+     */
+    fun presence(hasRequest: Boolean, seenRequest: Boolean, asking: Boolean): QuestionPresence = when {
+        hasRequest -> QuestionPresence.ANSWER
+        seenRequest || !asking -> QuestionPresence.GONE
+        else -> QuestionPresence.ON_COMPUTER
+    }
+
+    /**
+     * The strip over a question: the request that waits too (the one Home's hero shows), «Claude Code espera tu sí» / «Tocá para revisar
+     * el pedido»; null when none waits (the normal strip).
+     */
+    fun strip(approvals: List<ApprovalRequest>, nameOf: (String) -> String, w: Words = Words.current()): HomePanel.Strip? =
+        ApprovalSheetPlan.hero(approvals)?.let { HomePanel.Strip(HomePanel.Tone.WAITING, w.waitsForYourYes(nameOf(it.pillId)), w.tapToReview, 0) }
 }

@@ -49,9 +49,12 @@ class BottomBarOverSheetsTest {
     @Test fun theActivityDrawsEverySheetAfterTheBar() {
         val bar = main.indexOf("BottomBar(")
         assertTrue(bar > 0)
-        for (sheet in listOf("ApprovalSheet(", "QuestionSheet(", "DiffSheet(", "PasteSheet(", "AddressSheet(")) {
+        for (sheet in listOf("ApprovalSheet(", "DiffSheet(", "PasteSheet(", "AddressSheet(")) {
             assertTrue("$sheet is drawn after the bar", main.indexOf(sheet, bar) > bar)
         }
+        // kenai-0.1 S9, T15: the question left the sheet layer; it is a full screen (Screen.QUESTION) and no longer hides the bar by itself.
+        assertFalse(main.contains("QuestionSheet("))
+        assertFalse(main.contains("questionPill != null ||"))
     }
 
     @Test fun theBarFollowsTheSheetRule() {

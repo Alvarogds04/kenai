@@ -77,6 +77,8 @@ interface Words {
     fun waitsForYourYes(agent: String): String
     /** The strip's title while only a question waits. */
     fun asksYou(agent: String): String
+    /** The strip's subtitle over a question while a request waits too: a tap reviews it (T15). */
+    val tapToReview: String
     /** "Alvaro PC · 3 agents". */
     fun computerAgents(computer: String, n: Int): String
     /** "Alvaro PC · all calm". */
@@ -294,6 +296,7 @@ private object English : Words {
 
     override fun waitsForYourYes(agent: String) = "$agent is waiting for your yes"
     override fun asksYou(agent: String) = "$agent has a question"
+    override val tapToReview = "Tap to review the request"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agent", "$n agents")
     override fun computerCalm(computer: String) = "$computer · all calm"
     override fun offlineFrom(computer: String) = "No connection to $computer"
@@ -519,6 +522,7 @@ private object Spanish : Words {
 
     override fun waitsForYourYes(agent: String) = "$agent espera tu sí"
     override fun asksYou(agent: String) = "$agent tiene una pregunta"
+    override val tapToReview = "Tocá para revisar el pedido"
     override fun computerAgents(computer: String, n: Int) = "$computer · " + plural(n, "1 agente", "$n agentes")
     override fun computerCalm(computer: String) = "$computer · todo tranquilo"
     override fun offlineFrom(computer: String) = "Sin conexión con $computer"

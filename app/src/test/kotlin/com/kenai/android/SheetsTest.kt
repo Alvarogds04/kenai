@@ -83,7 +83,7 @@ class SheetsTest {
 
     @Test fun bothButtonsIgnoreTapsDuringTheFirstMoments() {
         assertTrue(sheets.contains("delay(ApprovalSheetPlan.GUARD_MS)"))
-        assertEquals(3, Regex("""enabled = armed""").findAll(sheets).count())
+        assertEquals(2, Regex("""enabled = armed""").findAll(sheets).count())
     }
 
     @Test fun theSheetCanBeClosedAndNeverCatchesTapsMeantForTheScrim() {
@@ -104,18 +104,10 @@ class SheetsTest {
         assertTrue(send.contains("if (confirming) return"))
     }
 
-    @Test fun thePicksAreNeverLoggedOrStored() {
-        val send = main.substringAfter("private fun sendAnswer").substringBefore("/** Allow:")
-        assertFalse(send.contains("Log."))
-        val flow = src("core/QuestionFlow.kt")
-        assertFalse(flow.contains("Log."))
-        assertFalse(sheets.substringAfter("fun QuestionSheet").contains("rememberSaveable"))
-    }
-
-    @Test fun theAnswerButtonHasTheSameTapGuardAsAllow() {
-        val q = sheets.substringAfter("fun QuestionSheet")
-        assertTrue(q.contains("ApprovalSheetPlan.GUARD_MS"))
-        assertTrue(q.contains("enabled = armed && QuestionFlow.complete"))
+    /** kenai-0.1 S9, T15: the question is a full screen (QuestionScreenTest); no question sheet is left here. */
+    @Test fun noQuestionSheetIsLeft() {
+        assertFalse(sheets.contains("fun QuestionSheet"))
+        assertFalse(sheets.contains("QuestionFlow"))
     }
     // ── the file-change sheet ──────────────────────────────────────────────────────
 
