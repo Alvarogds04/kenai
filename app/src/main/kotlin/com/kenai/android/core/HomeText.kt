@@ -1,6 +1,7 @@
 package com.kenai.android.core
 
 import com.kenai.android.link.SessionInfo
+import java.time.ZoneId
 import com.kenai.android.character.BotState
 
 /** The words on Home: one plain line per agent, what you decided lately, how many are busy. Pure, so it is unit-tested. */
@@ -57,4 +58,44 @@ object HomeText {
     /** The computer's name for Inicio's strip: the demo's own name in the demo, else the paired name, else "Your computer". */
     fun computer(desktopName: String?, demo: Boolean, w: Words = Words.current()): String =
         if (demo) w.demoComputer else desktopName?.trim()?.takeIf { it.isNotEmpty() } ?: w.yourPc
+
+    // ── The result of a decision (kenai-0.1 S9, screen 3; T14) ──
+
+    /** The heading: "Enviando tu decisión", "Permitiste editar archivos" (the action in [ToolLabels]' words), "Ese pedido ya no está pendiente"… */
+    fun resultTitle(o: Outcome, w: Words = Words.current()): String = when (o.kind) {
+        OutcomeKind.SENDING -> w.sendingTitle
+        OutcomeKind.ALLOWED -> w.youDecided(true, ToolLabels.action(o.tool, w))
+        OutcomeKind.DENIED -> w.youDecided(false, ToolLabels.action(o.tool, w))
+        OutcomeKind.EXPIRED -> w.notPendingAnyMore
+        OutcomeKind.FAILED -> w.didNotArrive
+    }
+
+    /**
+     * The sentence under it, honest about what reached the computer: an expired request says nothing was sent from the phone only
+     * when that is true ([Outcome.allow] null); one sent and never confirmed says so instead.
+     */
+    fun resultBody(o: Outcome, agent: String, project: String?, zone: ZoneId = ZoneId.systemDefault(), w: Words = Words.current()): String =
+        when (o.kind) {
+            OutcomeKind.SENDING -> w.sendingBody
+            OutcomeKind.ALLOWED -> w.keepsWorking(agent, project?.trim().orEmpty())
+            OutcomeKind.DENIED -> w.willNotDo(agent, isCommand(o.tool))
+            OutcomeKind.EXPIRED -> {
+                val clock = DecisionOutcomes.clock(o.expiresAtWallMs ?: o.atWallMs, zone)
+                if (o.allow == null) w.expiredBody(clock) else w.expiredUnconfirmed(clock)
+            }
+            OutcomeKind.FAILED -> w.failedBody
+        }
+
+    /** "14:41 · vibró una vez · quedó en Actividad" for a confirmed decision (the buzz only when it buzzed); null otherwise. */
+    fun resultMeta(o: Outcome, zone: ZoneId = ZoneId.systemDefault(), w: Words = Words.current()): String? =
+        if (o.kind == OutcomeKind.ALLOWED || o.kind == OutcomeKind.DENIED) w.resultMeta(DecisionOutcomes.clock(o.atWallMs, zone), o.buzzes) else null
+
+    /**
+     * «Lo siguiente» for a question: the question itself when the phone has it (paths and tokens hidden, [SafeText.prose]), else the
+     * state in words; then the project when the details are offered. "¿En qué rama? · notes".
+     */
+    fun nextLine(question: String?, s: SessionInfo, w: Words = Words.current()): String {
+        val what = question?.let { SafeText.prose(it) }?.takeIf { it.isNotBlank() && it != "…" } ?: line(s) ?: w.hasAQuestion
+        return listOf(what, s.project?.trim().orEmpty()).filter { it.isNotEmpty() }.joinToString(" · ")
+    }
 }

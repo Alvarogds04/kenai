@@ -307,6 +307,9 @@
     "tab_home_waiting": "%1$s, %2$d waiting for you",
     "confirm_title": "Confirm it's you",
     "confirm_command": "Allow %1$s to run a command on %2$s",
-    "confirm_action": "Allow %1$s to %2$s on %3$s"
+    "confirm_action": "Allow %1$s to %2$s on %3$s",
+    "result_next": "Up next",
+    "result_sending": "Sending…",
+    "result_retry": "Try again"
   }
 }

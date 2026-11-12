@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,6 +38,8 @@ import com.kenai.android.core.Words
  * The strip at the top of Inicio (kenai-0.1 S9), drawn like the island: always dark, a 1 dp ring in the role colour (sun while
  * something waits, go while calm, red while the computer is away), a small Koda in the matching pose, a title, a subtitle and a chip
  * with the count. It replaces the hero's old link row. TalkBack hears it as one polite live region, so a change is announced once.
+ * After a decision (T14) it says what the computer got: live with a spinner while sending, go once allowed, faint when denied or
+ * expired, red when it could not be sent.
  */
 @Composable
 fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
@@ -45,12 +48,18 @@ fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
             HomePanel.Tone.WAITING -> KodaRole.SUN
             HomePanel.Tone.CALM -> KodaRole.GO
             HomePanel.Tone.OFFLINE -> KodaRole.RED
+            HomePanel.Tone.SENDING -> KodaRole.LIVE
+            HomePanel.Tone.DONE -> KodaRole.GO
+            HomePanel.Tone.FAINT -> KodaRole.FAINT
         },
     )
     val pose = when (strip.tone) {
         HomePanel.Tone.WAITING -> BotState.APPROVAL
         HomePanel.Tone.CALM -> BotState.IDLE
         HomePanel.Tone.OFFLINE -> BotState.ERROR
+        HomePanel.Tone.SENDING -> BotState.APPROVAL
+        HomePanel.Tone.DONE -> BotState.FINISHED
+        HomePanel.Tone.FAINT -> BotState.IDLE
     }
     val white = Color(IslandSurface.TEXT)
     val dim = Color(IslandSurface.TEXT_DIM)
@@ -65,6 +74,8 @@ fun StatusStrip(strip: HomePanel.Strip, modifier: Modifier = Modifier) {
             Text(strip.title, style = TypeScale.BODY.style(white).copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (strip.subtitle.isNotBlank()) Text(strip.subtitle, style = TypeScale.SECONDARY.style(dim), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        // Sending: the computer has not confirmed yet (the title says so; the spinner is decoration).
+        if (strip.spinner) CircularProgressIndicator(Modifier.size(20.dp), color = ring, strokeWidth = 2.dp, trackColor = Color.Transparent)
         if (strip.count > 0) {
             val w = Words.current()
             when (strip.tone) {

@@ -308,4 +308,7 @@
     <string name="confirm_title">Confirm it\'s you</string>
     <string name="confirm_command">Allow %1$s to run a command on %2$s</string>
     <string name="confirm_action">Allow %1$s to %2$s on %3$s</string>
+    <string name="result_next">Up next</string>
+    <string name="result_sending">Sending…</string>
+    <string name="result_retry">Try again</string>
 </resources>

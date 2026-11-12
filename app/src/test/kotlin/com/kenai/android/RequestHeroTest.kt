@@ -79,4 +79,63 @@ class RequestHeroTest {
         for (role in listOf("KodaRole.SUN", "KodaRole.GO", "KodaRole.RED")) assertTrue(role, strip.contains(role))
         assertTrue(strip.contains("liveRegion"))
     }
+
+    // ── The result of a decision (kenai-0.1 S9, screen 3; T14) ──
+
+    private val result get() = src("ui/ResultHero.kt")
+
+    @Test fun theResultHeroDrawsEveryStateFromTheCoreWords() {
+        for (k in listOf("SENDING", "ALLOWED", "DENIED", "EXPIRED", "FAILED")) assertTrue(k, result.contains("OutcomeKind.$k"))
+        assertTrue(result.contains("HomeText.resultTitle(") && result.contains("HomeText.resultBody(") && result.contains("HomeText.resultMeta("))
+        assertTrue("Koda's pose and the wash follow the result", result.contains("KodaView(DecisionOutcomes.pose(") && result.contains("HeroPanel(wash = Color(DecisionOutcomes.role("))
+        assertTrue("the meta line has the clock icon", result.contains("IconKind.CLOCK"))
+        assertTrue("TalkBack hears the change once", result.contains("liveRegion = LiveRegionMode.Polite"))
+        assertTrue(result.contains("semantics { heading() }"))
+    }
+
+    @Test fun whileSendingBothButtonsAreThereAndDisabled() {
+        val sending = result.substringAfter("OutcomeKind.SENDING ->").substringBefore("OutcomeKind.FAILED ->")
+        assertTrue(sending.contains("R.string.action_deny") && sending.contains("R.string.result_sending"))
+        assertEquals(2, Regex("""enabled = false""").findAll(sending).count())
+    }
+
+    @Test fun aFailedDecisionOffersTryAgainAndTheChecksAndTheOthersClose() {
+        val failed = result.substringAfter("OutcomeKind.FAILED ->").substringBefore("else ->")
+        assertTrue(failed.contains("R.string.result_retry") && failed.contains("onRetry"))
+        assertTrue(failed.contains("R.string.diag_title") && failed.contains("onHelp"))
+        assertTrue(result.substringAfter("else ->").contains("R.string.action_close") && result.contains("onClose"))
+        assertFalse("the result never decides by itself", result.contains("model.decide("))
+    }
+
+    @Test fun whatComesNextAnswersAQuestionOrReviewsTheNextRequest() {
+        assertTrue(result.contains("R.string.result_next"))
+        assertTrue(result.contains("R.string.home_answer") && result.contains("onQuestion("))
+        assertTrue(result.contains("R.string.home_review") && result.contains("onReview("))
+        assertTrue(result.contains("HomeText.nextLine("))
+        assertTrue(main.contains("HomePanel.next("))
+    }
+
+    @Test fun homeShowsTheResultAsItsHeroAndTheModelKeepsIt() {
+        val home = main.substringAfter("private fun Home(")
+        assertTrue(home.contains("HomePanel.Scene.RESULT ->"))
+        assertTrue(home.contains("ResultHero("))
+        assertTrue(home.contains("model.dismissOutcome()"))
+        assertTrue(home.contains("model.retryDecision()"))
+        assertTrue("a new request beats the result", home.contains("newestArrivalMs = model.arrivals.values.maxOrNull()"))
+        val model = src("app/AppModel.kt")
+        assertTrue(model.contains("var outcome by mutableStateOf<Outcome?>"))
+        assertTrue(model.substringAfter("fun decide(fingerprint").substringBefore("\n    }\n").contains("outcomes.decided("))
+        assertTrue(model.substringAfter("override fun onApproval(").substringBefore("override fun onQuestion(").contains("outcomes.arrived("))
+        assertTrue(model.substringAfter("override fun onState(").substringBefore("\n    }\n").contains("outcomes.linkLost()"))
+        assertTrue(model.contains("override fun onDecisionNotSent(") && model.contains("outcomes.sendFailed("))
+        assertTrue(model.substringAfter("override fun onApprovalResolved(").substringBefore("\n    }\n").contains("outcomes.resolved("))
+        val strings = File("../i18n/app-strings.es.json").readText()
+        for (k in listOf("\"result_next\": \"Lo siguiente\"", "\"result_sending\": \"Enviando…\"", "\"result_retry\": \"Volver a intentar\"")) assertTrue(k, strings.contains(k))
+    }
+
+    @Test fun theStripSpinsWhileSending() {
+        val strip = src("ui/StatusStrip.kt")
+        assertTrue(strip.contains("if (strip.spinner)") && strip.contains("CircularProgressIndicator("))
+        for (role in listOf("KodaRole.LIVE", "KodaRole.FAINT")) assertTrue(role, strip.contains(role))
+    }
 }

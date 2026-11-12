@@ -3,12 +3,16 @@ package com.kenai.android
 import com.kenai.android.character.BotState
 import com.kenai.android.core.Arrival
 import com.kenai.android.core.BuzzMemory
+import com.kenai.android.core.OutcomeKind
 import com.kenai.android.core.OverlayPolicy.ApprovalAlert
 import com.kenai.android.core.QuietHours
 import com.kenai.android.core.UserSettings
 import com.kenai.android.core.VibratePolicy
 import java.io.File
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -58,8 +62,38 @@ class VibrationTest {
     }
 
     @Test fun theBuzzIsShort() {
-        assertTrue(VibratePolicy.PATTERN.sum() <= 400)
-        assertTrue(VibratePolicy.PATTERN.first() == 0L)
+        for (p in listOf(VibratePolicy.ARRIVAL, VibratePolicy.ALLOW, VibratePolicy.DENY)) {
+            assertTrue(p.sum() <= 400)
+            assertTrue(p.first() == 0L)
+        }
+    }
+
+    // ── the decision's buzz (kenai-0.1 S9, L21: arrival 3 short taps, allow 1, deny 2) ──
+
+    @Test fun arrivalAllowAndDenyAreThreeOneAndTwoTaps() {
+        assertEquals(3, VibratePolicy.taps(VibratePolicy.ARRIVAL))
+        assertEquals(1, VibratePolicy.taps(VibratePolicy.ALLOW))
+        assertEquals(2, VibratePolicy.taps(VibratePolicy.DENY))
+    }
+
+    @Test fun onlyAConfirmedDecisionBuzzesAndOnlyWithTheSwitchOn() {
+        assertArrayEquals(VibratePolicy.ALLOW, VibratePolicy.onDecision(OutcomeKind.ALLOWED, on))
+        assertArrayEquals(VibratePolicy.DENY, VibratePolicy.onDecision(OutcomeKind.DENIED, on))
+        for (k in listOf(OutcomeKind.SENDING, OutcomeKind.EXPIRED, OutcomeKind.FAILED)) assertNull(k.name, VibratePolicy.onDecision(k, on))
+        for (k in OutcomeKind.entries) assertNull(VibratePolicy.onDecision(k, off))
+        // Quiet hours do not stop it: the user just decided, phone in hand.
+        val allDay = on.copy(quiet = QuietHours(true, 0, 23 * 60 + 59))
+        assertArrayEquals(VibratePolicy.ALLOW, VibratePolicy.onDecision(OutcomeKind.ALLOWED, allDay))
+    }
+
+    @Test fun theModelBuzzesOnTheConfirmationNotOnTheTap() {
+        val model = read("src/main/kotlin/com/kenai/android/app/AppModel.kt")
+        val decide = model.substringAfter("fun decide(fingerprint").substringBefore("\n    }\n")
+        assertFalse("never on the tap", decide.contains("haptics.buzz"))
+        val resolved = model.substringAfter("override fun onApprovalResolved(").substringBefore("\n    }\n")
+        assertTrue(resolved.contains("VibratePolicy.onDecision("))
+        assertTrue(resolved.contains("haptics.buzz("))
+        assertTrue(resolved.contains("outcomes.buzzed("))
     }
 
     // ── one buzz per question or request ────────────────────────────────────
@@ -143,7 +177,8 @@ class VibrationTest {
         val h = read("src/main/kotlin/com/kenai/android/app/Haptics.kt")
         assertTrue(h.contains("VibratorManager"))
         assertTrue(h.contains("Build.VERSION_CODES.S"))
-        assertTrue(h.contains("VibratePolicy.PATTERN"))
+        assertTrue(h.contains("VibratePolicy.ARRIVAL"))
+        assertTrue("one buzz, any pattern", h.contains("fun buzz(pattern: LongArray"))
         assertTrue(h.contains("hasVibrator()"))
         assertTrue(h.contains("runCatching"))
     }

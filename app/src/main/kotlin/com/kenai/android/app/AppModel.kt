@@ -23,6 +23,9 @@ import com.kenai.android.core.OverlayPolicy
 import com.kenai.android.core.Arrival
 import com.kenai.android.core.BuzzMemory
 import com.kenai.android.core.VibratePolicy
+import com.kenai.android.core.DecisionOutcomes
+import com.kenai.android.core.Outcome
+import com.kenai.android.core.OutcomeKind
 import com.kenai.android.core.WishStore
 import com.kenai.android.core.Pills
 import com.kenai.android.ui.IslandOverlay
@@ -92,6 +95,43 @@ class AppModel(private val context: Context) : LinkListener {
     /** Questions Claude Code asks that this phone may answer (only with the `answers` capability); kept in memory, never written. */
     var questions by mutableStateOf<List<QuestionRequest>>(emptyList()); private set
     var message by mutableStateOf<String?>(null)
+
+    /** What became of the decision just made (kenai-0.1 S9, screen 3; T14): Inicio's hero until dismissed, replaced or 2 min old. */
+    private val outcomes = DecisionOutcomes()
+    var outcome by mutableStateOf<Outcome?>(null); private set
+    private val outcomeGone = Runnable { outcomes.dismiss(); outcome = null }
+
+    /** Publishes the machine's result and (re)arms its two-minute limit (main thread). */
+    private fun showOutcome() {
+        outcome = outcomes.current
+        main.removeCallbacks(outcomeGone)
+        outcome?.let { main.postDelayed(outcomeGone, (it.sinceMs + DecisionOutcomes.SHOW_MS - android.os.SystemClock.elapsedRealtime()).coerceAtLeast(0)) }
+    }
+
+    /** «Cerrar» on the result, or «Revisar» the request that follows. */
+    fun dismissOutcome() {
+        outcomes.dismiss()
+        showOutcome()
+    }
+
+    /**
+     * «Volver a intentar» on «No se pudo enviar»: the result goes; when the request is still here it is returned with what was
+     * decided (Allow goes through the lock again, Deny is sent again). Otherwise the link is retried now and the computer offers the
+     * request again once it is back.
+     */
+    fun retryDecision(): Pair<ApprovalRequest, Boolean>? {
+        val o = outcome?.takeIf { it.kind == OutcomeKind.FAILED }
+        dismissOutcome()
+        val r = o?.let { f -> approvals.firstOrNull { it.fingerprint == f.fingerprint } }
+        if (o == null || r == null || o.allow == null || linkState != LinkState.CONNECTED) {
+            retryNow()
+            return null
+        }
+        return r to o.allow
+    }
+
+    private fun expiresAtWall(fingerprint: String): Long? =
+        DecisionOutcomes.expiresAtWall(arrivals[fingerprint], android.os.SystemClock.elapsedRealtime(), System.currentTimeMillis())
 
     // ── Finding the computer again when its address changed (docs/ANDROID_LINK.md, "Finding the computer") ──
     /** What the search for the computer is doing, for the status line and the hint. */
@@ -575,6 +615,7 @@ class AppModel(private val context: Context) : LinkListener {
         wantAllow = null
         lastState.clear()
         notifier.cancelAllStatus()
+        dismissOutcome() // a result is about this link only
     }
 
     /** True if the decision was sent (or applied to the demo). Allow is gated by the biometric prompt in the UI. */
@@ -586,12 +627,22 @@ class AppModel(private val context: Context) : LinkListener {
             return false
         }
         val ok = link?.decide(fingerprint, allow) ?: false
+        val now = android.os.SystemClock.elapsedRealtime()
         if (ok && request != null) {
             // The phone's own history never keeps the command: a label and at most the program's name.
             recordDecision(Decision(agentName(request.pillId), request.tool, com.kenai.android.core.SafeText.requestLabel(request.tool, request.command), allow, System.currentTimeMillis()))
+            // Sending until the computer says it got it (onApprovalResolved); the buzz waits for that too.
+            outcomes.decided(request, allow, now, System.currentTimeMillis(), expiresAtWall(fingerprint))
+            showOutcome()
         }
         if (!ok) {
-            message = context.getString(R.string.msg_not_pending)
+            // Home says it in its result («Ese pedido ya no está pendiente»); the message is for a request Home did not know.
+            if (request != null) {
+                outcomes.refused(request, now, System.currentTimeMillis(), expiresAtWall(fingerprint))
+                showOutcome()
+            } else {
+                message = context.getString(R.string.msg_not_pending)
+            }
             removeApproval(fingerprint) // it cannot be answered any more: no card or pill that lingers
         }
         return ok
@@ -628,6 +679,8 @@ class AppModel(private val context: Context) : LinkListener {
                 screenWasOff = power?.isInteractive == false // the screen is off right now: this link starts its life asleep
             }
             if (state == LinkState.CONNECTED) finder.connected() // found it (or never lost it): stop looking
+            // A decision still being sent did not get its confirmation: «No se pudo enviar» (the request may come back).
+            if (state != LinkState.CONNECTED) { outcomes.linkLost(); showOutcome() }
             // A card for a request we can no longer answer would only produce "no longer pending".
             if (state != LinkState.CONNECTED && mode == Mode.PAIRED) dropApprovals()
             if (state != LinkState.CONNECTED) chatLinkLost()
@@ -708,6 +761,9 @@ class AppModel(private val context: Context) : LinkListener {
     override fun onApproval(request: ApprovalRequest) {
         main.post {
             approvals = approvals.filter { it.fingerprint != request.fingerprint } + request
+            // A new request (or one offered again after a failure) takes Home from the last result.
+            outcomes.arrived(request.fingerprint)
+            showOutcome()
             // The same clock as the expiry below: offered again after a reconnection, it counts from now, as the removal does.
             arrivals = arrivals + (request.fingerprint to android.os.SystemClock.elapsedRealtime())
             // One announcement only: the island if it can show, else the heads-up notification.
@@ -718,7 +774,7 @@ class AppModel(private val context: Context) : LinkListener {
             buzzOnArrival(Arrival.APPROVAL, request.pillId, request.fingerprint, alert)
             // Offered for 120 s from now, by this phone's clock (the notification times out then too).
             expiry.remove(request.fingerprint)?.let { main.removeCallbacks(it) }
-            val gone = Runnable { removeApproval(request.fingerprint) }
+            val gone = Runnable { requestExpired(request.fingerprint) }
             expiry[request.fingerprint] = gone
             main.postDelayed(gone, Protocol.APPROVAL_TTL_MS)
         }
@@ -734,6 +790,14 @@ class AppModel(private val context: Context) : LinkListener {
             expiry[request.fingerprint] = gone
             main.postDelayed(gone, Protocol.APPROVAL_TTL_MS)
         }
+    }
+
+    /** The phone's 120 s for a request ran out: Home says so if it was on screen, or if its decision was still unconfirmed. */
+    private fun requestExpired(fingerprint: String) {
+        val shown = com.kenai.android.core.ApprovalSheetPlan.hero(approvals)?.takeIf { it.fingerprint == fingerprint }
+        outcomes.expired(fingerprint, shown, android.os.SystemClock.elapsedRealtime(), System.currentTimeMillis(), expiresAtWall(fingerprint))
+        showOutcome()
+        removeApproval(fingerprint)
     }
 
     private fun removeQuestion(fingerprint: String) {
@@ -799,10 +863,24 @@ class AppModel(private val context: Context) : LinkListener {
 
     override fun onApprovalResolved(fingerprint: String) {
         main.post {
+            // Before the card goes: was it the request on Home, and when would it have expired?
+            val shown = com.kenai.android.core.ApprovalSheetPlan.hero(approvals)?.takeIf { it.fingerprint == fingerprint }
+            val o = outcomes.resolved(fingerprint, shown, android.os.SystemClock.elapsedRealtime(), System.currentTimeMillis(), expiresAtWall(fingerprint))
+            // The computer got the decision: one tap for allow, two for deny (only now, never on the tap; only with the switch on).
+            val pattern = o?.let { VibratePolicy.onDecision(it.kind, settings) }
+            if (o != null && pattern != null) {
+                haptics.buzz(pattern)
+                outcomes.buzzed(fingerprint, VibratePolicy.taps(pattern))
+            }
+            showOutcome()
             removeQuestion(fingerprint)
             removeApproval(fingerprint)
             if (wantAllow == fingerprint) wantAllow = null
         }
+    }
+
+    override fun onDecisionNotSent(fingerprint: String) {
+        main.post { outcomes.sendFailed(fingerprint); showOutcome() }
     }
 
     /** A link that had worked ended on its own: remembered with its reason, so Home can say what happened. */
@@ -821,6 +899,8 @@ class AppModel(private val context: Context) : LinkListener {
 
     override fun onError(code: String, message: String) {
         main.post {
+            // A decision that could not be sent is already Home's result («No se pudo enviar»): no second message.
+            if (code == "send" && outcome?.kind == OutcomeKind.FAILED) return@post
             this.message = if (code == "auth") context.getString(R.string.msg_rejected)
             else "${context.getString(R.string.msg_link_error)}: $message"
         }

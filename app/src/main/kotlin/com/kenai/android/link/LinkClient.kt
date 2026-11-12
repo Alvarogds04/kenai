@@ -41,6 +41,11 @@ interface LinkListener {
     /** The service cards (only with the `services` capability); an empty list: none to show any more. */
     fun onServices(cards: List<ServiceCard>) {}
     fun onError(code: String, message: String) {}
+    /**
+     * A decision for [fingerprint] was accepted by [DesktopLink.decide] but could not be written (the connection broke under it):
+     * the request is back and can be decided again while it is valid. Told before the matching `onError("send", …)`.
+     */
+    fun onDecisionNotSent(fingerprint: String) {}
     /** A connection attempt failed before the computer answered; [consecutive] counts the failures in a row (1 for the first). */
     fun onConnectFailed(consecutive: Int) {}
     /** A link that had been working ended without the user asking for it (not for a wrong token or version: see [onError]). */
@@ -204,6 +209,7 @@ class LinkClient(
                     send(ClientMsg.Decision(request.fingerprint, allow))
                 } catch (_: IOException) {
                     back() // not sent: keep it so the user can retry while it is still valid
+                    listener.onDecisionNotSent(request.fingerprint)
                     listener.onError("send", "could not reach the desktop")
                 }
             }

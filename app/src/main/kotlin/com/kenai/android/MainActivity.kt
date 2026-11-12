@@ -112,7 +112,10 @@ import com.kenai.android.ui.AgentSection
 import com.kenai.android.ui.AlsoWaiting
 import com.kenai.android.ui.CalmHero
 import com.kenai.android.ui.OfflineHero
+import com.kenai.android.ui.NextUp
 import com.kenai.android.ui.RequestHero
+import com.kenai.android.ui.ResultHero
+import com.kenai.android.ui.showsNext
 import com.kenai.android.ui.StatusStrip
 import com.kenai.android.link.LinkHealthText
 import androidx.compose.runtime.produceState
@@ -431,8 +434,12 @@ private fun Home(
     // Inicio, «Decidí en un toque» (kenai-0.1 S9): a request is the hero; else a question in the agent card; else calm; or the computer is away.
     val paired = model.mode == Mode.PAIRED
     val connected = model.linkState == LinkState.CONNECTED
-    val scene = HomePanel.scene(paired, connected, model.approvals.size, model.sessions)
+    // Right after a decision its result is the hero (T14), until dismissed, two minutes old, or a request arrives after it.
+    val result = model.outcome
+    val scene = HomePanel.scene(paired, connected, model.approvals.size, model.sessions, result = result, newestArrivalMs = model.arrivals.values.maxOrNull())
     val hero = ApprovalSheetPlan.hero(model.approvals)
+    // «Lo siguiente»: once nothing is in flight, the next request (not the one just decided) or the first question.
+    val next = if (scene == HomePanel.Scene.RESULT && result != null && showsNext(result)) HomePanel.next(model.approvals, model.sessions, exclude = setOf(result.fingerprint)) else null
     val now by produceState(System.currentTimeMillis()) {
         while (true) {
             delay(15_000)
@@ -442,7 +449,7 @@ private fun Home(
     val computer = HomeText.computer(model.desktopName, demo = model.mode == Mode.DEMO)
     val strip = HomePanel.strip(
         scene, computer, model.sessions, model.approvals, model::agentName,
-        lostAtMs = model.health.lostAtMs, connecting = model.linkState == LinkState.CONNECTING, nowMs = now,
+        lostAtMs = model.health.lostAtMs, connecting = model.linkState == LinkState.CONNECTING, nowMs = now, result = result,
     )
     val stripView: @Composable () -> Unit = { StatusStrip(strip) }
 
@@ -456,7 +463,10 @@ private fun Home(
     if (engine.state != state && !touch.dizzy) engine.setState(state)
     engine.bodyColor = focus?.let { HomePanel.colorHex(it) }?.let { HomePanel.rgb(it) }
 
-    val groups = HomePanel.groups(model.sessions, heroPillId = focus?.pillId ?: hero?.pillId, requestPills = model.approvals.map { it.pillId }.toSet())
+    val groups = HomePanel.groups(
+        model.sessions, heroPillId = if (scene == HomePanel.Scene.RESULT) next?.pillId else focus?.pillId ?: hero?.pillId,
+        requestPills = model.approvals.map { it.pillId }.toSet(),
+    )
     val pair = HomePanel.link(model.isPaired, model.mode == Mode.DEMO, hasApproval = model.approvals.isNotEmpty())
     LazyColumn(
         state = listState,
@@ -467,6 +477,13 @@ private fun Home(
         item {
             when (scene) {
                 HomePanel.Scene.REQUEST -> if (hero != null) RequestHero(model, hero, stripView, onAllow = onApprove)
+                HomePanel.Scene.RESULT -> if (result != null) ResultHero(
+                    result, model.agentName(result.pillId), model.sessions.firstOrNull { it.pillId == result.pillId }?.project, stripView,
+                    onClose = { model.dismissOutcome() },
+                    // Allow goes through the lock again; Deny is sent again. Without the request, the link is retried and it comes back.
+                    onRetry = { model.retryDecision()?.let { (r, allow) -> if (allow) onApprove(r) else model.decide(r.fingerprint, allow = false) } },
+                    onHelp = onDiagnostics,
+                )
                 HomePanel.Scene.OFFLINE -> OfflineHero(
                     why = LinkHealthText.lines(connected, model.health, now)?.second,
                     // The saved address failed and a search found nothing: the two ways out of the discovery hint.
@@ -488,6 +505,15 @@ private fun Home(
                         }
                     },
                     strip = stripView,
+                )
+            }
+        }
+        if (next != null) item {
+            Box(Modifier.padding(horizontal = Gutter)) {
+                NextUp(
+                    model, next, onQuestion = onQuestion,
+                    // The request that is Home's hero once the result goes needs no sheet: closing the result shows it.
+                    onReview = { fp -> if (hero?.fingerprint == fp) model.dismissOutcome() else onReview(fp) },
                 )
             }
         }

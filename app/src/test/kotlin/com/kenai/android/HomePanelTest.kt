@@ -1,6 +1,8 @@
 package com.kenai.android
 
 import com.kenai.android.core.HomePanel
+import com.kenai.android.core.Outcome
+import com.kenai.android.core.OutcomeKind
 import com.kenai.android.core.Words
 import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.link.SessionInfo
@@ -162,5 +164,59 @@ class HomePanelTest {
         assertEquals("Conectando…", never.subtitle)
         assertEquals("1 agent", "Alvaro PC · 1 agent", HomePanel.strip(HomePanel.Scene.REQUEST, "Alvaro PC", list.take(1), listOf(r("a")), ::name, null, false, 0, Words.EN).subtitle)
         assertFalse(req.title.contains("npm"))
+    }
+
+    // ── The result of a decision (kenai-0.1 S9, screen 3; T14) ──
+
+    private fun outcome(kind: OutcomeKind, allow: Boolean? = true, since: Long = 1_000) =
+        Outcome("fpA", kind, allow, "a", "Bash", sinceMs = since, atWallMs = 0, expiresAtWallMs = null)
+
+    @Test fun aResultBeatsCalmWaitingAndOfflineButANewRequestBeatsTheResult() {
+        val q = listOf(s("b", BotState.QUESTION))
+        val done = outcome(OutcomeKind.ALLOWED)
+        assertEquals(HomePanel.Scene.RESULT, HomePanel.scene(true, true, 0, emptyList(), result = done, newestArrivalMs = null))
+        assertEquals(HomePanel.Scene.RESULT, HomePanel.scene(true, true, 0, q, result = done, newestArrivalMs = null))
+        // A request that waited before the decision does not hide its result («Lo siguiente» offers it).
+        assertEquals(HomePanel.Scene.RESULT, HomePanel.scene(true, true, 1, q, result = done, newestArrivalMs = 500))
+        // A request that arrived after it does.
+        assertEquals(HomePanel.Scene.REQUEST, HomePanel.scene(true, true, 1, q, result = done, newestArrivalMs = 1_001))
+        // «No se pudo enviar» is said even though the computer is away.
+        assertEquals(HomePanel.Scene.RESULT, HomePanel.scene(true, false, 0, q, result = outcome(OutcomeKind.FAILED), newestArrivalMs = null))
+        assertEquals(HomePanel.Scene.CALM, HomePanel.scene(true, true, 0, emptyList(), result = null, newestArrivalMs = null))
+    }
+
+    @Test fun theStripOfAResultSaysWhatHappenedAndAlwaysNamesTheComputer() {
+        fun strip(kind: OutcomeKind, allow: Boolean? = true) =
+            HomePanel.strip(HomePanel.Scene.RESULT, "Alvaro PC", emptyList(), emptyList(), ::name, null, false, 0, Words.ES, result = outcome(kind, allow))
+        strip(OutcomeKind.SENDING).let {
+            assertEquals("Enviando a Alvaro PC…", it.title)
+            assertEquals(HomePanel.Tone.SENDING, it.tone)
+            assertTrue(it.spinner)
+        }
+        assertEquals("Permitido · Alvaro PC lo recibió", strip(OutcomeKind.ALLOWED).title)
+        assertEquals(HomePanel.Tone.DONE, strip(OutcomeKind.ALLOWED).tone)
+        assertEquals("Denegado · Alvaro PC lo recibió", strip(OutcomeKind.DENIED, false).title)
+        assertEquals(HomePanel.Tone.FAINT, strip(OutcomeKind.DENIED, false).tone)
+        assertEquals("Ese pedido ya no está pendiente", strip(OutcomeKind.EXPIRED, null).title)
+        assertEquals(HomePanel.Tone.FAINT, strip(OutcomeKind.EXPIRED, null).tone)
+        assertEquals("No se pudo enviar", strip(OutcomeKind.FAILED).title)
+        assertEquals(HomePanel.Tone.OFFLINE, strip(OutcomeKind.FAILED).tone)
+        for (k in OutcomeKind.entries) {
+            assertEquals(k.name, "Alvaro PC", strip(k).subtitle)
+            assertEquals(k.name, k == OutcomeKind.SENDING, strip(k).spinner)
+        }
+    }
+
+    @Test fun whatComesNextIsTheNextRequestElseTheFirstQuestionNeverTheOneJustDecided() {
+        val q = listOf(s("c", BotState.WORKING), s("b", BotState.QUESTION))
+        val next = HomePanel.next(listOf(r("a", "fpA"), r("d", "fpD")), q, exclude = setOf("fpA"))
+        assertEquals(HomePanel.NextKind.APPROVAL, next!!.kind)
+        assertEquals("d", next.pillId)
+        assertEquals("fpD", next.fingerprint)
+        val ask = HomePanel.next(listOf(r("a", "fpA")), q, exclude = setOf("fpA"))
+        assertEquals(HomePanel.NextKind.QUESTION, ask!!.kind)
+        assertEquals("b", ask.pillId)
+        assertNull(ask.fingerprint)
+        assertNull("nothing waits", HomePanel.next(emptyList(), listOf(s("c", BotState.WORKING)), emptySet()))
     }
 }

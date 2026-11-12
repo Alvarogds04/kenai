@@ -58,12 +58,19 @@ object HomePanel {
     // ── Inicio, "Decidí en un toque" (kenai-0.1 S9, T13) ──
 
     /**
-     * What Inicio is about now. OFFLINE: a paired computer is not connected (nothing can be answered; requests were dropped).
-     * REQUEST: a request waits; it is the hero. WAITING: only a question waits; the agent card offers it. CALM: nothing waits.
+     * What Inicio is about now. RESULT: what became of the decision just made (kenai-0.1 S9, T14); it holds Home until a request
+     * arrives after it, even while the computer is away («No se pudo enviar» is about that). OFFLINE: a paired computer is not
+     * connected (nothing can be answered; requests were dropped). REQUEST: a request waits; it is the hero. WAITING: only a
+     * question waits; the agent card offers it. CALM: nothing waits.
      */
-    enum class Scene { REQUEST, WAITING, CALM, OFFLINE }
+    enum class Scene { REQUEST, WAITING, CALM, OFFLINE, RESULT }
 
-    fun scene(paired: Boolean, connected: Boolean, approvals: Int, sessions: List<SessionInfo>): Scene = when {
+    /** [newestArrivalMs]: the latest request's arrival on the same elapsed clock as [Outcome.sinceMs]; a newer one beats the result. */
+    fun scene(
+        paired: Boolean, connected: Boolean, approvals: Int, sessions: List<SessionInfo>,
+        result: Outcome? = null, newestArrivalMs: Long? = null,
+    ): Scene = when {
+        result != null && (newestArrivalMs == null || newestArrivalMs <= result.sinceMs) -> Scene.RESULT
         paired && !connected -> Scene.OFFLINE
         approvals > 0 -> Scene.REQUEST
         sessions.any { it.state == BotState.QUESTION } -> Scene.WAITING
@@ -110,16 +117,30 @@ object HomePanel {
     fun expiryFraction(remainingMs: Long, ttlMs: Long = Protocol.APPROVAL_TTL_MS): Float =
         (remainingMs.coerceIn(0, ttlMs).toDouble() / ttlMs).toFloat()
 
-    /** The strip's role: sun while something waits, go while calm, red while the computer is away. */
-    enum class Tone { WAITING, CALM, OFFLINE }
+    /**
+     * The strip's role: sun while something waits, go while calm, red while the computer is away; for a result (T14): live while
+     * sending, go once allowed (DONE), faint when denied or expired, red (OFFLINE) when it could not be sent.
+     */
+    enum class Tone { WAITING, CALM, OFFLINE, SENDING, DONE, FAINT }
 
-    /** The strip at the top of Inicio: title, subtitle and the chip's number (what waits, or what runs while calm; 0 hides it). */
-    data class Strip(val tone: Tone, val title: String, val subtitle: String, val count: Int)
+    /**
+     * The strip at the top of Inicio: title, subtitle and the chip's number (what waits, or what runs while calm; 0 hides it);
+     * [spinner] while a decision is being sent.
+     */
+    data class Strip(val tone: Tone, val title: String, val subtitle: String, val count: Int, val spinner: Boolean = false)
 
     fun strip(
         scene: Scene, computer: String, sessions: List<SessionInfo>, approvals: List<ApprovalRequest>, nameOf: (String) -> String,
-        lostAtMs: Long?, connecting: Boolean, nowMs: Long, w: Words = Words.current(),
+        lostAtMs: Long?, connecting: Boolean, nowMs: Long, w: Words = Words.current(), result: Outcome? = null,
     ): Strip = when (scene) {
+        // The result's subtitle is always the computer's name: it is about what that computer got.
+        Scene.RESULT -> when (result?.kind) {
+            OutcomeKind.SENDING -> Strip(Tone.SENDING, w.sendingTo(computer), computer, 0, spinner = true)
+            OutcomeKind.ALLOWED -> Strip(Tone.DONE, w.received(true, computer), computer, 0)
+            OutcomeKind.DENIED -> Strip(Tone.FAINT, w.received(false, computer), computer, 0)
+            OutcomeKind.FAILED -> Strip(Tone.OFFLINE, w.couldNotSend, computer, 0)
+            OutcomeKind.EXPIRED, null -> Strip(Tone.FAINT, w.notPendingAnyMore, computer, 0)
+        }
         Scene.OFFLINE -> Strip(
             Tone.OFFLINE, w.offlineFrom(computer),
             lostAtMs?.let { w.lastHeard(LinkHealthText.ago(nowMs - it, w)) } ?: if (connecting) w.connecting else w.notConnected, 0,
@@ -133,5 +154,17 @@ object HomePanel {
             waitingCount(approvals.size, sessions),
         )
         Scene.CALM -> Strip(Tone.CALM, w.computerCalm(computer), w.connected, HomeText.running(sessions))
+    }
+
+    /** What «Lo siguiente» offers after a result: the next request (it expires soonest), else the first agent with a question. */
+    enum class NextKind { APPROVAL, QUESTION }
+
+    /** [fingerprint]: the request's (null for a question). */
+    data class Next(val kind: NextKind, val pillId: String, val fingerprint: String?)
+
+    /** The next thing that waits after a result, leaving out the requests in [exclude] (the one just decided, ones still being sent). */
+    fun next(approvals: List<ApprovalRequest>, sessions: List<SessionInfo>, exclude: Set<String>): Next? {
+        approvals.firstOrNull { it.fingerprint !in exclude }?.let { return Next(NextKind.APPROVAL, it.pillId, it.fingerprint) }
+        return sessions.firstOrNull { it.state == BotState.QUESTION }?.let { Next(NextKind.QUESTION, it.pillId, null) }
     }
 }

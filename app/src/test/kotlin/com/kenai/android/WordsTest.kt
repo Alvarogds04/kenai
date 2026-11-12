@@ -297,6 +297,32 @@ class WordsTest {
         assertEquals("Gemini CLI tiene una pregunta", w.asksYou("Gemini CLI"))
     }
 
+    /** The result of a decision (kenai-0.1 S9, screen 3; T14), with voseo. */
+    @Test fun theResultSpeaksSpanishWithVoseo() {
+        val w = Words.ES
+        assertEquals("Enviando a Alvaro PC…", w.sendingTo("Alvaro PC"))
+        assertEquals("Permitido · Alvaro PC lo recibió", w.received(true, "Alvaro PC"))
+        assertEquals("Denegado · Alvaro PC lo recibió", w.received(false, "Alvaro PC"))
+        assertEquals("Ese pedido ya no está pendiente", w.notPendingAnyMore)
+        assertEquals("No se pudo enviar", w.couldNotSend)
+        assertEquals("Enviando tu decisión", w.sendingTitle)
+        assertEquals("Kenai espera que tu computadora confirme que la recibió. No cierres nada.", w.sendingBody)
+        assertEquals("Permitiste ejecutar un comando", w.youDecided(true, "ejecutar un comando"))
+        assertEquals("Denegaste editar archivos", w.youDecided(false, "editar archivos"))
+        assertEquals("Claude Code sigue trabajando en kenai.", w.keepsWorking("Claude Code", "kenai"))
+        assertEquals("Claude Code sigue trabajando.", w.keepsWorking("Claude Code", ""))
+        assertEquals("Claude Code no lo va a ejecutar. Si querés, explicale por qué en tu computadora.", w.willNotDo("Claude Code", command = true))
+        assertEquals("Caducó a las 14:45 o se respondió en tu computadora. Desde el teléfono no se envió nada.", w.expiredBody("14:45"))
+        assertEquals("Caducó a las 14:45 sin que tu computadora confirmara tu decisión.", w.expiredUnconfirmed("14:45"))
+        assertEquals("Tu decisión no llegó", w.didNotArrive)
+        assertEquals("Se perdió la conexión con tu computadora. El pedido sigue abierto: volver a intentar es seguro.", w.failedBody)
+        assertEquals("14:41 · vibró una vez · quedó en Actividad", w.resultMeta("14:41", 1))
+        assertEquals("14:41 · vibró dos veces · quedó en Actividad", w.resultMeta("14:41", 2))
+        assertEquals("14:41 · quedó en Actividad", w.resultMeta("14:41", 0))
+        assertEquals("Sending to Alvaro PC…", Words.EN.sendingTo("Alvaro PC"))
+        assertEquals("Allowed · Alvaro PC got it", Words.EN.received(true, "Alvaro PC"))
+    }
+
     // ── Any other language: English ───────────────────────────────────────────────────────────────
 
     @Test fun anyOtherLanguageGetsEnglish() {

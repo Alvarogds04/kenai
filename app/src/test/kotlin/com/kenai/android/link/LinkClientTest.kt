@@ -121,6 +121,8 @@ private class Recorder : LinkListener {
     override fun onApproval(request: ApprovalRequest) { approvals.add(request) }
     override fun onApprovalResolved(fingerprint: String) { resolved.add(fingerprint) }
     override fun onError(code: String, message: String) { errors.add(code) }
+    val notSent = LinkedBlockingQueue<String>()
+    override fun onDecisionNotSent(fingerprint: String) { notSent.add(fingerprint) }
     override fun onLinkLost(reason: LostReason) { lost.add(reason) }
     val caps = LinkedBlockingQueue<Set<String>>()
     val chatEvents = LinkedBlockingQueue<String>()
@@ -213,6 +215,43 @@ class LinkClientTest {
         now += Protocol.APPROVAL_TTL_MS
         assertFalse(c.decide(req.fingerprint, allow = true))
         assertTrue("no decision must reach the desktop", d.received.none { it.contains("\"type\":\"decision\"") })
+    }
+
+    /**
+     * A decision that cannot be written (the connection broke under it) is told with its fingerprint, so the phone can say «No se
+     * pudo enviar» about that request (kenai-0.1 S9, T14), and the request stays answerable.
+     */
+    @Test fun aDecisionThatCannotBeWrittenIsToldWithItsFingerprint() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        // A plain socket whose stream breaks on the decision line only: everything else goes through.
+        val connector = Connector { ms ->
+            object : Socket() {
+                override fun getOutputStream(): java.io.OutputStream {
+                    val o = super.getOutputStream()
+                    return object : java.io.OutputStream() {
+                        override fun write(b: Int) = o.write(b)
+                        override fun write(b: ByteArray, off: Int, len: Int) {
+                            if (String(b, off, len, Charsets.UTF_8).contains("\"type\":\"decision\"")) throw java.io.IOException("cut")
+                            o.write(b, off, len)
+                        }
+                        override fun flush() = o.flush()
+                    }
+                }
+            }.apply { connect(java.net.InetSocketAddress("127.0.0.1", d.port), ms) }
+        }
+        val c = LinkClient(payload(d), "Pixel", rec, connector, clockMs = { now }, readTimeoutMs = 2_000, pingEveryMs = 100, backoffMs = longArrayOf(50), pongWaitMs = 300)
+            .also { closeables.add(AutoCloseable { it.stop() }) }
+        c.start()
+        assertTrue(rec.connected.await(5, TimeUnit.SECONDS))
+        d.push(d.approvalJson(now))
+        val req = rec.approvals.poll(5, TimeUnit.SECONDS)!!
+        assertTrue("queued", c.decide(req.fingerprint, allow = true))
+        assertEquals(req.fingerprint, rec.notSent.poll(5, TimeUnit.SECONDS))
+        assertEquals("send", rec.errors.poll(5, TimeUnit.SECONDS))
+        assertTrue("never reached the desktop", d.received.none { it.contains("\"type\":\"decision\"") })
+        // Back in the book: it can be decided again while it is still valid.
+        assertTrue(c.approvals.active().any { it.fingerprint == req.fingerprint })
     }
 
     @Test fun desktopResolvingTheApprovalRemovesIt() {

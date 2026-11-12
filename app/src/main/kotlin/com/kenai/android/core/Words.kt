@@ -104,6 +104,32 @@ interface Words {
     /** The calm card while an agent works: "Codex is working in app. I'll tell you as soon as someone needs your yes."; a blank project is left out. */
     fun calmWorking(agent: String, project: String): String
 
+    // ── Inicio: the result of a decision (kenai-0.1 S9, screen 3; T14) ──────────────────────────────
+    /** The strip while sending: "Sending to Alvaro PC…". */
+    fun sendingTo(computer: String): String
+    /** The strip once confirmed: "Allowed · Alvaro PC got it". */
+    fun received(allowed: Boolean, computer: String): String
+    /** The strip and heading of an expired request. */
+    val notPendingAnyMore: String
+    /** The strip when the decision could not be sent. */
+    val couldNotSend: String
+    val sendingTitle: String
+    val sendingBody: String
+    /** "You let it run a command" ([action] from [ToolLabels.action]). */
+    fun youDecided(allowed: Boolean, action: String): String
+    /** "Claude Code keeps working in kenai."; a blank project is left out. */
+    fun keepsWorking(agent: String, project: String): String
+    /** "Claude Code won't run it. …"; [command]: a shell command ("run"), else any action ("do"). */
+    fun willNotDo(agent: String, command: Boolean): String
+    /** Expired, nothing sent from the phone: "It expired at 14:45 or was answered on your computer. …". */
+    fun expiredBody(clock: String): String
+    /** Expired after the phone sent it, with no confirmation. */
+    fun expiredUnconfirmed(clock: String): String
+    val didNotArrive: String
+    val failedBody: String
+    /** "14:41 · buzzed once · saved in Activity"; [buzzes] 0 leaves the buzz out. */
+    fun resultMeta(clock: String, buzzes: Int): String
+
     // ── Tools ───────────────────────────────────────────────────────────────────────────────────────
     /** "Running a command". */
     fun toolLabel(kind: ToolKind): String
@@ -291,6 +317,27 @@ private object English : Words {
     override fun riskWhere(project: String) = "inside $project."
     override fun calmWorking(agent: String, project: String) =
         "$agent is working" + (if (project.isBlank()) "" else " in $project") + ". I'll tell you as soon as someone needs your yes."
+
+    override fun sendingTo(computer: String) = "Sending to $computer…"
+    override fun received(allowed: Boolean, computer: String) = (if (allowed) "Allowed" else "Denied") + " · $computer got it"
+    override val notPendingAnyMore = "That request is no longer pending"
+    override val couldNotSend = "Couldn't send"
+    override val sendingTitle = "Sending your decision"
+    override val sendingBody = "Kenai is waiting for your computer to confirm it got it. Don't close anything."
+    override fun youDecided(allowed: Boolean, action: String) = (if (allowed) "You let it " else "You didn't let it ") + action
+    override fun keepsWorking(agent: String, project: String) =
+        "${agent.ifBlank { "The agent" }} keeps working" + (if (project.isBlank()) "." else " in $project.")
+    override fun willNotDo(agent: String, command: Boolean) =
+        "${agent.ifBlank { "The agent" }} won't ${if (command) "run" else "do"} it. If you like, tell it why on your computer."
+    override fun expiredBody(clock: String) = "It expired at $clock or was answered on your computer. Nothing was sent from the phone."
+    override fun expiredUnconfirmed(clock: String) = "It expired at $clock before your computer confirmed your decision."
+    override val didNotArrive = "Your decision didn't arrive"
+    override val failedBody = "The connection to your computer was lost. The request is still open: trying again is safe."
+    override fun resultMeta(clock: String, buzzes: Int) = listOfNotNull(
+        clock,
+        when (buzzes) { 0 -> null; 1 -> "buzzed once"; 2 -> "buzzed twice"; else -> "buzzed $buzzes times" },
+        "saved in Activity",
+    ).joinToString(" · ")
 
     override fun toolLabel(kind: ToolKind) = when (kind) {
         ToolKind.ASK -> "Asking a question"
@@ -495,6 +542,27 @@ private object Spanish : Words {
     override fun riskWhere(project: String) = "dentro de $project."
     override fun calmWorking(agent: String, project: String) =
         "$agent está trabajando" + (if (project.isBlank()) "" else " en $project") + ". Te aviso apenas alguien necesite tu sí."
+
+    override fun sendingTo(computer: String) = "Enviando a $computer…"
+    override fun received(allowed: Boolean, computer: String) = (if (allowed) "Permitido" else "Denegado") + " · $computer lo recibió"
+    override val notPendingAnyMore = "Ese pedido ya no está pendiente"
+    override val couldNotSend = "No se pudo enviar"
+    override val sendingTitle = "Enviando tu decisión"
+    override val sendingBody = "Kenai espera que tu computadora confirme que la recibió. No cierres nada."
+    override fun youDecided(allowed: Boolean, action: String) = (if (allowed) "Permitiste " else "Denegaste ") + action
+    override fun keepsWorking(agent: String, project: String) =
+        "${agent.ifBlank { "El agente" }} sigue trabajando" + (if (project.isBlank()) "." else " en $project.")
+    override fun willNotDo(agent: String, command: Boolean) =
+        "${agent.ifBlank { "El agente" }} no lo va a ${if (command) "ejecutar" else "hacer"}. Si querés, explicale por qué en tu computadora."
+    override fun expiredBody(clock: String) = "Caducó a las $clock o se respondió en tu computadora. Desde el teléfono no se envió nada."
+    override fun expiredUnconfirmed(clock: String) = "Caducó a las $clock sin que tu computadora confirmara tu decisión."
+    override val didNotArrive = "Tu decisión no llegó"
+    override val failedBody = "Se perdió la conexión con tu computadora. El pedido sigue abierto: volver a intentar es seguro."
+    override fun resultMeta(clock: String, buzzes: Int) = listOfNotNull(
+        clock,
+        when (buzzes) { 0 -> null; 1 -> "vibró una vez"; 2 -> "vibró dos veces"; else -> "vibró $buzzes veces" },
+        "quedó en Actividad",
+    ).joinToString(" · ")
 
     override fun toolLabel(kind: ToolKind) = when (kind) {
         ToolKind.ASK -> "Haciendo una pregunta"

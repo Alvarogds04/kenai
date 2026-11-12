@@ -307,6 +307,9 @@
     "tab_home_waiting": "%1$s, %2$d esperándote",
     "confirm_title": "Confirmá que sos vos",
     "confirm_command": "Permitir que %1$s ejecute un comando en %2$s",
-    "confirm_action": "Permitir que %1$s pueda %2$s en %3$s"
+    "confirm_action": "Permitir que %1$s pueda %2$s en %3$s",
+    "result_next": "Lo siguiente",
+    "result_sending": "Enviando…",
+    "result_retry": "Volver a intentar"
   }
 }

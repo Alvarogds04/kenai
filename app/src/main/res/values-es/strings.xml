@@ -308,4 +308,7 @@
     <string name="confirm_title">Confirmá que sos vos</string>
     <string name="confirm_command">Permitir que %1$s ejecute un comando en %2$s</string>
     <string name="confirm_action">Permitir que %1$s pueda %2$s en %3$s</string>
+    <string name="result_next">Lo siguiente</string>
+    <string name="result_sending">Enviando…</string>
+    <string name="result_retry">Volver a intentar</string>
 </resources>

@@ -27,6 +27,8 @@ class DemoLinkTest {
         val sessions = mutableListOf<List<SessionInfo>>()
         val approvals = mutableListOf<ApprovalRequest>()
         val welcome = mutableListOf<String>()
+        val resolved = mutableListOf<String>()
+        override fun onApprovalResolved(fingerprint: String) { resolved.add(fingerprint) }
         override fun onState(state: LinkState) {}
         override fun onSessions(sessions: List<SessionInfo>) { this.sessions.add(sessions) }
         override fun onApproval(request: ApprovalRequest) { approvals.add(request) }
@@ -98,5 +100,24 @@ class DemoLinkTest {
         assertEquals("Reading the project", rec.sessions[0].single().statusText)
         assertEquals(listOf("Editando archivos", "Buscando en el código"), rec.sessions[1].map { it.statusText })
         assertEquals(listOf("Waiting for your approval", "Running tests"), rec.sessions[2].map { it.statusText })
+    }
+
+    /**
+     * The result screen (kenai-0.1 S9, T14) learns that a decision arrived only from the request being resolved: the demo resolves
+     * it at once when decided, once, and an unanswered one at the end of the loop, exactly as before.
+     */
+    @Test fun aDecisionInTheDemoIsResolvedAtOnceAndOnlyOnce() {
+        val rec = Rec()
+        val d = DemoLink(rec, autoRun = false).also { it.start() }
+        repeat(3) { d.step() }
+        assertEquals(true, d.decide(DemoLink.FINGERPRINT, allow = false))
+        assertEquals(listOf(DemoLink.FINGERPRINT), rec.resolved)
+        assertEquals(false, d.decide(DemoLink.FINGERPRINT, allow = true))
+        repeat(DemoLink.STEPS - 3) { d.step() }
+        assertEquals("not resolved twice at the end of the loop", listOf(DemoLink.FINGERPRINT), rec.resolved)
+
+        val idle = Rec()
+        DemoLink(idle, autoRun = false).also { it.start(); repeat(DemoLink.STEPS) { _ -> it.step() } }
+        assertEquals(listOf(DemoLink.FINGERPRINT), idle.resolved)
     }
 }
