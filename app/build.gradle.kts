@@ -23,7 +23,7 @@ android {
         minSdk = 30
         targetSdk = 35
         versionCode = 2
-        versionName = "0.2.0"
+        versionName = "0.1.0"
         // English (the default) and Spanish, chosen by the phone's language; libraries' other languages are left out of the app too.
         resourceConfigurations += listOf("en", "es")
     }
