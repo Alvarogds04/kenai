@@ -223,4 +223,16 @@ class PendingLaunchTest {
             .filter { it.readText().contains("launch.requestScreen(") }.map { it.name }.toList()
         assertEquals(listOf("LaunchActivity.kt"), callers)
     }
+
+    // kenai-0.1 S9, T17 (L26): «Revisar el pedido» (notification, widget, tile) from any screen lands on Home with THAT request.
+    @Test fun reviewingARequestFromOutsideAlwaysLandsOnHomeWithThatRequest() {
+        val src = File(main + "MainActivity.kt").readText()
+        val review = src.substringAfter("if (!launch.allow) {").substringBefore("\n            return\n")
+        assertTrue("Home from every screen, not a sheet over Settings or Chat", review.contains("screen = Screen.HOME"))
+        assertFalse("never only from the camera and a question", review.contains("if (screen == Screen.SCAN || screen == Screen.QUESTION) screen = Screen.HOME"))
+        assertTrue("an open question is left", review.contains("questionPill = null"))
+        assertTrue("its sheet rises again even if it was closed", review.contains("closedApproval = null"))
+        assertTrue("the hero's own request: its result gives way to it", review.contains("ApprovalSheetPlan.hero(model.approvals)?.fingerprint == fp") && review.contains("model.dismissOutcome()"))
+        assertTrue("another request: its sheet over Home", review.contains("reviewApproval = fp"))
+    }
 }

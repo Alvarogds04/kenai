@@ -219,4 +219,21 @@ class HomePanelTest {
         assertNull(ask.fingerprint)
         assertNull("nothing waits", HomePanel.next(emptyList(), listOf(s("c", BotState.WORKING)), emptySet()))
     }
+
+    // kenai-0.1 S9, T17 (L24): the agent whose request is the hero may also have a question; it must still be reachable from Home.
+    @Test fun theRequestsAgentThatAlsoAsksIsOfferedItsQuestion() {
+        // The computer says the agent asks (the dev desktop's cycle: a request, then a question from the same agent).
+        val asking = listOf(s("a", BotState.QUESTION), s("c", BotState.WORKING))
+        assertEquals("a", HomePanel.heroAsks(asking, requestPillId = "a", questionPills = emptySet())?.pillId)
+        // The phone holds a question of the agent while the computer still shows it waiting for the request.
+        val held = listOf(s("a", BotState.APPROVAL))
+        assertEquals("a", HomePanel.heroAsks(held, requestPillId = "a", questionPills = setOf("a"))?.pillId)
+        // Only the request's agent, and only when it asks.
+        assertNull(HomePanel.heroAsks(held, requestPillId = "a", questionPills = emptySet()))
+        assertNull("no request hero", HomePanel.heroAsks(asking, requestPillId = null, questionPills = setOf("a")))
+        assertNull("another agent's question is in «También te espera» already", HomePanel.heroAsks(listOf(s("a", BotState.APPROVAL), s("b", BotState.QUESTION)), "a", setOf("b")))
+        assertNull("the agent is gone", HomePanel.heroAsks(emptyList(), "a", setOf("a")))
+        // It is still left out of the groups: its row is the question's, never a second request row.
+        assertTrue(HomePanel.groups(asking, heroPillId = "a").waiting.isEmpty())
+    }
 }

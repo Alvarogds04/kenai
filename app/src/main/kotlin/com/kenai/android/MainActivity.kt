@@ -357,12 +357,19 @@ class MainActivity : ComponentActivity() {
         val fp = launch.fingerprint
         val request = model.approvals.firstOrNull { it.fingerprint == fp }
         if (!launch.allow) {
-            // A tap on a request's notification or on the tile: its sheet rises again, even if it was closed before.
+            // «Revisar el pedido» on a request's notification, the widget or the tile: Home, from whatever screen is open
+            // (kenai-0.1 S9, T17; L26), with THAT request: the hero when it is the first one, else its sheet over Home.
             if (request != null) {
-                // The camera and a question draw no request sheet: Home shows it.
-                if (screen == Screen.SCAN || screen == Screen.QUESTION) screen = Screen.HOME
+                questionPill = null
+                screen = Screen.HOME
                 closedApproval = null
-                reviewApproval = fp // on Home a request that is not the hero's gets its sheet; the hero's own needs none
+                if (ApprovalSheetPlan.hero(model.approvals)?.fingerprint == fp) {
+                    reviewApproval = null
+                    // A result still on Home gives way to the request the user asked to see.
+                    if (model.outcome != null) model.dismissOutcome()
+                } else {
+                    reviewApproval = fp
+                }
             }
             return
         }
@@ -520,6 +527,16 @@ private fun Home(
         requestPills = model.approvals.map { it.pillId }.toSet(),
     )
     val pair = HomePanel.link(model.isPaired, model.mode == Mode.DEMO, hasApproval = model.approvals.isNotEmpty())
+    // The agent of the request on show also asks (kenai-0.1 S9, T17; L24): its question gets a row of its own, it is left out above.
+    val asks = HomePanel.heroAsks(
+        model.sessions,
+        requestPillId = when (scene) {
+            HomePanel.Scene.REQUEST -> hero?.pillId
+            HomePanel.Scene.RESULT -> next?.takeIf { it.kind == HomePanel.NextKind.APPROVAL }?.pillId
+            else -> null
+        },
+        questionPills = model.questions.map { it.pillId }.toSet(),
+    )
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -583,12 +600,14 @@ private fun Home(
                 Box(Modifier.padding(horizontal = Gutter)) { AgentSection(heading, model.sessions, unconfirmed = true, onOpen = open) }
             }
         } else {
-            if (groups.waiting.isNotEmpty()) item {
+            if (groups.waiting.isNotEmpty() || asks != null) item {
                 Box(Modifier.padding(horizontal = Gutter)) {
                     AlsoWaiting(
                         groups.waiting,
                         reviewFor = { s -> model.approvals.drop(1).firstOrNull { it.pillId == s.pillId }?.fingerprint },
                         onQuestion = onQuestion, onReview = { onReview(it) },
+                        asks = asks,
+                        asksLine = asks?.let { HomeText.nextLine(model.questionFor(it.pillId)?.questions?.firstOrNull()?.question, it) }.orEmpty(),
                     )
                 }
             }

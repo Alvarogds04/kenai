@@ -97,6 +97,16 @@ object HomePanel {
         )
     }
 
+    /**
+     * The agent whose request is Home's hero (or is offered next under a result) also has a question (kenai-0.1 S9, T17; L24):
+     * the computer shows it asking, or the phone holds a question of it ([questionPills]). [groups] leaves that agent out, so its
+     * question gets its own «Responder» row in «También te espera». Null when there is no request hero or it does not ask.
+     */
+    fun heroAsks(sessions: List<SessionInfo>, requestPillId: String?, questionPills: Set<String>): SessionInfo? {
+        requestPillId ?: return null
+        return sessions.firstOrNull { it.pillId == requestPillId && (it.state == BotState.QUESTION || it.pillId in questionPills) }
+    }
+
     /** The bar's badge on Inicio: the requests plus the questions that wait. */
     fun waitingCount(approvals: Int, sessions: List<SessionInfo>): Int = approvals + sessions.count { it.state == BotState.QUESTION }
 

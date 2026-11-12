@@ -138,4 +138,20 @@ class RequestHeroTest {
         assertTrue(strip.contains("if (strip.spinner)") && strip.contains("CircularProgressIndicator("))
         for (role in listOf("KodaRole.LIVE", "KodaRole.FAINT")) assertTrue(role, strip.contains(role))
     }
+
+    // ── The request's agent also asks (kenai-0.1 S9, T17; L24) ──
+
+    @Test fun theQuestionOfTheRequestsAgentIsOfferedInAlsoWaiting() {
+        val home = main.substringAfter("private fun Home(")
+        assertTrue("the rule comes from core", home.contains("HomePanel.heroAsks("))
+        assertTrue("questions held on the phone count", home.contains("questionPills = model.questions.map { it.pillId }.toSet()"))
+        assertTrue("for the request hero, and for the request offered next under a result", home.contains("HomePanel.Scene.REQUEST -> hero?.pillId") && home.contains("HomePanel.NextKind.APPROVAL"))
+        assertTrue("the section shows even when only that question waits", home.contains("if (groups.waiting.isNotEmpty() || asks != null)"))
+        assertTrue(home.contains("asks = asks"))
+        val ui = src("ui/HomePanel.kt")
+        val section = ui.substringAfter("fun AlsoWaiting(").substringBefore("\n}\n")
+        assertTrue(section.contains("asks: SessionInfo?"))
+        assertTrue("«Responder» opens that agent's question", section.contains("onQuestion(a.pillId)") && section.contains("R.string.home_answer"))
+        assertTrue("drawn as a question, whatever the computer shows", section.contains("a.copy(state = BotState.QUESTION)"))
+    }
 }

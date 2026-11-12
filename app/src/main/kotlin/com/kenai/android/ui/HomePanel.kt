@@ -256,16 +256,25 @@ private fun nameOf(s: SessionInfo) = s.agent.ifBlank { Pills.byId(s.pillId)?.nam
 
 /**
  * "También te espera": the other agents with a question ("Responder" opens it) or a request ("Revisar" opens its sheet; null
- * when the phone has no request of theirs to show).
+ * when the phone has no request of theirs to show). [asks]: the request hero's own agent also asks (kenai-0.1 S9, T17; L24); its
+ * question comes first, drawn as a question with [asksLine], so it is reachable before the request is decided.
  */
 @Composable
-fun AlsoWaiting(waiting: List<SessionInfo>, reviewFor: (SessionInfo) -> String?, onQuestion: (String) -> Unit, onReview: (String) -> Unit) {
-    if (waiting.isEmpty()) return
+fun AlsoWaiting(
+    waiting: List<SessionInfo>, reviewFor: (SessionInfo) -> String?, onQuestion: (String) -> Unit, onReview: (String) -> Unit,
+    asks: SessionInfo? = null, asksLine: String = "",
+) {
+    if (waiting.isEmpty() && asks == null) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionHeading(stringResource(R.string.home_also_waiting))
         Panel {
+            asks?.let { a ->
+                SectionRow(a.copy(state = BotState.QUESTION), nameOf(a), asksLine.ifBlank { stringResource(R.string.state_question) }, null) {
+                    PillButton(stringResource(R.string.home_answer), { onQuestion(a.pillId) })
+                }
+            }
             waiting.forEachIndexed { i, s ->
-                if (i > 0) RowDivider()
+                if (i > 0 || asks != null) RowDivider()
                 val line = HomeText.line(s) ?: stringResource(stateLabel(s.state))
                 SectionRow(s, nameOf(s), line, null) {
                     if (s.state == BotState.QUESTION) PillButton(stringResource(R.string.home_answer), { onQuestion(s.pillId) })
