@@ -238,7 +238,7 @@ class MainActivity : ComponentActivity() {
                                     model, pill, strip = QuestionFlow.strip(model.approvals, model::agentName) ?: normalStrip(),
                                     onStrip = review?.let { fp -> { reviewFromQuestion(fp) } },
                                     onBack = ::leaveQuestion, onSend = ::sendAnswer,
-                                    onGone = { model.message = getString(R.string.question_gone); leaveQuestion() },
+                                    onGone = { model.answered(getString(R.string.question_gone)); leaveQuestion() },
                                 )
                             } ?: LaunchedEffect(Unit) { leaveQuestion() }
                             Screen.DIAGNOSTICS -> DiagnosticsScreen(model, onBack = { screen = Screen.SETTINGS })
@@ -365,8 +365,9 @@ class MainActivity : ComponentActivity() {
                 closedApproval = null
                 if (ApprovalSheetPlan.hero(model.approvals)?.fingerprint == fp) {
                     reviewApproval = null
-                    // A result still on Home gives way to the request the user asked to see.
-                    if (model.outcome != null) model.dismissOutcome()
+                    // A result or an answer still on Home gives way to the request the user asked to see (kenai-0.1 S9, T19).
+                    model.dismissOutcome()
+                    model.dismissAnswer()
                 } else {
                     reviewApproval = fp
                 }
@@ -433,7 +434,7 @@ class MainActivity : ComponentActivity() {
                 confirming = false
                 questionPill = null
                 screen = Screen.HOME
-                model.message = getString(if (model.answerQuestion(request.fingerprint, picks)) R.string.question_sent else R.string.question_not_sent)
+                model.answered(getString(if (model.answerQuestion(request.fingerprint, picks)) R.string.question_sent else R.string.question_not_sent))
             },
             onFail = { confirming = false; if (it.isNotBlank()) model.message = it },
             description = picks.joinToString("; ") { it.joinToString(", ") },
@@ -495,6 +496,9 @@ private fun Home(
     val connected = model.linkState == LinkState.CONNECTED
     // Right after a decision its result is the hero (T14), until dismissed, two minutes old, or a request arrives after it.
     val result = model.outcome
+    // One «what just happened» card only (kenai-0.1 S9, T19; L29 a): the model keeps one slot, and core picks the newest, so Home
+    // never draws the result and the answer to a question at once with two «Cerrar».
+    val card = HomePanel.card(result, model.answerNote)
     val scene = HomePanel.scene(paired, connected, model.approvals.size, model.sessions, result = result, newestArrivalMs = model.arrivals.values.maxOrNull())
     val hero = ApprovalSheetPlan.hero(model.approvals)
     // «Lo siguiente»: once nothing is in flight, the next request (not the one just decided) or the first question.
@@ -546,7 +550,7 @@ private fun Home(
         item {
             when (scene) {
                 HomePanel.Scene.REQUEST -> if (hero != null) RequestHero(model, hero, stripView, onAllow = onApprove)
-                HomePanel.Scene.RESULT -> if (result != null) ResultHero(
+                HomePanel.Scene.RESULT -> if (result != null && card is HomePanel.HomeCard.Result) ResultHero(
                     result, model.agentName(result.pillId), model.sessions.firstOrNull { it.pillId == result.pillId }?.project, stripView,
                     onClose = { model.dismissOutcome() },
                     // Allow goes through the lock again; Deny is sent again. Without the request, the link is retried and it comes back.
@@ -587,6 +591,11 @@ private fun Home(
             }
         }
         if (model.batteryHintVisible) item { Box(Modifier.padding(horizontal = Gutter)) { BatteryCard(model) } }
+        // The other card: what became of the answer to a question («Respuesta enviada», or why it did not go). It shares the slot with
+        // the result above, and its «Cerrar» clears it.
+        (card as? HomePanel.HomeCard.Note)?.let { note ->
+            item { Box(Modifier.padding(horizontal = Gutter)) { MessagePanel(note.text) { model.dismissAnswer() } } }
+        }
         model.message?.let { msg ->
             item { Box(Modifier.padding(horizontal = Gutter)) { MessagePanel(msg) { model.message = null } } }
         }

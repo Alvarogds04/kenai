@@ -178,6 +178,44 @@ class DecisionOutcomeTest {
         assertNull(DecisionOutcomes.expiresAtWall(null, 0, 0))
     }
 
+    // ── One «what just happened» card on Home (kenai-0.1 S9, T19; L29 a) ──────────────────────────
+
+    @Test fun theAnswerToAQuestionTakesHomesOneCardAndAResultTakesItBack() {
+        val m = machine()
+        m.decided(a, allow = true, nowMs = 0, wallMs = 0, expiresAtWallMs = null)
+        val note = m.answered("Respuesta enviada", nowMs = 10)
+        assertEquals("Respuesta enviada", note.text)
+        assertEquals(note, m.answer)
+        assertNull("Home shows one card, never two", m.current)
+        // The decision of a later request replaces the answer, whichever card came first.
+        m.decided(b, allow = false, nowMs = 20, wallMs = 20, expiresAtWallMs = null)
+        assertEquals(OutcomeKind.SENDING, m.current!!.kind)
+        assertNull(m.answer)
+        // And an answer replaces a confirmed result too.
+        m.answered("Respuesta enviada", nowMs = 30)
+        assertNull(m.current)
+        assertEquals("Respuesta enviada", m.answer!!.text)
+    }
+
+    @Test fun aNewRequestClearsTheAnswerAsItClearsAResult() {
+        val m = machine()
+        m.answered("Esa pregunta ya no está esperando.", nowMs = 0)
+        m.arrived("fpB")
+        assertNull(m.current)
+        assertNull("the new request takes Home, alone", m.answer)
+    }
+
+    @Test fun theAnswerNeverShowsAfterTwoMinutesAndCerrarClearsIt() {
+        val m = machine()
+        m.answered("Respuesta enviada", nowMs = 1_000)
+        assertNotNull(m.answerVisible(1_000))
+        assertNotNull(m.answerVisible(1_000 + DecisionOutcomes.SHOW_MS))
+        assertNull(m.answerVisible(1_000 + DecisionOutcomes.SHOW_MS + 1))
+        m.dismissAnswer()
+        assertNull(m.answer)
+        assertNull(m.answerVisible(1_000))
+    }
+
     @Test fun eachResultHasItsKodaPoseAndRoleColour() {
         assertEquals(BotState.APPROVAL, DecisionOutcomes.pose(OutcomeKind.SENDING))
         assertEquals(BotState.FINISHED, DecisionOutcomes.pose(OutcomeKind.ALLOWED))

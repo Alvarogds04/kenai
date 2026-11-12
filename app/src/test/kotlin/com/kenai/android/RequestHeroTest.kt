@@ -139,6 +139,22 @@ class RequestHeroTest {
         for (role in listOf("KodaRole.LIVE", "KodaRole.FAINT")) assertTrue(role, strip.contains(role))
     }
 
+    // ── One «what just happened» card on Home (kenai-0.1 S9, T19; L29 a) ──
+
+    @Test fun homeDrawsOnlyOneOfTheResultHeroAndTheAnswerCard() {
+        val home = main.substringAfter("private fun Home(")
+        assertTrue("the one slot comes from core", home.contains("val card = HomePanel.card(result, model.answerNote)"))
+        val resultBranch = home.substringAfter("HomePanel.Scene.RESULT ->").substringBefore("HomePanel.Scene.OFFLINE ->")
+        assertTrue("the result hero is drawn only while the slot holds the result", resultBranch.contains("HomePanel.HomeCard.Result") && resultBranch.contains("ResultHero("))
+        val answer = home.substringAfter("HomePanel.HomeCard.Note")
+        assertTrue("the answer card is drawn from the same slot", answer.contains("MessagePanel("))
+        assertTrue("its own «Cerrar» clears it", answer.contains("model.dismissAnswer()"))
+        val model = src("app/AppModel.kt")
+        assertTrue("the answer has the same life as a result", model.contains("var answerNote by mutableStateOf") && model.contains("outcomes.answered("))
+        assertTrue("it never rides the plain message slot", model.contains("fun answered(text: String)"))
+        assertTrue("and it expires like a result", model.substringAfter("private fun showOutcome()").substringBefore("} ").contains("answerNote"))
+    }
+
     // ── The request's agent also asks (kenai-0.1 S9, T17; L24) ──
 
     @Test fun theQuestionOfTheRequestsAgentIsOfferedInAlsoWaiting() {

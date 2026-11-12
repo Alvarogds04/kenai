@@ -1,5 +1,6 @@
 package com.kenai.android
 
+import com.kenai.android.core.Answer
 import com.kenai.android.core.HomePanel
 import com.kenai.android.core.Outcome
 import com.kenai.android.core.OutcomeKind
@@ -205,6 +206,18 @@ class HomePanelTest {
             assertEquals(k.name, "Alvaro PC", strip(k).subtitle)
             assertEquals(k.name, k == OutcomeKind.SENDING, strip(k).spinner)
         }
+    }
+
+    // kenai-0.1 S9, T19 (L29 a): Home shows one «what just happened» card, the newest, never a result and the answer at once.
+    @Test fun homeHasOneWhatsHappenedCardAndTheNewestOfTheTwoWins() {
+        val done = outcome(OutcomeKind.ALLOWED, since = 1_000)
+        val note = Answer("Respuesta enviada", sinceMs = 2_000)
+        assertEquals(HomePanel.HomeCard.Result(done), HomePanel.card(done, null))
+        assertEquals(HomePanel.HomeCard.Note("Respuesta enviada"), HomePanel.card(null, note))
+        assertEquals("a later answer takes the card from the result", HomePanel.HomeCard.Note("Respuesta enviada"), HomePanel.card(done, note))
+        assertEquals("a later result takes it from the answer", HomePanel.HomeCard.Result(done), HomePanel.card(done, Answer("Respuesta enviada", sinceMs = 500)))
+        assertEquals("ties keep the result", HomePanel.HomeCard.Result(done), HomePanel.card(done, Answer("Respuesta enviada", sinceMs = 1_000)))
+        assertNull(HomePanel.card(null, null))
     }
 
     @Test fun whatComesNextIsTheNextRequestElseTheFirstQuestionNeverTheOneJustDecided() {

@@ -24,6 +24,7 @@ import com.kenai.android.core.Arrival
 import com.kenai.android.core.BuzzMemory
 import com.kenai.android.core.VibratePolicy
 import com.kenai.android.core.DecisionOutcomes
+import com.kenai.android.core.Answer
 import com.kenai.android.core.Outcome
 import com.kenai.android.core.OutcomeKind
 import com.kenai.android.core.WishStore
@@ -99,18 +100,45 @@ class AppModel(private val context: Context) : LinkListener {
     /** What became of the decision just made (kenai-0.1 S9, screen 3; T14): Inicio's hero until dismissed, replaced or 2 min old. */
     private val outcomes = DecisionOutcomes()
     var outcome by mutableStateOf<Outcome?>(null); private set
-    private val outcomeGone = Runnable { outcomes.dismiss(); outcome = null }
 
-    /** Publishes the machine's result and (re)arms its two-minute limit (main thread). */
+    /**
+     * What became of the answer to a question (kenai-0.1 S9, T19): Home's other «what just happened» card. It takes the slot from a
+     * result and a result takes it from it, so Home never shows both; same life: dismissed, replaced, or 2 min old.
+     */
+    var answerNote by mutableStateOf<Answer?>(null); private set
+    private val cardGone = Runnable { outcomes.dismiss(); outcomes.dismissAnswer(); outcome = null; answerNote = null }
+
+    /** Publishes the machine's card and (re)arms its two-minute limit (main thread). */
     private fun showOutcome() {
         outcome = outcomes.current
-        main.removeCallbacks(outcomeGone)
-        outcome?.let { main.postDelayed(outcomeGone, (it.sinceMs + DecisionOutcomes.SHOW_MS - android.os.SystemClock.elapsedRealtime()).coerceAtLeast(0)) }
+        answerNote = outcomes.answer
+        main.removeCallbacks(cardGone)
+        val now = android.os.SystemClock.elapsedRealtime()
+        val left = listOfNotNull(
+            outcome?.let { it.sinceMs + DecisionOutcomes.SHOW_MS - now },
+            answerNote?.let { it.sinceMs + DecisionOutcomes.SHOW_MS - now },
+        ).maxOrNull()
+        left?.let { main.postDelayed(cardGone, it.coerceAtLeast(0)) }
     }
 
     /** «Cerrar» on the result, or «Revisar» the request that follows. */
     fun dismissOutcome() {
         outcomes.dismiss()
+        showOutcome()
+    }
+
+    /**
+     * «Respuesta enviada» (or that it could not be sent, or that the question was answered elsewhere): Home's card for the answer to a
+     * question, replacing whatever the last decision left there (kenai-0.1 S9, T19; L29 a).
+     */
+    fun answered(text: String) {
+        outcomes.answered(text, android.os.SystemClock.elapsedRealtime())
+        showOutcome()
+    }
+
+    /** «Cerrar» on the answer. */
+    fun dismissAnswer() {
+        outcomes.dismissAnswer()
         showOutcome()
     }
 
@@ -620,6 +648,7 @@ class AppModel(private val context: Context) : LinkListener {
         lastState.clear()
         notifier.cancelAllStatus()
         dismissOutcome() // a result is about this link only
+        dismissAnswer() // and so is the answer Home was showing
     }
 
     /** True if the decision was sent (or applied to the demo). Allow is gated by the biometric prompt in the UI. */

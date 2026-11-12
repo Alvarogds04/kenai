@@ -12,6 +12,14 @@ import java.util.Locale
 enum class OutcomeKind { SENDING, ALLOWED, DENIED, EXPIRED, FAILED }
 
 /**
+ * The sentence Home says about an answer to a question (kenai-0.1 S9, T19): «Respuesta enviada», that it could not be sent, or that
+ * the question is no longer waiting. It shares Home's one «what just happened» card with [Outcome], so a newer one replaces it, a
+ * decision replaces it, a new request clears it, and it never shows after [DecisionOutcomes.SHOW_MS] either. [text] is the word Home
+ * already has (a string resource); [sinceMs] is when it appeared, by the phone's elapsed clock.
+ */
+data class Answer(val text: String, val sinceMs: Long)
+
+/**
  * The one result Inicio shows. Names and the tool only: never the command.
  *
  * [allow] is what the phone sent (true allow, false deny); null when the phone sent nothing that could have arrived (refused as no
@@ -51,6 +59,10 @@ class DecisionOutcomes {
     private val decided = LinkedHashMap<String, Decided>()
 
     var current: Outcome? = null
+        private set
+
+    /** What became of the answer to a question (T19): Home's other card, never together with [current]. */
+    var answer: Answer? = null
         private set
 
     fun decided(r: ApprovalRequest, allow: Boolean, nowMs: Long, wallMs: Long, expiresAtWallMs: Long?): Outcome {
@@ -114,10 +126,23 @@ class DecisionOutcomes {
         return set(c.copy(kind = OutcomeKind.FAILED))
     }
 
+    /** The sentence Home says about the answer the phone just sent (T19): it takes the card from any result. */
+    fun answered(text: String, nowMs: Long): Answer {
+        current = null
+        return Answer(text, nowMs).also { answer = it }
+    }
+
+    /** The answer to show at [nowMs], or null once it is older than [SHOW_MS]. */
+    fun answerVisible(nowMs: Long): Answer? = answer?.takeIf { nowMs - it.sinceMs in 0..SHOW_MS }
+
+    /** «Cerrar» on the answer. */
+    fun dismissAnswer() { answer = null }
+
     /** A request arrived (new, or offered again after a reconnection): it takes Home, and an earlier decision of it did not land. */
     fun arrived(fingerprint: String) {
         decided.remove(fingerprint)
         current = null
+        answer = null
     }
 
     /** The confirmation of [fingerprint] buzzed with [taps] taps. */
@@ -132,7 +157,7 @@ class DecisionOutcomes {
 
     fun remembered(): Int = decided.size
 
-    private fun set(o: Outcome): Outcome { current = o; return o }
+    private fun set(o: Outcome): Outcome { current = o; answer = null; return o }
 
     companion object {
         /** A result shows at most two minutes. */

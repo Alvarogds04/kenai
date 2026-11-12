@@ -166,6 +166,24 @@ object HomePanel {
         Scene.CALM -> Strip(Tone.CALM, w.computerCalm(computer), w.connected, HomeText.running(sessions))
     }
 
+    /**
+     * Home's one «what just happened» card (kenai-0.1 S9, T19; L29 a): the result of the decision the phone sent (T14), or the
+     * sentence about an answer to a question. The model keeps one slot and this picks the newest, so Home never draws two cards
+     * with two «Cerrar».
+     */
+    sealed interface HomeCard {
+        data class Result(val outcome: Outcome) : HomeCard
+        data class Note(val text: String) : HomeCard
+    }
+
+    /** The newest of the two, or null when Home has nothing to say about what just happened. */
+    fun card(result: Outcome?, answer: Answer?): HomeCard? = when {
+        result == null -> answer?.let { HomeCard.Note(it.text) }
+        answer == null -> HomeCard.Result(result)
+        answer.sinceMs > result.sinceMs -> HomeCard.Note(answer.text)
+        else -> HomeCard.Result(result)
+    }
+
     /** What «Lo siguiente» offers after a result: the next request (it expires soonest), else the first agent with a question. */
     enum class NextKind { APPROVAL, QUESTION }
 
