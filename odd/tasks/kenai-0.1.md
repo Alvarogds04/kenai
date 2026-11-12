@@ -14,6 +14,7 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - S6: «todo en espaól» → on a Spanish phone everything is Spanish: the Koda desktop menus quoted in Spanish stay; the demo's status texts and the copied diagnostics report are Spanish too.
 - S7: «si arreglalo» → the bottom bar must not cover the buttons of the Pairing "Paste the link" sheet and the Home address sheet.
 - S8: «podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras» → (a) the canvas replica draws Koda wherever it still draws the clay mascot (sheets, pairing, chat, session, gallery, widgets); (b) a new design `design/kenai-mejoras/` with 3 clearly different improvement directions for UI, UX and CX, Koda everywhere, Spanish, tokens of design/system.md.
+- S9: Handoff «Implement the design artboard design/kenai-mejoras/01-decidi-en-un-toque.html» (title «1 · Decidí en un toque»; tradeoff «Lo más rápido y seguro para decidir (un toque y la huella desde Inicio, con resultado confirmado); con un pedido abierto Inicio deja de mostrar a Koda grande y el progreso de los demás»). The artboard is the visual spec; map its parts to the app's components, tokens from design/system.md, never copy its HTML. Screens: 1 Inicio with the pending request as the hero (agent, action, exact command, risk line, expiry, Denegar / Permitir with fingerprint), island-style status strip, «También te espera», «En curso», badge on Inicio; 2 confirm with fingerprint (the system prompt); 3 result states enviando / permitido / denegado / caducó / no se pudo enviar with «Lo siguiente»; 4 question with progress and option descriptions; 5 notification with Revisar el pedido and the «Aprobaciones pendientes» widget. Haptics: one buzz allow, two deny. Inicio states: con pedido, «Nada te espera», sin conexión with «Sin confirmar».
 - S3: No Coucou name, Mochi, icon or sounds (NOTICE.md). Nothing on the desktop side is touched in this repo.
 
 ## Tasks
@@ -32,6 +33,11 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - [x] T10 (S6) Demo texts and diagnostics report in Spanish · worker · 01ad329
 - [x] T11 (S8a) Replica: Koda instead of the clay mascot · worker · de17f49 (check-phone 49, check-widgets 119, 0 errors)
 - [x] T12 (S8b) Three improvement directions under design/kenai-mejoras/ · worker · 54d47b3
+- [ ] T13 (S9) Inicio: request hero, status strip, sections, badge, empty and offline states · worker
+- [ ] T14 (S9) Decision result states, haptics allow/deny, «Lo siguiente» · worker, after T13
+- [ ] T15 (S9) Question screen with progress and descriptions · worker, after T14
+- [ ] T16 (S9) Notification «Revisar el pedido» and «Aprobaciones pendientes» widget · worker, after T15
+- [ ] T17 (S9) Emulator check of the whole direction and handoff implemented · parent
 - [x] T5 (S2.7b) Quick settings tile actions · worker · 6d9ee67 (758 tests, 0 failures)
 
 ## Log
@@ -54,3 +60,4 @@ Base: `beb41a8`. Previous plans: `odd/tasks/abito-movil-base.md`, `odd/tasks/dis
 - L17: «Si a español» → the Gallery names its states and emotes in the phone language (698469f). «B» → the tile on the lock screen shows the same line as unlocked: agent name + state word ("Claude Code · Esperando tu aprobación"); never a command or a file, never a decision from the tile.
 - L18: T5 lock-screen change bc83094 (805 tests, 0 failures). «podemos tambien ver el diseño, cambia las mascotas todo por koda y mejoras la UI UX CX? hazme 3 diseños de mejoras» → T11 (replica with Koda) and T12 (3 directions), parallel, disjoint folders.
 - L19: T12 design/kenai-mejoras/: 01-decidi-en-un-toque, 02-timeline-del-dia, 03-koda-al-frente (54d47b3; _check.cjs errors 0, tokens of system.md only). T11 de17f49: the replica draws Koda everywhere (state→pose and emote→pose as the app, agent light on sheets/session/hero, still frames in widgets, launcher Koda face). Opened on the canvas; no artboard chosen yet.
+- L20: Handoff of design/kenai-mejoras/01-decidi-en-un-toque.html (chosen; 02 and 03 are alternatives) → S9, tasks T13–T17. Explorer maps the artboard to the app first; writers run sequentially because they share AppModel, MainActivity, Sheets and the strings JSON.
