@@ -4,7 +4,7 @@ package com.kenai.android.core
 enum class Tab { HOME, CHAT, SETTINGS }
 
 /** Every screen of the app. Tabs are the roots; the rest are one level down. QUESTION: an agent's question (kenai-0.1 S9, screen 4). */
-enum class Screen { HOME, CHAT, SETTINGS, HISTORY, GALLERY, DIAGNOSTICS, LICENCES, PROVIDERS, SESSION, SCAN, QUESTION }
+enum class Screen { HOME, CHAT, SETTINGS, HISTORY, GALLERY, DIAGNOSTICS, LICENCES, SESSION, SCAN, QUESTION }
 
 /**
  * Where the user is and where Back goes. Pure, so every rule is a unit test:
@@ -26,7 +26,7 @@ object Nav {
     fun tabOf(screen: Screen): Tab? = when (screen) {
         Screen.HOME -> Tab.HOME
         Screen.CHAT -> Tab.CHAT
-        Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.PROVIDERS -> Tab.SETTINGS
+        Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES -> Tab.SETTINGS
         Screen.SESSION, Screen.SCAN, Screen.QUESTION -> null
     }
 
@@ -37,7 +37,7 @@ object Nav {
     fun back(screen: Screen): Screen? = when (screen) {
         Screen.HOME -> null
         Screen.CHAT, Screen.SETTINGS, Screen.SESSION, Screen.SCAN, Screen.QUESTION -> Screen.HOME
-        Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.PROVIDERS -> Screen.SETTINGS
+        Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES -> Screen.SETTINGS
     }
 
     /**

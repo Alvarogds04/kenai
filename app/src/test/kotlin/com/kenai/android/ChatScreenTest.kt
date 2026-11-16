@@ -11,7 +11,6 @@ import org.junit.Test
 class ChatScreenTest {
     private fun src(name: String) = File("src/main/kotlin/com/kenai/android/$name").readText()
     private val strings get() = File("src/main/res/values/strings.xml").readText()
-    private val es get() = File("src/main/res/values-es/strings.xml").readText()
 
     @Test fun everyReasonCodeHasAnEnglishSentence() {
         for (code in ChatReasons.KNOWN) assertTrue("chat_err_$code", strings.contains("name=\"chat_err_$code\""))
@@ -46,50 +45,4 @@ class ChatScreenTest {
         assertTrue(ui.contains("enabled = model.chatAvailable"))
     }
 
-    // ── A provider the phone calls itself (T1a-3a) ─────────────────────────────────────────────
-
-    @Test fun theComposerLimitIsTheLimitOfTheBackendInUse() {
-        val ui = src("ui/ChatScreen.kt")
-        assertTrue("the limit is read from the source in use", ui.contains("val limit = model.chatMaxText"))
-        assertFalse("a provider accepts more than the computer's 4000", ui.contains("Protocol.CHAT_MAX_TEXT"))
-        assertTrue(src("app/AppModel.kt").contains("val chatMaxText: Int get() = chatBackend.maxText"))
-    }
-
-    @Test fun aProviderWithoutItsKeySaysSoInShortTexts() {
-        val ui = src("ui/ChatScreen.kt")
-        for (s in listOf("chat_nokey_title", "chat_nokey_body", "chat_keylost_title", "chat_keylost_body")) {
-            assertTrue("the screen maps $s", ui.contains("R.string.$s"))
-            assertTrue("$s is in English", strings.contains("name=\"$s\""))
-            assertTrue("$s is in Spanish", es.contains("name=\"$s\""))
-        }
-        assertTrue(es.contains("Cargá la clave de tu proveedor"))
-        assertTrue(es.contains("No se puede leer la clave guardada: cargala de nuevo."))
-    }
-
-    @Test fun aFailedModelListIsSaidOnTheScreenInsteadOfVanishing() {
-        val ui = src("ui/ChatScreen.kt")
-        assertTrue(ui.contains("model.chatSourceError"))
-        for (s in listOf("chat_provider_no_key", "chat_provider_auth", "chat_provider_unreachable", "chat_provider_rate", "chat_provider_failed")) {
-            assertTrue(s, ui.contains("R.string.$s"))
-            assertTrue("$s is in both languages", strings.contains("name=\"$s\"") && es.contains("name=\"$s\""))
-        }
-    }
-
-    @Test fun theScreenStillHandlesNoKeyAndNoAddressItself() {
-        // The providers screen does the keys and the addresses; this one only shows states.
-        val ui = src("ui/ChatScreen.kt")
-        for (word in listOf("apiKey", "Authorization", "https://", "Bearer", "ProviderVault")) assertFalse(word, ui.contains(word))
-    }
-
-    /** T1a-3b: the note says where the messages go, and it is never the computer's sentence while a provider answers. */
-    @Test fun theNoteTellsTheTruthAboutWhoSendsTheMessages() {
-        val ui = src("ui/ChatScreen.kt")
-        assertTrue(ui.contains("if (model.activeProvider != null) R.string.chat_note_provider else R.string.chat_note"))
-        for (s in listOf("chat_note", "chat_note_provider")) {
-            assertTrue("$s is in both languages", strings.contains("name=\"$s\"") && es.contains("name=\"$s\""))
-        }
-        // The computer's sentence names its own key: with a provider it would be a lie, so it is not the one drawn.
-        assertTrue(es.contains("Usa la clave de API de tu computadora"))
-        assertTrue(es.contains("Tus mensajes van directo al proveedor que elegiste. La clave queda solo en este teléfono."))
-    }
 }

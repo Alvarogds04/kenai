@@ -15,8 +15,6 @@ import com.kenai.android.core.ChatTabState
 import com.kenai.android.core.Decision
 import com.kenai.android.core.DecisionLog
 import com.kenai.android.core.KeyValueStore
-import com.kenai.android.core.ProviderKeyState
-import com.kenai.android.core.ProviderSettings
 import com.kenai.android.core.IslandPlan
 import com.kenai.android.core.OverlayChoice
 import com.kenai.android.core.StatusPolicy
@@ -39,6 +37,7 @@ import com.kenai.android.core.ScanDecision
 import com.kenai.android.core.ChatHistory
 import com.kenai.android.core.ChatBackend
 import com.kenai.android.core.ChatModelOption
+import com.kenai.android.core.ChatModels
 import com.kenai.android.core.ChatSession
 import com.kenai.android.core.Words
 import com.kenai.android.link.AddressFinder
@@ -69,8 +68,6 @@ import com.kenai.android.link.PairingPayload
 import com.kenai.android.link.ReconnectPolicy
 import com.kenai.android.link.Wake
 import com.kenai.android.link.SessionInfo
-import com.kenai.android.provider.OpenAiCompatibleBackend
-import com.kenai.android.provider.ProviderConfig
 import com.kenai.android.sound.SoundPlayer
 import com.kenai.android.character.BotState
 
@@ -237,40 +234,18 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         decisions = decisionLog.all()
     }
 
-    // ── Chat through the computer (docs/ANDROID_LINK.md) or a provider the phone calls itself ──────
+    // ── Chat through the computer (docs/ANDROID_LINK.md). The UI comes in the next step. ──────────
 
     private val chatHistory = ChatHistory(ChatFile(java.io.File(context.filesDir, "chat-history.json")))
     private val chatSession = ChatSession(chatHistory.load())
 
     /**
-     * The chat's one seam: the link to the computer, or a provider the phone calls itself (T1a-3). The line below is the
-     * only place that picks between them; everything else goes through [chatBackend].
+     * The chat's one seam: today the link to the computer. A second backend (a provider called straight from the phone,
+     * T1a-2) is one new [ChatBackend] class and the line below, where the one in use is chosen: everything else goes
+     * through [chatBackend], never through the link.
      */
     private val chatLink = ChatLinkBackend({ link }, this)
-
-    /** The provider keys in the Android Keystore: the backend only ever calls [com.kenai.android.provider.KeyProvider.key]. */
-    private val providerVault = ProviderVault(context)
-
-    /**
-     * What the user configured for the phone's own chat, changed from the providers screen (T1a-3b). No provider chosen —
-     * the default, and the only thing that exists until the user picks one — means the computer, exactly as in 0.1.
-     */
-    var providerSettings by mutableStateOf(ProviderSettings.load(kv)); private set
-
-    /** Whether the active provider's key is on this phone. Read when the source or a key changes, never per frame. */
-    var activeProviderKey by mutableStateOf<ProviderKeyState?>(null); private set
-
-    /** The provider's own backend, built only when one is chosen and its key is here; null: the chat goes through the computer. */
-    private var chatDirect: OpenAiCompatibleBackend? = null
-
-    /** The provider the chat talks to, if the user chose one and it still exists. */
-    val activeProvider: ProviderConfig? get() = providerSettings.activeProvider()
-
-    /** A provider is the source, whatever the link is doing. */
-    private val directActive: Boolean get() = providerSettings.activeChat != null
-
-    /** The one selection point: the provider's backend when it is ready to be used, else the computer. */
-    private val chatBackend: ChatBackend get() = chatDirect ?: chatLink
+    private val chatBackend: ChatBackend get() = chatLink
 
     /** What the user reads: this phone's own copy, kept in a private file. */
     var chatMessages by mutableStateOf(chatSession.messages); private set
@@ -281,20 +256,10 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     /** The computer offers chat to this phone right now (its switch is on and we are connected). */
     var chatOffered by mutableStateOf(false); private set
 
-    /** The models the source in use offers; for the computer the keys never leave it, and a provider's key never leaves here. */
+    /** The models the backend offers; on the computer the keys never leave it. */
     var chatModels by mutableStateOf<List<ChatModelOption>>(emptyList()); private set
 
-    /** Why the source could not be asked which models it offers (a `ChatReasons` code); null: nothing to say. */
-    var chatSourceError by mutableStateOf<String?>(null); private set
-
-    /**
-     * Where the chosen model is saved: the computer's own key (`chat_model`), or one per provider
-     * (`chat_model_<providerId>`), so switching sides never shows the other one's model (L17).
-     */
-    private val chatModelKey: String get() = providerSettings.activeChat?.let { "chat_model_$it" } ?: "chat_model"
-
-    /** The model the chat sends with: what was saved for the source in use, else that source's own default. */
-    var chatModel by mutableStateOf(seededModel()); private set
+    var chatModel by mutableStateOf<String?>(prefs.getString("chat_model", null)); private set
 
     /** The computer offers session details (steps, last message, project folder, colour) to this phone. */
     var detailsOffered by mutableStateOf(false); private set
@@ -305,17 +270,13 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     /** The read-only service cards the user allowed on the computer; empty: none. */
     var services by mutableStateOf<List<com.kenai.android.link.ServiceCard>>(emptyList()); private set
 
-    /** What the Chat tab shows: not paired, not reachable, chat off on the computer, no model allowed, no key, key lost, or ready. */
+    /** What the Chat tab shows: not paired, not reachable, chat off on the computer, no model allowed, or ready. */
     val chatTabState: ChatTabState get() = ChatTab.state(
         paired = mode == Mode.PAIRED, connected = linkState == LinkState.CONNECTED, offered = chatOffered, modelCount = chatModels.size,
-        providerKey = activeProviderKey,
     )
 
-    /** Chat is usable: the source in force is ready (the link's own rules, or a provider's key and a model). */
-    val chatAvailable: Boolean get() = chatTabState == ChatTabState.READY
-
-    /** The longest question the source in force accepts: the composer's limit and its counter read this one. */
-    val chatMaxText: Int get() = chatBackend.maxText
+    /** Chat is usable: offered, at least one model allowed, connected. */
+    val chatAvailable: Boolean get() = chatOffered && chatModels.isNotEmpty() && linkState == LinkState.CONNECTED
 
     private fun chatChanged(save: Boolean) {
         chatMessages = chatSession.messages
@@ -326,145 +287,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     fun chatSelect(id: String) {
         if (chatModels.any { it.id == id }) {
             chatModel = id
-            prefs.edit().putString(chatModelKey, id).apply()
+            prefs.edit().putString("chat_model", id).apply()
         }
     }
 
     /** Asks the backend again which models it offers (when the Chat screen opens). */
     fun chatRefreshModels() { chatBackend.models() }
-
-    // ── The providers the phone calls itself (T1a-3a), as the providers screen configures them (T1a-3b) ──
-
-    /**
-     * Loads (or replaces) the key of a provider — what the providers screen saves after reading the field. False when the
-     * id is not a valid one. A blank key clears it. It never leaves the Keystore in the other direction: no screen reads a
-     * key back, only [providerKeyState].
-     */
-    fun setProviderKey(providerId: String, key: String): Boolean {
-        if (!providerVault.set(providerId, key)) return false
-        afterChatSourceChanged()
-        return true
-    }
-
-    /** Forgets the key of a provider: the chat then says it has none (or that the saved one cannot be read). */
-    fun clearProviderKey(providerId: String) {
-        providerVault.clear(providerId)
-        afterChatSourceChanged()
-    }
-
-    /** Whether the phone holds the key of [providerId]: PRESENT, ABSENT or LOST. Never the key itself. */
-    fun providerKeyState(providerId: String): ProviderKeyState = providerVault.state(providerId)
-
-    /**
-     * Adds a provider, or replaces the one with the same id. The address must be one the backend can use, and the list
-     * stops at [ProviderSettings.MAX_PROVIDERS]. False when it could not be saved, and then nothing changed.
-     */
-    fun saveProvider(config: ProviderConfig): Boolean {
-        val valid = config.validated() ?: return false
-        val replacing = providerSettings.providers.any { it.id == valid.id }
-        if (!replacing && providerSettings.providers.size >= ProviderSettings.MAX_PROVIDERS) return false
-        providerSettings = providerSettings.with(valid)
-        ProviderSettings.save(kv, providerSettings)
-        afterChatSourceChanged()
-        return true
-    }
-
-    /** Forgets a provider and its key. When it was the one in use, the chat goes back to the computer. */
-    fun removeProvider(providerId: String) {
-        providerVault.clear(providerId)
-        val next = providerSettings.without(providerId)
-        if (next == providerSettings) return
-        val wasActive = providerSettings.activeChat == providerId
-        providerSettings = next
-        ProviderSettings.save(kv, next)
-        if (wasActive) {
-            chatSession.cancel()?.let { chatBackend.cancel(it) }
-            chatSession.clear()
-            chatHistory.clear()
-            chatChanged(save = false)
-        }
-        afterChatSourceChanged()
-    }
-
-    /**
-     * Who the chat talks to: a configured provider, or null for the computer (the default, as in 0.1). The two sides keep
-     * separate conversations, so both are reset and this one starts a new one. Re-selecting the same side changes nothing.
-     *
-     * A provider whose key is absent or lost can still be chosen: the choice and the key are fixed in two different
-     * places, and the chat says what is missing ([ChatTabState.NO_KEY], [ChatTabState.KEY_LOST]) instead of silently
-     * talking to the computer behind the user's back.
-     */
-    fun selectChatSource(providerId: String?) {
-        val id = providerId?.takeIf { wanted -> providerSettings.providers.any { it.id == wanted } }
-        if (id == providerSettings.activeChat) return
-        chatSession.cancel()?.let { chatBackend.cancel(it) }
-        chatLink.reset()
-        chatDirect?.reset()
-        chatDirect = null
-        providerSettings = providerSettings.copy(activeChat = id)
-        ProviderSettings.save(kv, providerSettings)
-        refreshChatSource()
-        chatModels = emptyList()
-        chatSourceError = null
-        chatSession.clear()
-        chatHistory.clear()
-        chatChanged(save = false)
-        chatRefreshModels()
-    }
-
-    /** The provider's backend for the choice in force, or null: no provider chosen, or its key is not on this phone. */
-    private fun buildDirect(): OpenAiCompatibleBackend? {
-        val config = providerSettings.activeProvider() ?: return null
-        if (providerVault.state(config.id) != ProviderKeyState.PRESENT) return null
-        // A provider keeps no context: the conversation already on screen is what it starts from.
-        return OpenAiCompatibleBackend(config, providerVault, this).also { it.seed(chatSession.messages) }
-    }
-
-    /**
-     * The model this source starts with: the one saved for it, else the provider's own `defaultModel` — a provider whose
-     * model list is empty, or has not arrived yet, still has a model to send with (L17).
-     */
-    private fun seededModel(): String? =
-        prefs.getString(chatModelKey, null)?.takeIf { it.isNotBlank() } ?: activeProvider?.defaultModel?.takeIf { it.isNotBlank() }
-
-    /**
-     * The model to send with once the source's list arrives: the saved one while it is still offered, else the
-     * provider's own default, else its first. An empty list is not an answer, so it leaves the seeded model in place.
-     */
-    private fun pickModel(models: List<ChatModelOption>): String? {
-        if (models.isEmpty()) return seededModel()
-        val saved = prefs.getString(chatModelKey, null)
-        val preferred = activeProvider?.defaultModel
-        return models.firstOrNull { it.id == saved }?.id
-            ?: preferred?.takeIf { wanted -> wanted.isNotBlank() && models.any { it.id == wanted } }
-            ?: models.firstOrNull()?.id
-    }
-
-    /** The new source's own model, read from its own key when the source changes. */
-    private fun seedModel() {
-        chatModel = seededModel()
-    }
-
-    /**
-     * Re-reads the key state and rebuilds the provider's side: the choice, a key or a provider changed. Part of the
-     * construction too, so it sits below every piece of chat state it touches.
-     */
-    private fun refreshChatSource() {
-        activeProviderKey = providerSettings.activeChat?.let { providerVault.state(it) }
-        chatDirect?.reset()
-        chatDirect = buildDirect()
-        seedModel()
-    }
-
-    init { refreshChatSource() }
-
-    /** After a change of the settings or of a key: the models of the old source go, the new side is asked for its own. */
-    private fun afterChatSourceChanged() {
-        refreshChatSource()
-        chatModels = emptyList()
-        chatSourceError = null
-        chatRefreshModels()
-    }
 
     /** Null when sent, else why not (for a message under the box). */
     fun chatSend(text: String): ChatSession.Refusal? {
@@ -499,8 +327,6 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     private fun chatLinkLost() {
         detailsOffered = false
         chatOffered = false
-        // A provider the phone talks to keeps its models and its answer: the link going away is not its business.
-        if (directActive) return
         chatModels = emptyList()
         if (chatSession.running != null) {
             chatSession.onDisconnected()
@@ -948,13 +774,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatLink.onChatError(id, reason, message)
     }
 
-    // ── ChatBackend.Listener (the backend's own thread, marshalled to the main one) ──────────────
+    // ── ChatBackend.Listener (the link's thread, marshalled to the main one) ─────────────────────
 
     override fun onModels(models: List<ChatModelOption>) {
         main.post {
             chatModels = models
-            chatModel = pickModel(models)
-            chatSourceError = null
+            chatModel = ChatModels.pick(models, chatModel)
         }
     }
 
@@ -967,16 +792,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     override fun onError(id: String, reason: String, message: String) {
-        main.post {
-            // No answer id: the source itself could not be asked (a provider's model list, say). It is shown, not dropped.
-            if (id.isEmpty()) {
-                chatSourceError = reason
-                return@post
-            }
-            chatSourceError = null
-            chatSession.onError(id, reason)
-            chatChanged(save = true)
-        }
+        main.post { chatSession.onError(id, reason); chatChanged(save = true) }
     }
 
     override fun onSessions(sessions: List<SessionInfo>) {

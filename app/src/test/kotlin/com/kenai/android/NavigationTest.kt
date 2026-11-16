@@ -16,7 +16,7 @@ class NavigationTest {
 
     @Test fun theBarShowsOnTheThreeRootsOnly() {
         for (s in listOf(Screen.HOME, Screen.CHAT, Screen.SETTINGS)) assertTrue("$s", Nav.barVisible(s, keyboardOpen = false))
-        for (s in listOf(Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.PROVIDERS, Screen.SESSION, Screen.SCAN, Screen.QUESTION)) assertFalse("$s", Nav.barVisible(s, false))
+        for (s in listOf(Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.LICENCES, Screen.SESSION, Screen.SCAN, Screen.QUESTION)) assertFalse("$s", Nav.barVisible(s, false))
     }
 
     @Test fun theBarHidesWhileTheKeyboardIsOpen() {
@@ -33,15 +33,6 @@ class NavigationTest {
         assertEquals(Screen.SETTINGS, Nav.back(Screen.HISTORY))
         assertEquals(Screen.SETTINGS, Nav.back(Screen.GALLERY))
         assertEquals(Screen.SETTINGS, Nav.back(Screen.DIAGNOSTICS))
-        assertEquals(Screen.SETTINGS, Nav.back(Screen.PROVIDERS))
-    }
-
-    /** T1a-3b: the providers screen is a Settings page; T6: it comes back after a recreation like the others. */
-    @Test fun theProvidersScreenIsASettingsPageBelowTheBar() {
-        assertEquals(Tab.SETTINGS, Nav.tabOf(Screen.PROVIDERS))
-        assertEquals(Screen.SETTINGS, Nav.back(Screen.PROVIDERS))
-        assertFalse("the bar hides like every deep screen", Nav.barVisible(Screen.PROVIDERS, keyboardOpen = false))
-        assertEquals(Screen.PROVIDERS, Nav.restore(Screen.PROVIDERS.name, sessionPill = null))
     }
 
     @Test fun backAlwaysReachesHomeAndNeverLoops() {
@@ -57,7 +48,7 @@ class NavigationTest {
     }
 
     @Test fun pagesBelowSettingsKeepSettingsHighlighted() {
-        for (s in listOf(Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS, Screen.PROVIDERS)) assertEquals(Tab.SETTINGS, Nav.tabOf(s))
+        for (s in listOf(Screen.SETTINGS, Screen.HISTORY, Screen.GALLERY, Screen.DIAGNOSTICS)) assertEquals(Tab.SETTINGS, Nav.tabOf(s))
         assertNull(Nav.tabOf(Screen.SCAN))
         assertNull(Nav.tabOf(Screen.SESSION))
         assertNull(Nav.tabOf(Screen.QUESTION))

@@ -128,10 +128,7 @@ val BarClearance = 96.dp
  * from the everyday switches), the island, sound, notices, more, and About (the notice crediting Coucou for Android).
  */
 @Composable
-fun SettingsScreen(
-    model: AppModel, onHistory: () -> Unit, onGallery: () -> Unit, onOverlay: (Boolean) -> Unit, onDiagnostics: () -> Unit,
-    onLicences: () -> Unit, onProviders: () -> Unit,
-) {
+fun SettingsScreen(model: AppModel, onHistory: () -> Unit, onGallery: () -> Unit, onOverlay: (Boolean) -> Unit, onDiagnostics: () -> Unit, onLicences: () -> Unit) {
     val s = model.settings
     val uri = LocalUriHandler.current
     val t = tokens()
@@ -217,9 +214,6 @@ fun SettingsScreen(
         item { SectionHeading(stringResource(R.string.settings_section_more)) }
         item {
             Panel {
-                // Who answers the phone's own chat, and the providers it may call itself (T1a-3b).
-                LinkRow(stringResource(R.string.providers_title), onProviders)
-                RowDivider()
                 LinkRow(stringResource(R.string.history_title), onHistory)
                 RowDivider()
                 RowDivider()

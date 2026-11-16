@@ -48,7 +48,7 @@ object Protocol {
     const val CHAT_MAX_TEXT = 4000
 }
 
-/** A model the user allowed on the computer for the phone. [id] is "provider/model". */
+/** A model the user allowed on the computer for the phone. [id] names the provider, a slash, and the model. */
 data class ChatModel(val id: String, val provider: String, val label: String)
 
 /** One window of a plan: whole percent used (0..100) and when it resets (epoch ms). */
