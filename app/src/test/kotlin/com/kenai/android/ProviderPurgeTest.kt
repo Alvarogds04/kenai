@@ -24,9 +24,12 @@ class ProviderPurgeTest {
         var keystoreKey: Boolean = true,
         var settings: Boolean = true,
         var done: Boolean = false,
-        private val failOn: Set<String> = emptySet(),
+        private val failOn: MutableSet<String> = mutableSetOf(),
     ) : LegacyProviderStorage {
         val touched = ArrayList<String>()
+
+        /** Lets a port work again: a phone that was restarted after the Keystore came back. */
+        fun allow(port: String) { failOn.remove(port) }
 
         private fun ask(port: String) {
             touched += port
@@ -89,26 +92,60 @@ class ProviderPurgeTest {
         assertEquals("the next start touches nothing", emptyList<String>(), phone.touched)
     }
 
-    @Test fun oneSideThatRefusesStillLetsTheOthersGo() {
-        // A Keystore that will not give up the alias must not keep the blobs or the settings alive with it.
-        val phone = Phone(failOn = setOf("keystore"))
+    @Test fun oneSideThatRefusesStillLetsTheOthersGoAndLeavesTheSweepPending() {
+        // A Keystore that will not give up the alias must not keep the blobs or the settings alive with it, and it must
+        // not let the sweep be recorded as finished: the key it still holds is the whole point of the sweep, so the next
+        // start has to try again.
+        val phone = Phone(failOn = mutableSetOf("keystore"))
         assertTrue("the rest was removed", ProviderPurge(phone).run())
         assertFalse("the blobs", phone.blobs)
         assertFalse("the settings", phone.settings)
-        assertTrue("and it is recorded", phone.done)
+        assertTrue("the Keystore key is still there", phone.keystoreKey)
+        assertFalse("so the sweep is not recorded as done", phone.done)
+        assertFalse("and no mark was written", phone.touched.contains("mark"))
+    }
+
+    @Test fun aRefusedStepIsRetriedOnTheNextStartUntilItSucceeds() {
+        // The finding of the review of 65c880f: recording the sweep as done after a refused step would keep the Keystore
+        // key for ever. It stays pending instead, and the next start deletes it.
+        val phone = Phone(failOn = mutableSetOf("keystore"))
+        ProviderPurge(phone).run()
+        assertTrue("the first start could not delete the Keystore key", phone.keystoreKey)
+        assertFalse("and did not record the sweep", phone.done)
+        phone.allow("keystore")
+        ProviderPurge(phone).run()
+        assertFalse("the second start deleted it", phone.keystoreKey)
+        assertTrue("and then recorded the sweep", phone.done)
+    }
+
+    @Test fun aStepWithNothingToRemoveStillCountsAsDone() {
+        // False means "there was nothing", not "it failed": a phone that never had the settings did not fail.
+        val phone = Phone(blobs = false, keystoreKey = false, settings = false)
+        ProviderPurge(phone).run()
+        assertTrue("all three answered, so the sweep is recorded", phone.done)
     }
 
     @Test fun aSweepThatCannotBeRecordedStillStartsTheApp() {
-        val phone = Phone(failOn = setOf("mark"))
+        val phone = Phone(failOn = mutableSetOf("mark"))
         assertTrue("the removal happened", ProviderPurge(phone).run())
         assertFalse("the record did not, and nothing was thrown", phone.done)
     }
 
     @Test fun aPhoneWithNoAnswerAtAllIsNotAFailure() {
-        val phone = Phone(failOn = setOf("done", "mark", "keystore"))
+        val phone = Phone(failOn = mutableSetOf("done", "mark", "keystore"))
         ProviderPurge(phone).run() // no exception: a start cannot fail because of a version that is gone
         assertFalse("the blobs still went", phone.blobs)
         assertFalse("and so did the settings", phone.settings)
+    }
+
+    @Test fun theAndroidSideReportsAFailedCommitInsteadOfSwallowingIt() {
+        // SharedPreferences' commit() answers whether the write happened; ignoring it would report "nothing to remove"
+        // for a deletion that did not happen, and the sweep would be recorded as done with the keys still on the phone.
+        val src = File("src/main/kotlin/com/kenai/android/app/ProviderPurge.kt").readText()
+        assertTrue("the blobs' deletion is checked", src.contains("if (!file.edit().clear().commit()) throw"))
+        assertTrue("the settings' deletion is checked", src.contains("if (!file.edit().remove(SETTINGS_PROVIDERS).commit()) throw"))
+        assertTrue("so is the mark", src.contains("if (!context.getSharedPreferences(SETTINGS_FILE, Context.MODE_PRIVATE).edit()\n            .putBoolean(SWEPT, true).commit())"))
+        assertFalse("apply() cannot report a failure", src.contains(".apply()"))
     }
 
     @Test fun thePurgeNamesTheLeftoversOfTheArchivedVersionAndPrintsNoKey() {
