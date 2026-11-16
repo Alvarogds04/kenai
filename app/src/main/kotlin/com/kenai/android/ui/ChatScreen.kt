@@ -100,20 +100,26 @@ private fun reasonText(code: String?): String = stringResource(
     },
 )
 
-internal fun chatStateTitle(state: ChatTabState): Int = when (state) {
+/**
+ * The title of the chat's empty state. [provider]: the source is a provider the phone calls itself, so its own empty
+ * states speak of the provider and not of the computer (L17).
+ */
+internal fun chatStateTitle(state: ChatTabState, provider: Boolean = false): Int = when (state) {
     ChatTabState.NOT_PAIRED -> R.string.chat_off_not_paired_title
     ChatTabState.NOT_CONNECTED -> R.string.chat_off_offline_title
     ChatTabState.CHAT_OFF -> R.string.chat_off_title
-    ChatTabState.NO_MODELS -> R.string.chat_nomodel_title
+    ChatTabState.NO_MODELS -> if (provider) R.string.chat_nomodel_provider_title else R.string.chat_nomodel_title
     ChatTabState.NO_KEY -> R.string.chat_nokey_title
     ChatTabState.KEY_LOST -> R.string.chat_keylost_title
     ChatTabState.READY -> R.string.chat_title
 }
 
-internal fun chatStateBody(state: ChatTabState): Int = when (state) {
+/** The sentence under that title; [provider] as in [chatStateTitle]: a provider has no Koda to configure. */
+internal fun chatStateBody(state: ChatTabState, provider: Boolean = false): Int = when (state) {
     ChatTabState.NOT_PAIRED -> R.string.chat_off_not_paired_body
     ChatTabState.NOT_CONNECTED -> R.string.chat_off_offline_body
-    ChatTabState.CHAT_OFF, ChatTabState.NO_MODELS -> R.string.chat_off_hint
+    ChatTabState.CHAT_OFF -> R.string.chat_off_hint
+    ChatTabState.NO_MODELS -> if (provider) R.string.chat_nomodel_provider_body else R.string.chat_off_hint
     ChatTabState.NO_KEY -> R.string.chat_nokey_body
     ChatTabState.KEY_LOST -> R.string.chat_keylost_body
     ChatTabState.READY -> R.string.chat_title
@@ -134,9 +140,15 @@ private fun sourceErrorText(code: String): String = stringResource(
     },
 )
 
-/** The Chat tab with nothing to chat with: a sleeping Kenai, what is wrong in plain words, and the one button that helps (if any). */
+/**
+ * The Chat tab with nothing to chat with: a sleeping Kenai, what is wrong in plain words, and the one button that helps
+ * (if any). [provider]: the source in use is a provider, so the empty state speaks of it.
+ */
 @Composable
-private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () -> Unit, note: String? = null) {
+private fun ChatEmpty(
+    state: ChatTabState, provider: Boolean, onHome: () -> Unit, onSettings: () -> Unit, onProviders: () -> Unit,
+    note: String? = null,
+) {
     val t = tokens()
     val engine = remember { CharacterEngine({ android.os.SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
     Column(Modifier.fillMaxSize().padding(horizontal = Gutter)) {
@@ -147,11 +159,11 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
         ) {
             CharacterView(engine, Modifier.size(120.dp))
             Text(
-                stringResource(chatStateTitle(state)), Modifier.padding(top = 16.dp),
+                stringResource(chatStateTitle(state, provider)), Modifier.padding(top = 16.dp),
                 style = TypeScale.TITLE.style(t.text.c()).copy(textAlign = TextAlign.Center),
             )
             Text(
-                stringResource(chatStateBody(state)), Modifier.padding(top = 8.dp, bottom = 20.dp),
+                stringResource(chatStateBody(state, provider)), Modifier.padding(top = 8.dp, bottom = 20.dp),
                 style = TypeScale.BODY.style(t.textDim.c()).copy(textAlign = TextAlign.Center),
             )
             // A provider that could not be asked which models it offers says so here rather than nowhere.
@@ -163,6 +175,8 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
             when (ChatTab.action(state)) {
                 Screen.HOME -> PillButton(stringResource(R.string.chat_go_pair), onHome, Modifier.fillMaxWidth(), PillKind.PRIMARY)
                 Screen.SETTINGS -> PillButton(stringResource(R.string.chat_go_settings), onSettings, Modifier.fillMaxWidth(), PillKind.PRIMARY)
+                // A provider's key is loaded, replaced or given again on the providers screen (T1a-3b).
+                Screen.PROVIDERS -> PillButton(stringResource(R.string.providers_title), onProviders, Modifier.fillMaxWidth(), PillKind.PRIMARY)
                 else -> {}
             }
         }
@@ -172,10 +186,11 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
 /**
  * Chat with the computer's AI providers, like the PC's chat panel: your messages on the right, the
  * answers as plain light Markdown, three dots while waiting, the model above the box. The computer's
- * API key is used on the computer; this screen only ever has text.
+ * API key is used on the computer and a provider's key is used by the providers screen; this screen
+ * only ever has text.
  */
 @Composable
-fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
+fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit, onProviders: () -> Unit) {
     var text by rememberSaveable { mutableStateOf("") }
     var refusal by remember { mutableStateOf<ChatSession.Refusal?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
@@ -190,9 +205,11 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
     }
 
     val tabState = model.chatTabState
+    // The source in use, for the two empty states that differ: the computer has Koda to configure, a provider does not.
+    val provider = model.activeProvider != null
     // Nothing to chat with and nothing to read: say why, calmly, with the one thing to do about it.
     if (tabState != ChatTabState.READY && messages.isEmpty()) {
-        ChatEmpty(tabState, onHome, onSettings, model.chatSourceError?.let { sourceErrorText(it) })
+        ChatEmpty(tabState, provider, onHome, onSettings, onProviders, model.chatSourceError?.let { sourceErrorText(it) })
         return
     }
 
@@ -209,16 +226,18 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                 }
             },
         )
+        // The computer's sentence names its own key: with a provider the messages go straight to it, and it says so.
         Text(
-            stringResource(R.string.chat_note), Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            stringResource(if (model.activeProvider != null) R.string.chat_note_provider else R.string.chat_note),
+            Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
             style = TypeScale.SECONDARY.style(tokens().textDim.c()),
         )
         if (!model.chatAvailable) {
             // The conversation stays readable; the reason sits above it.
             Panel(Modifier.padding(vertical = 4.dp)) {
                 Column(Modifier.padding(Gutter), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(chatStateTitle(tabState)), style = TypeScale.HEADLINE.style(tokens().text.c()))
-                    Text(stringResource(chatStateBody(tabState)), style = TypeScale.SECONDARY.style(tokens().textDim.c()))
+                    Text(stringResource(chatStateTitle(tabState, provider)), style = TypeScale.HEADLINE.style(tokens().text.c()))
+                    Text(stringResource(chatStateBody(tabState, provider)), style = TypeScale.SECONDARY.style(tokens().textDim.c()))
                     model.chatSourceError?.let { Text(sourceErrorText(it), style = TypeScale.SECONDARY.style(tokens().danger.c())) }
                 }
             }

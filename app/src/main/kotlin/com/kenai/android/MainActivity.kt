@@ -142,6 +142,7 @@ import com.kenai.android.ui.SessionScreen
 import com.kenai.android.ui.ChatScreen
 import com.kenai.android.ui.CharacterTouch
 import com.kenai.android.ui.HistoryScreen
+import com.kenai.android.ui.ProvidersScreen
 import com.kenai.android.ui.SettingsScreen
 import com.kenai.android.ui.StatusColors
 import com.kenai.android.ui.Gap
@@ -222,13 +223,17 @@ class MainActivity : ComponentActivity() {
                                 // True if it was a pairing code: the camera is released and the user is asked to confirm.
                                 onText = { text -> model.requestPairing(text).also { if (it) screen = Screen.HOME } },
                             )
-                            Screen.CHAT -> ChatScreen(model, onHome = { screen = Screen.HOME }, onSettings = { screen = Screen.SETTINGS })
+                            Screen.CHAT -> ChatScreen(
+                                model, onHome = { screen = Screen.HOME }, onSettings = { screen = Screen.SETTINGS },
+                                onProviders = { screen = Screen.PROVIDERS },
+                            )
                             Screen.SESSION -> SessionScreen(model, detailPill.orEmpty(), onBack = { screen = Screen.HOME })
                             Screen.GALLERY -> Gallery(onBack = { screen = Screen.SETTINGS })
                             Screen.SETTINGS -> SettingsScreen(
                                 model, onHistory = { screen = Screen.HISTORY },
                                 onGallery = { screen = Screen.GALLERY }, onOverlay = ::setOverlay,
                                 onDiagnostics = { screen = Screen.DIAGNOSTICS }, onLicences = { screen = Screen.LICENCES },
+                                onProviders = { screen = Screen.PROVIDERS },
                             )
                             Screen.LICENCES -> LicencesScreen(onBack = { screen = Screen.SETTINGS })
                             // An agent's question, full screen (kenai-0.1 S9, screen 4): the strip on top offers the request that waits too.
@@ -243,6 +248,7 @@ class MainActivity : ComponentActivity() {
                             } ?: LaunchedEffect(Unit) { leaveQuestion() }
                             Screen.DIAGNOSTICS -> DiagnosticsScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HISTORY -> HistoryScreen(model, onBack = { screen = Screen.SETTINGS })
+                            Screen.PROVIDERS -> ProvidersScreen(model, onBack = { screen = Screen.SETTINGS })
                             Screen.HOME -> if (model.mode == Mode.NONE) PairingScreen(
                                 model, onScan = { screen = Screen.SCAN }, onAbout = { screen = Screen.SETTINGS },
                                 onPaste = { screenSheetOpen = ScreenSheet.PASTE },

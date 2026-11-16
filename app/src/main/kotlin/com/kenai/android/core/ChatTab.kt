@@ -40,11 +40,14 @@ object ChatTab {
         else -> ChatTabState.READY
     }
 
-    /** Where the empty state's button leads: pairing (Home shows it when nothing is paired) or Settings. Null: no button, the hint is the answer. */
+    /**
+     * Where the empty state's button leads: pairing (Home shows it when nothing is paired), Settings, or the providers
+     * screen for the two states a provider's key can put the chat in (T1a-3b). Null: no button, the hint is the answer.
+     */
     fun action(state: ChatTabState): Screen? = when (state) {
         ChatTabState.NOT_PAIRED -> Screen.HOME
         ChatTabState.NOT_CONNECTED -> Screen.SETTINGS
-        // NO_KEY and KEY_LOST have no way out yet: the providers screen arrives in T1a-3b.
+        ChatTabState.NO_KEY, ChatTabState.KEY_LOST -> Screen.PROVIDERS
         else -> null
     }
 }

@@ -23,6 +23,12 @@ class SecureScreensTest {
         assertTrue("pair confirmation", needed(Screen.HOME, confirm = true))
     }
 
+    /** T1a-3b: the providers screen reads and changes the keys, so it hides like the pairing screens. */
+    @Test fun theProvidersScreenIsHiddenLikeThePairingScreens() {
+        assertTrue("the providers screen", needed(Screen.PROVIDERS))
+        assertTrue("with nothing else on it", SecureScreens.needed(Screen.PROVIDERS, pairing = false, approvalSheetShown = false, pairConfirmShown = false, approvalPending = false))
+    }
+
     /** kenai-0.1 S9, L21 «a»: the exact command is on Home while a request waits, so Home hides like the sheet. */
     @Test fun homeIsHiddenWhileARequestIsPending() {
         assertTrue(needed(Screen.HOME, pending = true))

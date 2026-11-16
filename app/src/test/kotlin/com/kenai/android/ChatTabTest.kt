@@ -47,9 +47,9 @@ class ChatTabTest {
         assertNull(ChatTab.action(ChatTabState.CHAT_OFF))
         assertNull(ChatTab.action(ChatTabState.NO_MODELS))
         assertNull(ChatTab.action(ChatTabState.READY))
-        // The providers screen comes in T1a-3b: until it exists the key states have a hint and no button.
-        assertNull(ChatTab.action(ChatTabState.NO_KEY))
-        assertNull(ChatTab.action(ChatTabState.KEY_LOST))
+        // T1a-3b: the providers screen is where a key is loaded, replaced or given again.
+        assertEquals(Screen.PROVIDERS, ChatTab.action(ChatTabState.NO_KEY))
+        assertEquals(Screen.PROVIDERS, ChatTab.action(ChatTabState.KEY_LOST))
     }
 
     @Test fun allSevenStatesAreReachable() {
@@ -140,12 +140,12 @@ class ChatTabSourceTest {
 
     @Test fun theChatScreenShowsAnEmptyStateWhenThereIsNothingToChatWithOrRead() {
         assertTrue(chat.contains("if (tabState != ChatTabState.READY && messages.isEmpty())"))
-        assertTrue(chat.contains("ChatEmpty(tabState, onHome, onSettings"))
+        assertTrue(chat.contains("ChatEmpty(tabState, provider, onHome, onSettings, onProviders"))
         assertTrue("a sleeping Kenai", chat.contains("BotState.SLEEPING"))
     }
 
     @Test fun anExistingConversationStaysReadableWithTheReasonAboveIt() {
-        assertTrue(chat.contains("chatStateTitle(tabState)") && chat.contains("chatStateBody(tabState)"))
+        assertTrue(chat.contains("chatStateTitle(tabState, provider)") && chat.contains("chatStateBody(tabState, provider)"))
         assertTrue("it cannot be sent to while unavailable", chat.contains("enabled = model.chatAvailable"))
     }
 

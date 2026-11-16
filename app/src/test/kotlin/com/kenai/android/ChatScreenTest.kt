@@ -76,8 +76,20 @@ class ChatScreenTest {
     }
 
     @Test fun theScreenStillHandlesNoKeyAndNoAddressItself() {
-        // The providers screen (3b) does the keys and the addresses; this one only shows states.
+        // The providers screen does the keys and the addresses; this one only shows states.
         val ui = src("ui/ChatScreen.kt")
         for (word in listOf("apiKey", "Authorization", "https://", "Bearer", "ProviderVault")) assertFalse(word, ui.contains(word))
+    }
+
+    /** T1a-3b: the note says where the messages go, and it is never the computer's sentence while a provider answers. */
+    @Test fun theNoteTellsTheTruthAboutWhoSendsTheMessages() {
+        val ui = src("ui/ChatScreen.kt")
+        assertTrue(ui.contains("if (model.activeProvider != null) R.string.chat_note_provider else R.string.chat_note"))
+        for (s in listOf("chat_note", "chat_note_provider")) {
+            assertTrue("$s is in both languages", strings.contains("name=\"$s\"") && es.contains("name=\"$s\""))
+        }
+        // The computer's sentence names its own key: with a provider it would be a lie, so it is not the one drawn.
+        assertTrue(es.contains("Usa la clave de API de tu computadora"))
+        assertTrue(es.contains("Tus mensajes van directo al proveedor que elegiste. La clave queda solo en este teléfono."))
     }
 }

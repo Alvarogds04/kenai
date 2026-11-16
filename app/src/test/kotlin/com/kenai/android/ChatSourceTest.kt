@@ -81,4 +81,38 @@ class ChatSourceTest {
         }
         assertEquals("the addresses live in the presets and in the user's settings, not here", false, model.contains("openai.com"))
     }
+
+    // ── T1a-3b leftovers (L17) ───────────────────────────────────────────────
+
+    /** Each side keeps its own model: switching shows the model of the source in use, never the other one's. */
+    @Test fun everySourceKeepsItsOwnChosenModel() {
+        assertTrue(model.contains("private val chatModelKey: String get() = providerSettings.activeChat?.let { \"chat_model_\$it\" } ?: \"chat_model\""))
+        assertFalse("the computer's model is no longer written for everyone", model.contains("putString(\"chat_model\", id)"))
+        assertTrue("the choice is saved under the key of its source", model.contains("prefs.edit().putString(chatModelKey, id).apply()"))
+        assertTrue("and re-read when the source changes", model.contains("chatModel = seededModel()"))
+    }
+
+    /** A provider's `defaultModel` is what the chat uses when its list is empty or does not contain the saved model. */
+    @Test fun aProvidersDefaultModelSeedsTheChatModel() {
+        assertTrue("the seed is the saved model, else the provider's own default", model.contains("prefs.getString(chatModelKey, null)?.takeIf { it.isNotBlank() } ?: activeProvider?.defaultModel?.takeIf { it.isNotBlank() }"))
+        assertTrue("switching to it rebuilds and seeds the new source", body("fun selectChatSource(").contains("refreshChatSource()"))
+        assertTrue("saving it does too", body("private fun afterChatSourceChanged()").contains("refreshChatSource()"))
+        assertTrue("the seed is taken when the source changes", body("private fun refreshChatSource()").contains("seedModel()"))
+        val pick = body("private fun pickModel(")
+        assertTrue("the saved model goes first", pick.contains("models.firstOrNull { it.id == saved }?.id"))
+        assertTrue("then the provider's own default", pick.contains("preferred?.takeIf { wanted -> wanted.isNotBlank() && models.any { it.id == wanted } }"))
+        assertTrue("and an empty list keeps the seed instead of clearing it", pick.contains("if (models.isEmpty()) return seededModel()"))
+        assertTrue("the list that arrives decides with it", body("override fun onModels(").contains("chatModel = pickModel(models)"))
+    }
+
+    /** The provider's empty state speaks of the provider, not of the computer. */
+    @Test fun aProvidersNoModelsStateHasItsOwnWording() {
+        val strings = File("src/main/res/values/strings.xml").readText()
+        val es = File("src/main/res/values-es/strings.xml").readText()
+        val chat = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
+        assertTrue(chat.contains("R.string.chat_nomodel_provider_body"))
+        assertTrue(strings.contains("name=\"chat_nomodel_provider_body\""))
+        assertTrue(es.contains("Tu proveedor todavía no ofreció modelos"))
+        assertTrue("the computer keeps its own words", strings.contains("name=\"chat_nomodel_title\"") && es.contains("name=\"chat_nomodel_title\""))
+    }
 }

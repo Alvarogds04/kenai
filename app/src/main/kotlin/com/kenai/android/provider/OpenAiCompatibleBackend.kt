@@ -20,8 +20,8 @@ import org.json.JSONObject
  * The phone's own chat with a provider that speaks the OpenAI chat API: GPT, `api.nan.builders/v1`, a LiteLLM or any
  * other gateway with the same shape. A [ChatBackend], so [ChatSession] and its tests never see the wire.
  *
- * It is engine only: no screen and no settings know it yet (T1a-3 wires it, with the key in the Keystore). It differs
- * from the link backend in two ways that matter:
+ * It is engine only: `AppModel` builds it for the provider the user chose on the providers screen, with the key in the
+ * Keystore, and no screen ever sees the key. It differs from the link backend in two ways that matter:
  *  - a direct provider keeps no context, so this class keeps the conversation in memory and sends the whole thing with
  *    every question, appending the user's text on send and the answer on done; [seed] restores it from the history the
  *    phone already has, and [reset] forgets it;
