@@ -46,10 +46,20 @@ object Protocol {
     const val MAX_PROJECT_CHARS = 64
     /** What the desktop accepts for one chat message; longer is refused there, so it is refused here first. */
     const val CHAT_MAX_TEXT = 4000
+    /** How many conversations one list may carry: a longer one is cut here. */
+    const val MAX_CONVERSATIONS = 200
+    /** A conversation's title, as long as the phone will show it (the engine cuts at 60). */
+    const val MAX_CONVERSATION_TITLE = 120
 }
 
 /** A model the user allowed on the computer for the phone. [id] names the provider, a slash, and the model. */
 data class ChatModel(val id: String, val provider: String, val label: String)
+
+/**
+ * One conversation the engine holds: [id] (1..64 of letters, digits, - and _, never a path), [title] as the engine
+ * names it, when it last changed, and whether it is the one open there. One engine child means one open conversation.
+ */
+data class ChatConversation(val id: String, val title: String, val updatedAtMs: Long = 0, val open: Boolean = false)
 
 /** One window of a plan: whole percent used (0..100) and when it resets (epoch ms). */
 data class PlanWindow(val pct: Int, val resetsAtMs: Long)
@@ -129,6 +139,10 @@ sealed interface ServerMsg {
     ) : ServerMsg
     data object Pong : ServerMsg
     data class ChatModels(val models: List<ChatModel>) : ServerMsg
+    /** The engine's conversations, whole list (never a patch); empty means it holds none and writes into a new one. */
+    data class ChatConversations(val items: List<ChatConversation>) : ServerMsg
+    /** The engine deleted a conversation (this phone asked, or another device did): what the phone held for it goes (Q11). */
+    data class ChatDeleted(val id: String) : ServerMsg
     /** [text] is appended to the answer being written. */
     data class ChatDelta(val id: String, val text: String) : ServerMsg
     /** [text], when present, is the full answer and replaces what was streamed. */
@@ -149,7 +163,15 @@ sealed interface ClientMsg {
     /** The lines of one file the session list showed (cap `diffs`). */
     data class GetDiff(val pillId: String, val fileId: Long) : ClientMsg
     data object ChatModels : ClientMsg
-    data class ChatSend(val id: String, val model: String, val text: String) : ClientMsg
+    /** Asks for the conversation list; a desktop that knows no conversations drops it and never answers (the 0.1 chat). */
+    data object ChatConversations : ClientMsg
+    /** A new conversation, which the engine also opens; [title] null lets it be named after the first message. */
+    data class ChatNew(val title: String?) : ClientMsg
+    data class ChatOpen(val id: String) : ClientMsg
+    /** Irreversible: the engine removes the conversation and every file of its history (Q3). The user is asked first. */
+    data class ChatDelete(val id: String) : ClientMsg
+    /** [conversation] names the conversation to write in; absent writes in the engine's open one (the 0.1 frame). */
+    data class ChatSend(val id: String, val model: String, val text: String, val conversation: String? = null) : ClientMsg
     data class ChatCancel(val id: String) : ClientMsg
     /** New chat: the computer forgets its side of the conversation and stops a running answer. */
     data object ChatReset : ClientMsg
@@ -172,7 +194,14 @@ object Wire {
                 .put("picks", JSONArray(m.picks.map { JSONArray(it) }))
             is ClientMsg.GetDiff -> o.put("type", "getDiff").put("pillId", m.pillId).put("fileId", m.fileId)
             ClientMsg.ChatModels -> o.put("type", "chatModels")
-            is ClientMsg.ChatSend -> o.put("type", "chatSend").put("id", m.id).put("model", m.model).put("text", m.text)
+            ClientMsg.ChatConversations -> o.put("type", "chatConversations")
+            is ClientMsg.ChatNew -> { o.put("type", "chatNew"); m.title?.let { o.put("title", it) } }
+            is ClientMsg.ChatOpen -> o.put("type", "chatOpen").put("id", m.id)
+            is ClientMsg.ChatDelete -> o.put("type", "chatDelete").put("id", m.id)
+            is ClientMsg.ChatSend -> {
+                o.put("type", "chatSend").put("id", m.id).put("model", m.model).put("text", m.text)
+                m.conversation?.let { o.put("conversation", it) }
+            }
             is ClientMsg.ChatCancel -> o.put("type", "chatCancel").put("id", m.id)
             ClientMsg.ChatReset -> o.put("type", "chatReset")
         }
@@ -205,6 +234,8 @@ object Wire {
                 "usage" -> ServerMsg.Usage(UsageSnapshot(plan(o.optJSONObject("claude")), plan(o.optJSONObject("codex"))))
                 "pong" -> ServerMsg.Pong
                 "chatModels" -> ServerMsg.ChatModels(o.getJSONArray("models").objects().mapNotNull(::chatModel))
+                "chatConversations" -> ServerMsg.ChatConversations(conversations(o))
+                "chatDeleted" -> ServerMsg.ChatDeleted(conversationId(o))
                 "chatDelta" -> ServerMsg.ChatDelta(chatId(o), o.getString("text"))
                 "chatDone" -> ServerMsg.ChatDone(chatId(o), if (o.has("text")) o.getString("text") else null)
                 "chatError" -> ServerMsg.ChatError(chatId(o), o.optString("reason", "internal"), o.optString("message", ""))
@@ -359,6 +390,33 @@ object Wire {
     }
 
     private fun chatId(o: JSONObject): String = o.getString("id").also { require(isChatId(it)) }
+
+    /**
+     * The conversations of a list, in the engine's order: an entry without a usable id, a repeated one or one that is not
+     * an object is dropped rather than guessed. The open one is on its entry or, like the engine's own list frame, once
+     * for the whole list.
+     */
+    private fun conversations(o: JSONObject): List<ChatConversation> {
+        val arr = o.getJSONArray("items")
+        val namedOpen = o.optString("open", "").takeIf { isConversationId(it) }
+        val seen = HashSet<String>()
+        return (0 until arr.length()).mapNotNull { i ->
+            val c = arr.optJSONObject(i) ?: return@mapNotNull null
+            val id = c.optString("id", "")
+            if (!isConversationId(id) || !seen.add(id)) return@mapNotNull null
+            ChatConversation(
+                id = id,
+                title = oneLine(c.optString("title", ""), Protocol.MAX_CONVERSATION_TITLE),
+                updatedAtMs = c.optLong("updatedAt", 0).coerceAtLeast(0),
+                open = c.optBoolean("open", false) || id == namedOpen,
+            )
+        }.take(Protocol.MAX_CONVERSATIONS)
+    }
+
+    private fun conversationId(o: JSONObject): String = o.getString("id").also { require(isConversationId(it)) }
+
+    /** A conversation's id: the same alphabet and length as a chat message's (docs/ANDROID_LINK.md), never a path. */
+    fun isConversationId(s: String) = isChatId(s)
 
     private fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { getJSONObject(it) }
 

@@ -1,6 +1,7 @@
 package com.kenai.android.link
 
 import com.kenai.android.core.ChatBackend
+import com.kenai.android.core.ChatConversationOption
 import com.kenai.android.core.ChatModelOption
 
 /**
@@ -22,7 +23,8 @@ class ChatLinkBackend(
         return true
     }
 
-    override fun send(id: String, model: String, text: String): Boolean = link()?.chatSend(id, model, text) == true
+    override fun send(id: String, model: String, text: String, conversation: String?): Boolean =
+        link()?.chatSend(id, model, text, conversation) == true
 
     override fun cancel(id: String) {
         link()?.chatCancel(id)
@@ -31,6 +33,16 @@ class ChatLinkBackend(
     override fun reset() {
         link()?.chatReset()
     }
+
+    // ── The engine's conversations: no-ops on a desktop of 0.1, which never answered a list ──────────
+
+    override fun conversations(): Boolean = link()?.chatConversations() == true
+
+    override fun newConversation(title: String?): Boolean = link()?.chatNew(title) == true
+
+    override fun openConversation(id: String): Boolean = link()?.chatOpen(id) == true
+
+    override fun deleteConversation(id: String): Boolean = link()?.chatDelete(id) == true
 
     // ── LinkListener (link thread): the wire's four chat events in the app's own words ────────────
 
@@ -48,5 +60,13 @@ class ChatLinkBackend(
 
     override fun onChatError(id: String, reason: String, message: String) {
         listener.onError(id, reason, message)
+    }
+
+    override fun onChatConversations(items: List<ChatConversation>) {
+        listener.onConversations(items.map { ChatConversationOption(it.id, it.title, it.updatedAtMs, it.open) })
+    }
+
+    override fun onChatDeleted(id: String) {
+        listener.onConversationDeleted(id)
     }
 }

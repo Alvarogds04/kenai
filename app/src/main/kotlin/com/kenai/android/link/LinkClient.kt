@@ -51,6 +51,10 @@ interface LinkListener {
     /** A link that had been working ended without the user asking for it (not for a wrong token or version: see [onError]). */
     fun onLinkLost(reason: LostReason) {}
     fun onChatModels(models: List<ChatModel>) {}
+    /** The engine's conversations, whole list; the first arrival is what tells the phone the engine has them. */
+    fun onChatConversations(items: List<ChatConversation>) {}
+    /** The engine deleted [id]: what the phone held for it must go (Q11). */
+    fun onChatDeleted(id: String) {}
     fun onChatDelta(id: String, text: String) {}
     fun onChatDone(id: String, text: String?) {}
     fun onChatError(id: String, reason: String, message: String) {}
@@ -79,10 +83,21 @@ interface DesktopLink {
 
     // Chat through the computer (docs/ANDROID_LINK.md). Not offered by the demo.
     fun chatModels() {}
-    /** False if the link is down; the answer arrives through the listener. */
-    fun chatSend(id: String, model: String, text: String): Boolean = false
+    /** False if the link is down; the answer arrives through the listener. [conversation] selects the engine's conversation (absent: its open one). */
+    fun chatSend(id: String, model: String, text: String, conversation: String? = null): Boolean = false
     fun chatCancel(id: String) {}
     fun chatReset() {}
+
+    /**
+     * The engine's conversations. False when they cannot be asked for now; a desktop of 0.1 never answers, which is how
+     * the phone knows to keep the single conversation of 0.1.
+     */
+    fun chatConversations(): Boolean = false
+    /** A new conversation, which the engine also opens; false when it has no conversations or the link is down. */
+    fun chatNew(title: String?): Boolean = false
+    fun chatOpen(id: String): Boolean = false
+    /** Irreversible: the engine deletes the conversation and the history it keeps (DESIGN Q3). */
+    fun chatDelete(id: String): Boolean = false
 }
 
 /** Opens the (TLS) connection to the desktop. Swappable so tests can use plain sockets. */
@@ -139,6 +154,8 @@ class LinkClient(
     @Volatile private var usageOffered = false
     /** The computer's welcome offered `services` on this connection. */
     @Volatile private var servicesOffered = false
+    /** The engine answered the conversation list on this connection: it has conversations, and they may be asked for. */
+    @Volatile private var conversationsKnown = false
     @Volatile private var socket: Socket? = null
     /** When the last line arrived (the clock of [clockMs]); a liveness check compares it with the moment it asked. */
     @Volatile private var lastInboundMs = 0L
@@ -240,9 +257,17 @@ class LinkClient(
         answersOffered && Protocol.CAP_ANSWERS in caps && queue(ClientMsg.Answer(fingerprint, picks))
 
     override fun chatModels() { queue(ClientMsg.ChatModels) }
-    override fun chatSend(id: String, model: String, text: String) = queue(ClientMsg.ChatSend(id, model, text))
+    override fun chatSend(id: String, model: String, text: String, conversation: String?) =
+        queue(ClientMsg.ChatSend(id, model, text, conversation))
     override fun chatCancel(id: String) { queue(ClientMsg.ChatCancel(id)) }
     override fun chatReset() { queue(ClientMsg.ChatReset) }
+
+    // Asked even before the engine has answered a list once: that request is what finds out. Creating, opening and
+    // deleting wait for the first list, so an engine without conversations is never sent a frame it cannot serve.
+    override fun chatConversations() = queue(ClientMsg.ChatConversations)
+    override fun chatNew(title: String?) = conversationsKnown && queue(ClientMsg.ChatNew(title))
+    override fun chatOpen(id: String) = conversationsKnown && queue(ClientMsg.ChatOpen(id))
+    override fun chatDelete(id: String) = conversationsKnown && queue(ClientMsg.ChatDelete(id))
 
     private fun send(m: ClientMsg) {
         val o = out ?: throw IOException("not connected")
@@ -288,6 +313,7 @@ class LinkClient(
                 diffsOffered = false
                 usageOffered = false
                 servicesOffered = false
+                conversationsKnown = false
                 runCatching { socket?.close() }
                 socket = null
                 approvals.clear()
@@ -335,8 +361,12 @@ class LinkClient(
                     listener.onState(LinkState.CONNECTED)
                     listener.onWelcome(msg.desktopName, msg.os)
                     listener.onCaps(msg.caps)
-                    // Told what it may use right away, so the Chat screen has its list when it opens.
-                    if (Protocol.CAP_CHAT in msg.caps && Protocol.CAP_CHAT in caps) queue(ClientMsg.ChatModels)
+                    // Told what it may use right away, so the Chat screen has its list when it opens: the models of 0.1 and,
+                    // when the engine has them, the conversations (an engine of 0.1 simply never answers the second one).
+                    if (Protocol.CAP_CHAT in msg.caps && Protocol.CAP_CHAT in caps) {
+                        queue(ClientMsg.ChatModels)
+                        queue(ClientMsg.ChatConversations)
+                    }
                 }
                 is ServerMsg.Sessions -> listener.onSessions(msg.sessions)
                 is ServerMsg.Approval -> { approvals.add(msg.request); listener.onApproval(msg.request) }
@@ -349,6 +379,8 @@ class LinkClient(
                 is ServerMsg.Usage -> if (usageOffered && Protocol.CAP_USAGE in caps) listener.onUsage(msg.usage)
                 ServerMsg.Pong -> {}
                 is ServerMsg.ChatModels -> listener.onChatModels(msg.models)
+                is ServerMsg.ChatConversations -> { conversationsKnown = true; listener.onChatConversations(msg.items) }
+                is ServerMsg.ChatDeleted -> listener.onChatDeleted(msg.id)
                 is ServerMsg.ChatDelta -> listener.onChatDelta(msg.id, msg.text)
                 is ServerMsg.ChatDone -> listener.onChatDone(msg.id, msg.text)
                 is ServerMsg.ChatError -> listener.onChatError(msg.id, msg.reason, msg.message)
