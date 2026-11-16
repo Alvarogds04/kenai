@@ -55,16 +55,28 @@ class LinkDocTest {
         val fromPhone = listOf(
             "hello", "decision", "answer", "getDiff", "ping", "bye",
             "chatModels", "chatSend", "chatCancel", "chatReset",
+            "chatConversations", "chatNew", "chatOpen", "chatDelete",
         )
         val fromDesktop = listOf(
             "welcome", "sessions", "approval", "approvalResolved", "question", "diff", "usage", "services",
             "pong", "chatModels", "chatDelta", "chatDone", "chatError", "error",
+            "chatConversations", "chatDeleted",
         )
         for (t in fromPhone) assertTrue("docs/ANDROID_LINK.md does not document the phone's `$t`", names(t))
         for (t in fromDesktop) assertTrue("docs/ANDROID_LINK.md does not document the desktop's `$t`", names(t))
         // Both directions have a name that only appears once in each list: each must be under its own heading.
         assertTrue("the phone's messages need a heading", doc.contains("Phone → desktop"))
         assertTrue("the desktop's messages need a heading", doc.contains("Desktop → phone"))
+    }
+
+    @Test fun theConversationFramesAreDocumentedAsTheDesignDecidedThem() {
+        // DESIGN.md §3.1, §4.2 and Q3/Q11: the client contract names the destructive frame, says it is irreversible, and
+        // the phone has to drop what it held when chatDeleted arrives. A desktop that only reads this document must
+        // learn all three from it.
+        assertTrue("the doc must say deleting is irreversible", doc.contains("irreversible"))
+        assertTrue("the doc must say the phone drops its copy", doc.contains("chatDeleted"))
+        assertTrue("chatSend's conversation field must be documented", doc.contains("conversation"))
+        assertTrue("an old phone (or desktop) must still be served", doc.contains("drops") || doc.contains("dropped"))
     }
 
     @Test fun itNamesTheApprovalTtlAndItsValue() {

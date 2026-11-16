@@ -1,11 +1,13 @@
 package com.kenai.android
 
 import com.kenai.android.core.ChatBackend
+import com.kenai.android.core.ChatConversationOption
 import com.kenai.android.core.ChatModelOption
 import com.kenai.android.core.ChatSession
 import com.kenai.android.core.ChatSession.Sent
 import com.kenai.android.core.ChatStatus
 import com.kenai.android.link.ApprovalBook
+import com.kenai.android.link.ChatConversation
 import com.kenai.android.link.ChatLinkBackend
 import com.kenai.android.link.ChatModel
 import com.kenai.android.link.DesktopLink
@@ -35,8 +37,8 @@ class ChatBackendTest {
 
         override fun models(): Boolean { calls += "models"; return canAsk }
 
-        override fun send(id: String, model: String, text: String): Boolean {
-            calls += "send:$id:$model:$text"
+        override fun send(id: String, model: String, text: String, conversation: String?): Boolean {
+            calls += "send:$id:$model:$text:${conversation ?: "-"}"
             return canSend
         }
 
@@ -49,6 +51,8 @@ class ChatBackendTest {
         fun pushDelta(id: String, text: String) { listener?.onDelta(id, text) }
         fun pushDone(id: String, text: String?) { listener?.onDone(id, text) }
         fun pushError(id: String, reason: String, message: String = "") { listener?.onError(id, reason, message) }
+        fun pushConversations(items: List<ChatConversationOption>) { listener?.onConversations(items) }
+        fun pushDeleted(id: String) { listener?.onConversationDeleted(id) }
     }
 
     /** The wiring AppModel does, the main thread aside: these four events are all the session needs. */
@@ -119,8 +123,36 @@ class ChatBackendTest {
         val canceled = s.cancel()
         b.cancel(canceled!!)
         b.reset()
-        assertEquals(listOf("send:${sent.id}:openai/gpt:hi", "cancel:${sent.id}", "reset"), b.calls)
+        assertEquals(listOf("send:${sent.id}:openai/gpt:hi:-", "cancel:${sent.id}", "reset"), b.calls)
         assertNull(s.running)
+    }
+
+    @Test fun aBackendWithSeveralConversationsNamesTheOneAndSaysTheList() {
+        // The engine's backend takes the conversation; the neutral event carries the whole list and a deletion.
+        val seen = mutableListOf<String>()
+        val b = FakeChatBackend(listener = object : ChatBackend.Listener {
+            override fun onModels(models: List<ChatModelOption>) {}
+            override fun onDelta(id: String, text: String) {}
+            override fun onDone(id: String, text: String?) {}
+            override fun onError(id: String, reason: String, message: String) {}
+            override fun onConversations(items: List<ChatConversationOption>) { seen += "list:" + items.joinToString(",") { "${it.id}${if (it.open) "*" else ""}" } }
+            override fun onConversationDeleted(id: String) { seen += "deleted:$id" }
+        })
+        assertTrue(b.send("c1", "openai/gpt", "hi", "c7"))
+        assertEquals(listOf("send:c1:openai/gpt:hi:c7"), b.calls)
+        b.pushConversations(listOf(ChatConversationOption("c0", "Chat"), ChatConversationOption("c7", "Presupuesto", open = true)))
+        b.pushDeleted("c7")
+        assertEquals(listOf("list:c0,c7*", "deleted:c7"), seen)
+    }
+
+    @Test fun aBackendWithOneConversationHasNoListAndNoNewOnes() {
+        // The four conversation calls are no-ops on a backend that is one conversation: this is the 0.1 chat, unchanged.
+        val b = FakeChatBackend()
+        assertFalse(b.conversations())
+        assertFalse(b.newConversation(null))
+        assertFalse(b.openConversation("c0"))
+        assertFalse(b.deleteConversation("c0"))
+        assertEquals(emptyList<String>(), b.calls)
     }
 
     @Test fun theModelsRequestSaysWhetherTheBackendCouldAsk() {
@@ -147,12 +179,18 @@ class ChatLinkBackendTest {
         override fun stop() {}
         override fun decide(fingerprint: String, allow: Boolean) = false
         override fun chatModels() { modelsAsked++ }
-        override fun chatSend(id: String, model: String, text: String): Boolean {
-            calls += "send:$id:$model:$text"
+        override fun chatSend(id: String, model: String, text: String, conversation: String?): Boolean {
+            calls += "send:$id:$model:$text:${conversation ?: "-"}"
             return canSend
         }
         override fun chatCancel(id: String) { calls += "cancel:$id" }
         override fun chatReset() { calls += "reset" }
+        val conversationCalls = mutableListOf<String>()
+        var hasConversations = true
+        override fun chatConversations(): Boolean { conversationCalls += "list"; return hasConversations }
+        override fun chatNew(title: String?): Boolean { conversationCalls += "new:${title ?: "-"}"; return hasConversations }
+        override fun chatOpen(id: String): Boolean { conversationCalls += "open:$id"; return hasConversations }
+        override fun chatDelete(id: String): Boolean { conversationCalls += "delete:$id"; return hasConversations }
     }
 
     private var models: List<ChatModelOption>? = null
@@ -165,6 +203,8 @@ class ChatLinkBackendTest {
         override fun onDelta(id: String, text: String) { seen += "delta:$id:$text" }
         override fun onDone(id: String, text: String?) { seen += "done:$id:$text" }
         override fun onError(id: String, reason: String, message: String) { seen += "error:$id:$reason:$message" }
+        override fun onConversations(items: List<ChatConversationOption>) { seen += "list:" + items.joinToString(",") { "${it.id}:${it.title}:${if (it.open) "open" else "-"}" } }
+        override fun onConversationDeleted(id: String) { seen += "deleted:$id" }
     }
 
     @Test fun everyCallGoesToTheLink() {
@@ -172,16 +212,41 @@ class ChatLinkBackendTest {
         val b = backend(link)
         assertTrue(b.models())
         assertEquals(1, link.modelsAsked)
-        assertTrue(b.send("c1", "openai/gpt", "hi"))
+        assertTrue(b.send("c1", "openai/gpt", "hi", "c7"))
         b.cancel("c1")
         b.reset()
-        assertEquals(listOf("send:c1:openai/gpt:hi", "cancel:c1", "reset"), link.calls)
+        assertEquals(listOf("send:c1:openai/gpt:hi:c7", "cancel:c1", "reset"), link.calls)
+    }
+
+    @Test fun theConversationsAreTheLinksAndItsListBecomesTheNeutralOne() {
+        val link = FakeLink()
+        val b = backend(link)
+        assertTrue(b.conversations())
+        assertTrue(b.newConversation("Presupuesto"))
+        assertTrue(b.openConversation("c1"))
+        assertTrue(b.deleteConversation("c2"))
+        assertEquals(listOf("list", "new:Presupuesto", "open:c1", "delete:c2"), link.conversationCalls)
+        b.onChatConversations(listOf(ChatConversation("c0", "Chat", 5, open = true), ChatConversation("c1", "Presupuesto")))
+        b.onChatDeleted("c1")
+        assertEquals(listOf("list:c0:Chat:open,c1:Presupuesto:-", "deleted:c1"), seen)
+    }
+
+    @Test fun aLinkWithoutConversationsAnswersNoToAllFour() {
+        // A desktop of 0.1: the chat stays the single conversation, and nothing is created, opened or deleted.
+        val link = FakeLink().apply { hasConversations = false }
+        val b = backend(link)
+        assertFalse(b.conversations())
+        assertFalse(b.newConversation(null))
+        assertFalse(b.openConversation("c1"))
+        assertFalse(b.deleteConversation("c1"))
     }
 
     @Test fun withNoLinkItSaysItCannotSendAndAsksNothing() {
         val b = backend(FakeLink(), hasLink = false)
         assertFalse("nothing is paired or the link is stopped", b.models())
         assertFalse(b.send("c1", "openai/gpt", "hi"))
+        assertFalse(b.conversations())
+        assertFalse(b.newConversation(null))
         b.cancel("c1") // nothing to tell
         b.reset()
     }

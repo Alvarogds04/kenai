@@ -39,6 +39,10 @@ What it does **not** do yet is in the table in [§16](#16-support-today-phone-vs
 The phone is the complete side: it speaks every message in this document, and it degrades correctly when the
 desktop offers less (see [`caps`](#desktop--phone-welcome) and the “ignored when not offered” rules).
 
+The conversation frames (`chatConversations`, `chatNew`, `chatOpen`, `chatDelete`, `chatDeleted`, and `conversation`
+on `chatSend`) are the newest and the most cautious: they are additive on v1, a desktop that knows none of them drops
+them, and the phone then chats exactly as it did in 0.1 — one conversation, no list on screen.
+
 ---
 
 ## 1. Identifiers
@@ -239,7 +243,9 @@ The phone opens a connection like this (`LinkClient.loop` + `read`):
 4. The desktop sends **`sessions`** immediately after `welcome` — the first line after the welcome is the whole
    current session list. The phone shows the island from it.
 5. If both sides offered `chat`, the phone asks for the model list at once: `{"type":"chatModels"}`, answered by
-   `chatModels`. That is why the Chat screen already has its list when it opens.
+   `chatModels`, and right after it for the conversation list: `{"type":"chatConversations"}`. That is why the Chat
+   screen already has its list when it opens. A desktop that has no conversations never answers the second one, and
+   nothing else changes for it.
 6. From here the conversation is event-driven in both directions, until the link ends:
    - the desktop pushes `sessions` whenever something changed, `approval` / `approvalResolved` / `question` as
      agents need the user, `usage` / `services` when the user's switches produce new content;
@@ -285,7 +291,7 @@ feature the desktop does not offer is simply absent from the phone's screens.
 
 | Constant (`Protocol.kt`) | Wire value | What it enables |
 | --- | --- | --- |
-| `CAP_CHAT` | `chat` | The Chat screen: `chatModels`, `chatSend`, `chatCancel`, `chatReset` from the phone; `chatModels`, `chatDelta`, `chatDone`, `chatError` from the desktop. |
+| `CAP_CHAT` | `chat` | The Chat screen: `chatModels`, `chatSend`, `chatCancel`, `chatReset` from the phone; `chatModels`, `chatDelta`, `chatDone`, `chatError` from the desktop. An engine with several conversations also exchanges `chatConversations`, `chatNew`, `chatOpen` and `chatDelete` (phone) and `chatConversations` and `chatDeleted` (desktop); a desktop that knows none of those drops them and the chat is the single conversation of 0.1. |
 | `CAP_DETAILS` | `details` | `steps`, `finalLine`, `project` and `color` on each session, and the session details screen on the phone. |
 | `CAP_ANSWERS` | `answers` | Answering Claude Code's questions from the phone: `question` from the desktop, `answer` from the phone. |
 | `CAP_DIFFS` | `diffs` | `files` on each session and `getDiff` → `diff` for the lines of one file. |
@@ -418,9 +424,14 @@ Only with the `chat` capability in both directions. The phone sends `chatModels`
 | `id` | string | yes | The message id the phone made: **1 to 64 characters of `[A-Za-z0-9_-]`**. The desktop echoes it on every `chatDelta`, `chatDone` and `chatError`. |
 | `model` | string | yes | One `id` from the `chatModels` list, verbatim. |
 | `text` | string | yes | The user's message: at most **4000 characters** (`Protocol.CHAT_MAX_TEXT`). The phone refuses to send longer, so a desktop that receives longer can refuse it as `too_long`. Newlines inside are fine (the JSON line escapes them). |
+| `conversation` | string | no | The conversation to write in: an `id` from the last `chatConversations`. **Absent means the engine's open one**, which is the whole of the 0.1 frame — a phone that was never offered a conversation list never sends it. |
 
 ```json
 {"type":"chatSend","id":"c1","model":"openai/gpt-4o","text":"hola Kenai"}
+```
+
+```json
+{"type":"chatSend","id":"c7","model":"openai/gpt-4o","text":"hola","conversation":"c1"}
 ```
 
 `chatCancel` stops an answer that is still being written:
@@ -435,11 +446,71 @@ Only with the `chat` capability in both directions. The phone sends `chatModels`
 ```
 
 `chatReset` starts a new conversation: the desktop forgets its side of the conversation and stops any running
-answer (which it reports as `chatError` with `reason:"canceled"`).
+answer (which it reports as `chatError` with `reason:"canceled"`). An engine with several conversations answers it the
+way DESIGN.md §4.2 defines: it creates a conversation, opens it, and says so with a fresh `chatConversations`.
 
 ```json
 {"type":"chatReset"}
 ```
+
+---
+
+### Phone → desktop: `chatConversations`, `chatNew`, `chatOpen`, `chatDelete`
+
+Only with the `chat` capability, and only against an engine that holds several conversations (DESIGN.md §3.1, §4.2).
+**Nothing is negotiated:** a desktop that knows none of these frames drops them and never answers, and the phone then
+keeps the single conversation of 0.1, sending no `conversation` on `chatSend`.
+
+`chatConversations` asks for the list, answered by the desktop's `chatConversations` frame. The phone asks it once
+after every `welcome` that offered `chat` (right after `chatModels`) and again when the Chat screen is opened:
+
+```json
+{"type":"chatConversations"}
+```
+
+`chatNew` creates a conversation and the engine opens it:
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `type` | string | yes | `"chatNew"` |
+| `title` | string | no | What the row should say, at most 120 characters. Absent lets the engine name the conversation after the first message. |
+
+```json
+{"type":"chatNew","title":"Presupuesto"}
+```
+
+`chatOpen` opens one the list named. The engine answers with a fresh list; while an answer is still being written
+there it refuses with `busy` (a phone never switches mid-turn either).
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `type` | string | yes | `"chatOpen"` |
+| `id` | string | yes | An `id` from the last list. |
+
+```json
+{"type":"chatOpen","id":"c1"}
+```
+
+`chatDelete` **deletes a conversation for ever**: the engine removes the index entry and every file of its history
+(DESIGN.md Q3). There is no undo, no trash and no tombstone, which is why **the phone asks the user first and says the
+deletion is irreversible** ("irreversible" in the phone's own words). Sending it is a decision the user took, never a
+side effect of opening a row.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `type` | string | yes | `"chatDelete"` |
+| `id` | string | yes | An `id` from the last list. A `chatDelete` for an id this device does not see is `bad_request`. |
+
+```json
+{"type":"chatDelete","id":"c1"}
+```
+
+The engine answers a delete with a fresh `chatConversations` — never with anything that reads like a recoverable
+delete — and with the `chatDeleted` below.
+
+The phone only sends `chatNew`, `chatOpen` and `chatDelete` after a desktop has answered a list at least once on that
+connection; asking for the list is what finds out. None of the four frames exists in a desktop of 0.1, so it sees the
+phone of 0.1.
 
 ---
 
@@ -788,6 +859,52 @@ Only with `chat`.
 ```json
 {"type":"chatError","id":"c1","reason":"busy","message":"Another answer is still being written."}
 ```
+
+### Desktop → phone: `chatConversations`, `chatDeleted`
+
+`chatConversations` is the whole list, never a patch, and it is also what tells the phone the engine holds
+conversations: an engine that never sends it keeps the single chat of 0.1. Sent after the `welcome` and again whenever
+a conversation is created, opened, renamed or deleted — by this phone or by another device.
+
+| Field | Type | Required | Rules |
+| --- | --- | --- | --- |
+| `type` | string | yes | `"chatConversations"` |
+| `items` | array of objects | yes | At most **200** entries; a longer list is cut by the phone. An empty array is valid: the engine holds none yet, and the next message creates the first one. |
+| `open` | string | no | The id of the open conversation, when the engine names it once for the whole list instead of on the entry (its own local frame does). Both shapes are read. |
+
+Each entry:
+
+| Field | Type | Required | Default | Rules |
+| --- | --- | --- | --- | --- |
+| `id` | string | yes | — | 1 to 64 characters of `[A-Za-z0-9_-]`, the same alphabet as a chat message id, **never a path**. An entry without a usable id, or a repeated one, is dropped by the phone. |
+| `title` | string | no | `""` | What the row shows; blank shows the phone's generic name. The phone drops control characters and cuts it to 120 characters. |
+| `updatedAt` | long | no | `0` | Epoch milliseconds of the last change, `>= 0`. |
+| `open` | bool | no | `false` | `true` on the conversation the engine has open. One engine child means **one open conversation**, so at most one entry carries it. |
+
+```json
+{"type":"chatConversations","items":[{"id":"c0","title":"Chat","updatedAt":1700000000000,"open":true},{"id":"c1","title":"Presupuesto","updatedAt":1700000100000,"open":false}]}
+```
+
+`chatDeleted` says one conversation is gone from the engine: this phone asked, or another device did, or the user
+deleted it on the host. **The phone drops everything it held for that id** (DESIGN.md Q11); otherwise "delete the whole
+conversation" would only be true on the host.
+
+```json
+{"type":"chatDeleted","id":"c1"}
+```
+
+What the phone does with these, and what this slice does not promise:
+
+- The list is the whole truth about what exists: an id the phone once saw and does not see any more is not opened, and
+  the phone never invents one. Its list is replaced whole every time.
+- The phone swaps the messages on screen when the open conversation changes on the engine (another device opened one).
+  It does not swap while an answer is streaming here.
+- The phone keeps, for the length of one run of the app, the messages of each conversation it opened, so opening one
+  again shows what it had. **Persisting that copy and reading it with the engine off is the next step (Kenai T10).**
+- There is **no history frame yet**: an engine that pages a conversation's history over the front does so with a frame
+  this app does not know, and the phone drops it (unknown types are dropped, as always). DESIGN.md's engine unit T5-U4
+  defines that frame; this document will name it when the phone reads it.
+- A `chatDeleted` for an id the phone does not hold is harmless: nothing is shown and nothing is dropped.
 
 Limits the reference desktop enforces (copy them; the phone relies on them being the desktop's job):
 
