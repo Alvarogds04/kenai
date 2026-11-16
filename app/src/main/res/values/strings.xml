@@ -217,6 +217,12 @@
     <string name="chat_clear_title">Clear this chat?</string>
     <string name="chat_clear_body">This removes the conversation from this phone and tells your computer to forget it.</string>
     <string name="chat_model">Model: %1$s</string>
+    <string name="chat_conversations">Conversations</string>
+    <string name="chat_conversations_new">New conversation</string>
+    <string name="chat_conversations_delete">Delete</string>
+    <string name="chat_conversations_delete_title">Delete this conversation?</string>
+    <string name="chat_conversations_delete_body">It is removed from your engine for good, with all its history. This cannot be undone: it is irreversible.</string>
+    <string name="chat_conversations_close">Close</string>
     <string name="chat_count">%1$d / %2$d</string>
     <string name="chat_ref_too_long">That message is too long.</string>
     <string name="chat_ref_no_model">Pick a model first.</string>

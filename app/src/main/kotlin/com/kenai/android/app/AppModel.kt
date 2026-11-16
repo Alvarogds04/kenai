@@ -31,11 +31,14 @@ import com.kenai.android.core.WishStore
 import com.kenai.android.core.Pills
 import com.kenai.android.ui.IslandOverlay
 import com.kenai.android.link.Protocol
+import com.kenai.android.link.ChatConversation
 import com.kenai.android.link.ChatModel
 import com.kenai.android.core.PairingScan
 import com.kenai.android.core.ScanDecision
 import com.kenai.android.core.ChatHistory
 import com.kenai.android.core.ChatBackend
+import com.kenai.android.core.ChatConversations
+import com.kenai.android.core.ChatConversationOption
 import com.kenai.android.core.ChatModelOption
 import com.kenai.android.core.ChatModels
 import com.kenai.android.core.ChatSession
@@ -261,6 +264,18 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     var chatModel by mutableStateOf<String?>(prefs.getString("chat_model", null)); private set
 
+    // ── The engine's conversations (KN-01, DESIGN §4): the list it holds, which one is open, what the phone keeps ──
+
+    /** The phone's own copy of the list and of what it showed of each conversation, for this run of the app. */
+    private val conversations = ChatConversations()
+
+    /** The conversations the engine holds, as it last sent them; empty until it answers, or when it holds none. */
+    var chatConversationList by mutableStateOf<List<ChatConversationOption>>(emptyList()); private set
+    /** The engine answered a list, so it has conversations. A desktop of 0.1 never does, and the chat is the one of 0.1. */
+    var chatHasConversations by mutableStateOf(false); private set
+    /** The conversation on screen, as the engine has it open; null when there is none. */
+    var chatOpenId by mutableStateOf<String?>(null); private set
+
     /** The computer offers session details (steps, last message, project folder, colour) to this phone. */
     var detailsOffered by mutableStateOf(false); private set
     /** The computer lists the files an agent changed and can send their lines (its switch is on). */
@@ -281,8 +296,39 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     private fun chatChanged(save: Boolean) {
         chatMessages = chatSession.messages
         chatBusy = chatSession.running != null
+        conversations.keep(chatSession.messages)
         if (save) chatHistory.save(chatSession.messages)
     }
+
+    private fun syncConversations() {
+        chatConversationList = conversations.items
+        chatHasConversations = conversations.known
+        chatOpenId = conversations.open
+    }
+
+    /** Asks the engine for its conversations again (the link also asks by itself after every welcome). */
+    fun chatRefreshConversations() { chatBackend.conversations() }
+
+    /** A new conversation; the engine opens it and answers with the whole list. */
+    fun chatNewConversation() {
+        if (chatSession.running != null) return
+        chatBackend.newConversation(null)
+    }
+
+    /** Opens one of the list: the phone switches at once to what it held for it and tells the engine. */
+    fun chatOpenConversation(id: String) {
+        if (id == chatOpenId || chatSession.running != null) return
+        chatSession.load(conversations.opened(id, chatSession.messages))
+        syncConversations()
+        chatChanged(save = true)
+        chatBackend.openConversation(id)
+    }
+
+    /**
+     * Deletes it on the engine, for ever: the conversation and the history it holds (DESIGN Q3). The screen asked the
+     * user first, and the question says it is irreversible; the engine answers with a fresh list and a `chatDeleted`.
+     */
+    fun chatDeleteConversation(id: String) { chatBackend.deleteConversation(id) }
 
     fun chatSelect(id: String) {
         if (chatModels.any { it.id == id }) {
@@ -301,7 +347,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             is ChatSession.Sent.No -> sent.why
             is ChatSession.Sent.Ok -> {
                 chatChanged(save = true)
-                if (!chatBackend.send(sent.id, sent.model, sent.text)) {
+                if (!chatBackend.send(sent.id, sent.model, sent.text, chatOpenId)) {
                     chatSession.onDisconnected()
                     chatChanged(save = true)
                 }
@@ -320,6 +366,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatSession.cancel()?.let { chatBackend.cancel(it) }
         chatSession.clear()
         chatHistory.clear()
+        chatSession.load(conversations.cleared())
+        syncConversations()
         chatBackend.reset()
         chatChanged(save = false)
     }
@@ -655,6 +703,9 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         sessions = emptyList()
         dropApprovals()
         chatLinkLost()
+        // Forgetting a computer forgets its conversations too: nothing of them stays on the phone.
+        conversations.reset()
+        syncConversations()
         wantAllow = null
         lastState.clear()
         notifier.cancelAllStatus()
@@ -774,6 +825,14 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatLink.onChatError(id, reason, message)
     }
 
+    override fun onChatConversations(items: List<ChatConversation>) {
+        chatLink.onChatConversations(items)
+    }
+
+    override fun onChatDeleted(id: String) {
+        chatLink.onChatDeleted(id)
+    }
+
     // ── ChatBackend.Listener (the link's thread, marshalled to the main one) ─────────────────────
 
     override fun onModels(models: List<ChatModelOption>) {
@@ -793,6 +852,31 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onError(id: String, reason: String, message: String) {
         main.post { chatSession.onError(id, reason); chatChanged(save = true) }
+    }
+
+    override fun onConversations(items: List<ChatConversationOption>) {
+        main.post {
+            // Nothing switches while an answer is still arriving: the engine refuses to open another one mid-turn too.
+            if (chatSession.running == null) {
+                val showing = conversations.onList(items, chatSession.messages)
+                if (showing != null) {
+                    chatSession.load(showing)
+                    chatChanged(save = true)
+                }
+            }
+            syncConversations()
+        }
+    }
+
+    override fun onConversationDeleted(id: String) {
+        main.post {
+            // Q11: the engine removed it, so the phone's copy of it goes too.
+            conversations.onDeleted(id)?.let {
+                chatSession.load(it)
+                chatChanged(save = true)
+            }
+            syncConversations()
+        }
     }
 
     override fun onSessions(sessions: List<SessionInfo>) {

@@ -25,6 +25,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.kenai.android.core.IconKind
+import com.kenai.android.core.ChatConversationOption
+import com.kenai.android.core.IslandSurface
 import com.kenai.android.core.Spacing
 import com.kenai.android.core.TypeScale
 import androidx.compose.foundation.layout.padding
@@ -62,6 +64,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
 import com.kenai.android.core.ChatMessage
@@ -155,10 +158,12 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
     var text by rememberSaveable { mutableStateOf("") }
     var refusal by remember { mutableStateOf<ChatSession.Refusal?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
+    var listOpen by remember { mutableStateOf(false) }
+    var deleteTarget by remember { mutableStateOf<ChatConversationOption?>(null) }
     val listState = rememberLazyListState()
     val messages = model.chatMessages
 
-    LaunchedEffect(Unit) { model.chatRefreshModels() }
+    LaunchedEffect(Unit) { model.chatRefreshModels(); model.chatRefreshConversations() }
     // Follow the answer as it grows.
     val lastLength = messages.lastOrNull()?.text?.length ?: 0
     LaunchedEffect(messages.size, lastLength) {
@@ -176,7 +181,14 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
         ScreenTitle(
             stringResource(R.string.chat_title), null,
             trailing = {
-                if (messages.isNotEmpty()) {
+                // With an engine that holds conversations the header opens the list; a desktop of 0.1 keeps Clear.
+                if (model.chatHasConversations) {
+                    Text(
+                        stringResource(R.string.chat_conversations),
+                        Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { listOpen = true }.padding(horizontal = 12.dp, vertical = 14.dp),
+                        style = TypeScale.LABEL.style(tokens().textDim.c()), maxLines = 1,
+                    )
+                } else if (messages.isNotEmpty()) {
                     Text(
                         stringResource(R.string.chat_clear),
                         Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { confirmClear = true }.padding(horizontal = 12.dp, vertical = 14.dp),
@@ -231,6 +243,76 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                 }
             },
             dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
+
+    // Deleting is the one destructive thing the phone can ask the engine to do (DESIGN Q3), and it says so.
+    deleteTarget?.let { target ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text(stringResource(R.string.chat_conversations_delete_title)) },
+            text = { Text(stringResource(R.string.chat_conversations_delete_body)) },
+            confirmButton = {
+                TextButton(onClick = { deleteTarget = null; model.chatDeleteConversation(target.id) }) {
+                    Text(stringResource(R.string.chat_conversations_delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text(stringResource(R.string.action_cancel)) } },
+        )
+    }
+
+    if (listOpen) {
+        ConversationsSheet(model, onDismiss = { listOpen = false }, onDelete = { deleteTarget = it })
+    }
+}
+
+/**
+ * The engine's conversations (KN-01): tap one to read it and write in it, the word on the right asks before deleting it
+ * for ever, and the button below starts another. Only drawn when an engine that holds conversations answered a list.
+ */
+@Composable
+private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete: (ChatConversationOption) -> Unit) {
+    val white = Color(IslandSurface.TEXT)
+    val dim = Color(IslandSurface.TEXT_DIM)
+    BottomSheetHost(onDismiss = onDismiss) {
+        Text(stringResource(R.string.chat_conversations), style = TypeScale.TITLE.style(white))
+        val rows = model.chatConversationList
+        LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp).padding(top = 6.dp)) {
+            items(rows, key = { it.id }) { c ->
+                ConversationRow(
+                    c,
+                    onOpen = { model.chatOpenConversation(c.id); onDismiss() },
+                    onDelete = { onDelete(c) },
+                )
+            }
+        }
+        PillButton(
+            stringResource(R.string.chat_conversations_new),
+            { model.chatNewConversation(); onDismiss() },
+            Modifier.fillMaxWidth().padding(top = 12.dp), kind = PillKind.PRIMARY, onDark = true,
+        )
+        PillButton(stringResource(R.string.chat_conversations_close), onDismiss, Modifier.fillMaxWidth().padding(top = 8.dp), onDark = true)
+        Text(
+            stringResource(R.string.chat_note), Modifier.padding(top = 10.dp),
+            style = TypeScale.SECONDARY.style(dim),
+        )
+    }
+}
+
+@Composable
+private fun ConversationRow(c: ChatConversationOption, onOpen: () -> Unit, onDelete: () -> Unit) {
+    val t = tokens()
+    Row(Modifier.fillMaxWidth().heightIn(min = Spacing.MIN_TOUCH.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            c.title.ifBlank { stringResource(R.string.chat_conversations_new) },
+            Modifier.weight(1f).heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button, onClick = onOpen).padding(vertical = 14.dp),
+            style = TypeScale.BODY.style(if (c.open) Color(IslandSurface.TEXT) else Color(IslandSurface.TEXT_DIM)),
+            maxLines = 2, overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            stringResource(R.string.chat_conversations_delete),
+            Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button, onClick = onDelete).padding(horizontal = 12.dp, vertical = 14.dp),
+            style = TypeScale.LABEL.style(t.danger.c()), maxLines = 1,
         )
     }
 }

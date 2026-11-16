@@ -45,4 +45,44 @@ class ChatScreenTest {
         assertTrue(ui.contains("enabled = model.chatAvailable"))
     }
 
+    @Test fun theScreenListsTheEngineSConversationsAndOpensThem() {
+        // KN-01: opening the Chat shows the engine's list, a row opens that conversation, and one button creates another.
+        val ui = src("ui/ChatScreen.kt")
+        assertTrue("the list is drawn", ui.contains("model.chatConversationList"))
+        assertTrue("a row opens it", ui.contains("model.chatOpenConversation("))
+        assertTrue("there is a way to create one", ui.contains("model.chatNewConversation()"))
+        assertTrue("the list only exists when the engine has conversations", ui.contains("model.chatHasConversations"))
+        assertTrue("a title the engine left blank still reads", ui.contains("R.string.chat_conversations_new"))
+    }
+
+    @Test fun deletingAConversationAsksFirstAndSaysItIsIrreversible() {
+        // DESIGN Q3/Q11: the one destructive frame on the front. The user is asked, the question says it is
+        // irreversible in both languages, and only then is the engine told.
+        val ui = src("ui/ChatScreen.kt")
+        assertTrue("the confirmation exists", ui.contains("AlertDialog"))
+        assertTrue("it uses the irreversible sentence", ui.contains("R.string.chat_conversations_delete_body"))
+        assertTrue("and only then deletes", ui.contains("model.chatDeleteConversation("))
+        for (file in listOf("res/values/strings.xml", "res/values-es/strings.xml")) {
+            assertTrue("$file must say irreversible", File("src/main/$file").readText().contains("irreversible"))
+        }
+        for (file in listOf("../i18n/app-strings.json", "../i18n/app-strings.es.json")) {
+            assertTrue("$file must say irreversible", File(file).readText().contains("irreversible"))
+        }
+    }
+
+    @Test fun aMessageNamesItsConversationAndADeletionDropsThePhoneSCopy() {
+        // Q11: what the phone held for a deleted conversation goes with it, and a message says which one it belongs to.
+        val model = src("app/AppModel.kt")
+        assertTrue("the send names the open conversation", model.contains("chatBackend.send(sent.id, sent.model, sent.text, chatOpenId)"))
+        assertTrue("a deletion is applied to the phone's copy", model.contains("conversations.onDeleted("))
+        assertTrue("a list swaps what is on screen", model.contains("conversations.onList("))
+        assertTrue("a new computer starts from nothing", model.contains("conversations.reset()"))
+        assertTrue("the old desktop keeps the 0.1 chat", model.contains("chatHasConversations"))
+    }
+
+    @Test fun nothingSwitchesConversationWhileAnAnswerIsArriving() {
+        // The engine refuses to open another conversation mid-turn; the phone does not even ask.
+        val model = src("app/AppModel.kt")
+        assertTrue(model.contains("chatSession.running != null"))
+    }
 }
