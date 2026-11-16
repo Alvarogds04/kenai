@@ -173,6 +173,18 @@ class ChatSessionTest {
         assertTrue("core chat files import the link: $offenders", offenders.isEmpty())
     }
 
+    @Test fun anotherConversationIsLoadedWithoutAnAnswerHangingOverIt() {
+        // The phone switches conversation: the messages of the one it shows are replaced whole, and an answer that was
+        // still arriving does not follow into the new one (AppModel never switches mid-turn, and this is why it is safe).
+        val s = session()
+        s.ask()
+        s.load(listOf(com.kenai.android.core.ChatMessage("a-1", ChatRole.ASSISTANT, "de la otra", ChatStatus.DONE)))
+        assertEquals(listOf("a-1"), s.messages.map { it.id })
+        assertNull(s.running)
+        s.load(emptyList())
+        assertTrue(s.messages.isEmpty())
+    }
+
     @Test fun theModelStaysIfStillAllowedElseTheFirst() {
         val a = ChatModelOption("openai/a", "openai", "A")
         val b = ChatModelOption("google/b", "google", "B")

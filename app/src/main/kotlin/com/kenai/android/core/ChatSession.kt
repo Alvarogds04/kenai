@@ -98,6 +98,15 @@ class ChatSession(
         running = null
     }
 
+    /**
+     * Another conversation is on screen: the messages the phone held for it, whole, and nothing waiting for an answer
+     * (the backend was told to switch; it refuses to while one runs there).
+     */
+    fun load(messages: List<ChatMessage>) {
+        this.messages = messages.takeLast(MAX_MESSAGES)
+        running = null
+    }
+
     private fun fail(id: String, reason: String) {
         change(id) { it.copy(status = ChatStatus.FAILED, reason = reason) }
         running = null
