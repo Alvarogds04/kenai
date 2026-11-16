@@ -22,7 +22,8 @@ The vision is large and not yet cut into slices: the first slice is decided with
 - [ ] T1a (S8, S10) Chat provider layer: an OpenAI-compatible adapter with a configurable base URL (covers LiteLLM, GPT and, to be confirmed, nan builders) and an Anthropic adapter for Claude. First provider to build and test: the local model through LiteLLM, which costs nothing. · Kenai only
   - [x] T1a-1 `ChatBackend` seam: lift the five chat methods and four callbacks into one interface, with the link as the first implementation; `ChatSession.send` stops returning a wire type; no behaviour change. · neutral · e240166 (938 tests, 0 failures, 3 skipped as in 0.1)
   - [x] T1a-2 Direct provider: HTTPS client, SSE reader and the OpenAI-compatible adapter with a configurable base URL, tested against a fake streaming server. No cleartext. · works under any reading of L12 · e767108 (986 tests, 0 failures, 3 skipped)
-  - [ ] T1a-3 Provider keys in the Keystore (copy `SecureStore`) and the providers screen; the `chat_note` text is rewritten.
+  - [ ] T1a-3a Provider keys in the Keystore (copy `SecureStore`), the provider settings and presets, the choice of who the chat talks to (Koda over the link, or a configured provider; default unchanged: the link), `ChatTab` states, `ui/ChatScreen` reads the backend's `maxText`. No providers screen yet. · Kenai only
+  - [ ] T1a-3b The providers screen (Settings › More), secure screen, `chat_note` rewritten, Spanish and English strings. · after 3a
   - [ ] T1a-4 Anthropic Messages adapter for Claude.
 - [ ] T2b (S5) Secrets store: the provider keys, and later the Telegram session, in the Android Keystore; never logged, never in an intent. · before the chat provider
 - [ ] T3 (S3, S7) Automations on the phone, including the Telegram example and cron-like jobs with scripts. · after T0 and T1
