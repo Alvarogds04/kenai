@@ -1,10 +1,5 @@
 package com.kenai.android.core
 
-import com.kenai.android.link.ChatModel
-import com.kenai.android.link.ClientMsg
-import com.kenai.android.link.Protocol
-import com.kenai.android.link.Wire
-
 enum class ChatRole { USER, ASSISTANT }
 
 enum class ChatStatus {
@@ -20,15 +15,15 @@ data class ChatMessage(
     val role: ChatRole,
     val text: String,
     val status: ChatStatus = ChatStatus.DONE,
-    /** A fixed code from the computer (rate, busy, auth...) or one of ours (canceled, connection, interrupted). */
+    /** A fixed code from the backend (rate, busy, auth...) or one of ours (canceled, connection, interrupted). */
     val reason: String? = null,
 )
 
 /**
- * The phone's side of one conversation with the computer's AI providers (docs/ANDROID_LINK.md, Chat):
- * what is on screen, which answer is being waited for, and what each message from the computer does.
- * Pure Kotlin, no clock and no Android, so every rule is unit-tested. The computer keeps its own
- * copy of the conversation in memory; this one is what the user reads.
+ * The phone's side of one conversation with a [ChatBackend] (docs/ANDROID_LINK.md, Chat for the link): what is on
+ * screen, which answer is being waited for, and what each of the backend's four events does. Pure Kotlin, no clock and
+ * no Android, so every rule is unit-tested. The backend keeps its own copy of the conversation; this one is what the
+ * user reads.
  */
 class ChatSession(
     initial: List<ChatMessage> = emptyList(),
@@ -42,28 +37,29 @@ class ChatSession(
     enum class Refusal { EMPTY, TOO_LONG, NO_MODEL, BUSY, OFFLINE }
 
     sealed interface Sent {
-        data class Ok(val msg: ClientMsg.ChatSend) : Sent
+        /** Validated and ready for a [ChatBackend]: the id to reach it by, the model and the text, and nothing of the wire. */
+        data class Ok(val id: String, val model: String, val text: String) : Sent
         data class No(val why: Refusal) : Sent
     }
 
-    /** Starts a question. Nothing changes unless it is sent. */
-    fun send(text: String, model: String?, connected: Boolean): Sent {
+    /**
+     * Starts a question. Nothing changes unless it is sent. [maxText] is the limit of the backend it will be handed to,
+     * so a backend that accepts more (or less) than the link does needs no change here.
+     */
+    fun send(text: String, model: String?, connected: Boolean, maxText: Int): Sent {
         val clean = text.trim()
-        return when {
-            clean.isEmpty() -> Sent.No(Refusal.EMPTY)
-            clean.length > Protocol.CHAT_MAX_TEXT -> Sent.No(Refusal.TOO_LONG)
-            model.isNullOrBlank() -> Sent.No(Refusal.NO_MODEL)
-            running != null -> Sent.No(Refusal.BUSY)
-            !connected -> Sent.No(Refusal.OFFLINE)
-            else -> {
-                val id = newId()
-                require(Wire.isChatId(id)) { "bad chat id" }
-                running = id
-                messages = (messages + ChatMessage("u-$id", ChatRole.USER, clean) +
-                    ChatMessage(id, ChatRole.ASSISTANT, "", ChatStatus.STREAMING)).takeLast(MAX_MESSAGES)
-                Sent.Ok(ClientMsg.ChatSend(id, model, clean))
-            }
-        }
+        if (clean.isEmpty()) return Sent.No(Refusal.EMPTY)
+        if (clean.length > maxText) return Sent.No(Refusal.TOO_LONG)
+        if (model.isNullOrBlank()) return Sent.No(Refusal.NO_MODEL)
+        if (running != null) return Sent.No(Refusal.BUSY)
+        if (!connected) return Sent.No(Refusal.OFFLINE)
+        // The id rule (1..64 of [A-Za-z0-9_-]) lives in the wire, `Wire.isChatId`, and the tests check these ids
+        // against it; this class only has to generate them.
+        val id = newId()
+        running = id
+        messages = (messages + ChatMessage("u-$id", ChatRole.USER, clean) +
+            ChatMessage(id, ChatRole.ASSISTANT, "", ChatStatus.STREAMING)).takeLast(MAX_MESSAGES)
+        return Sent.Ok(id, model, clean)
     }
 
     /** Text of the answer being written; anything else (a late piece after Cancel) is ignored. */
@@ -128,6 +124,6 @@ object ChatIds {
 
 object ChatModels {
     /** The model to use once the list arrives: the saved one if still allowed, else the first. */
-    fun pick(models: List<ChatModel>, saved: String?): String? =
+    fun pick(models: List<ChatModelOption>, saved: String?): String? =
         models.firstOrNull { it.id == saved }?.id ?: models.firstOrNull()?.id
 }

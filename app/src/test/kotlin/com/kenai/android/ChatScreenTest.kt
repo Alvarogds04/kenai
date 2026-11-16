@@ -36,7 +36,7 @@ class ChatScreenTest {
         val ui = src("ui/ChatScreen.kt")
         assertTrue(ui.contains("AlertDialog"))
         assertTrue(ui.contains("model.chatClear()"))
-        assertTrue(src("app/AppModel.kt").contains("link?.chatReset()"))
+        assertTrue(src("app/AppModel.kt").contains("chatBackend.reset()"))
     }
 
     @Test fun theBoxCannotSendWhenUnavailableEmptyOrTooLong() {

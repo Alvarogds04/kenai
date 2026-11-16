@@ -35,6 +35,8 @@ import com.kenai.android.link.ChatModel
 import com.kenai.android.core.PairingScan
 import com.kenai.android.core.ScanDecision
 import com.kenai.android.core.ChatHistory
+import com.kenai.android.core.ChatBackend
+import com.kenai.android.core.ChatModelOption
 import com.kenai.android.core.ChatModels
 import com.kenai.android.core.ChatSession
 import com.kenai.android.core.Words
@@ -53,6 +55,7 @@ import com.kenai.android.link.PinnedTls
 import com.kenai.android.link.LinkClient
 import com.kenai.android.link.LinkListener
 import com.kenai.android.link.LinkState
+import com.kenai.android.link.ChatLinkBackend
 import com.kenai.android.link.BatteryHint
 import com.kenai.android.link.DiagResult
 import com.kenai.android.link.DiagStep
@@ -71,7 +74,7 @@ import com.kenai.android.character.BotState
 enum class Mode { NONE, DEMO, PAIRED }
 
 /** The one place the UI, the service and the notification actions share. Created by [KenaiApp]. */
-class AppModel(private val context: Context) : LinkListener {
+class AppModel(private val context: Context) : LinkListener, ChatBackend.Listener {
     private val main = Handler(Looper.getMainLooper())
     private val store = SecureStore(context)
     val sounds = SoundPlayer(context)
@@ -236,6 +239,14 @@ class AppModel(private val context: Context) : LinkListener {
     private val chatHistory = ChatHistory(ChatFile(java.io.File(context.filesDir, "chat-history.json")))
     private val chatSession = ChatSession(chatHistory.load())
 
+    /**
+     * The chat's one seam: today the link to the computer. A second backend (a provider called straight from the phone,
+     * T1a-2) is one new [ChatBackend] class and the line below, where the one in use is chosen: everything else goes
+     * through [chatBackend], never through the link.
+     */
+    private val chatLink = ChatLinkBackend({ link }, this)
+    private val chatBackend: ChatBackend get() = chatLink
+
     /** What the user reads: this phone's own copy, kept in a private file. */
     var chatMessages by mutableStateOf(chatSession.messages); private set
 
@@ -245,8 +256,8 @@ class AppModel(private val context: Context) : LinkListener {
     /** The computer offers chat to this phone right now (its switch is on and we are connected). */
     var chatOffered by mutableStateOf(false); private set
 
-    /** The models the user allowed on the computer; the keys never leave it. */
-    var chatModels by mutableStateOf<List<ChatModel>>(emptyList()); private set
+    /** The models the backend offers; on the computer the keys never leave it. */
+    var chatModels by mutableStateOf<List<ChatModelOption>>(emptyList()); private set
 
     var chatModel by mutableStateOf<String?>(prefs.getString("chat_model", null)); private set
 
@@ -280,17 +291,17 @@ class AppModel(private val context: Context) : LinkListener {
         }
     }
 
-    /** Asks the computer again which models are allowed (when the Chat screen opens). */
-    fun chatRefreshModels() { link?.chatModels() }
+    /** Asks the backend again which models it offers (when the Chat screen opens). */
+    fun chatRefreshModels() { chatBackend.models() }
 
     /** Null when sent, else why not (for a message under the box). */
     fun chatSend(text: String): ChatSession.Refusal? {
-        val sent = chatSession.send(text, chatModel, connected = chatAvailable)
+        val sent = chatSession.send(text, chatModel, connected = chatAvailable, maxText = chatBackend.maxText)
         return when (sent) {
             is ChatSession.Sent.No -> sent.why
             is ChatSession.Sent.Ok -> {
                 chatChanged(save = true)
-                if (link?.chatSend(sent.msg.id, sent.msg.model, sent.msg.text) != true) {
+                if (!chatBackend.send(sent.id, sent.model, sent.text)) {
                     chatSession.onDisconnected()
                     chatChanged(save = true)
                 }
@@ -300,16 +311,16 @@ class AppModel(private val context: Context) : LinkListener {
     }
 
     fun chatCancel() {
-        chatSession.cancel()?.let { link?.chatCancel(it) }
+        chatSession.cancel()?.let { chatBackend.cancel(it) }
         chatChanged(save = true)
     }
 
-    /** Clear: forgets the history here and on the computer. */
+    /** Clear: forgets the history here and on the backend's side (on the computer, when that is the backend). */
     fun chatClear() {
-        chatSession.cancel()?.let { link?.chatCancel(it) }
+        chatSession.cancel()?.let { chatBackend.cancel(it) }
         chatSession.clear()
         chatHistory.clear()
-        link?.chatReset()
+        chatBackend.reset()
         chatChanged(save = false)
     }
 
@@ -748,21 +759,39 @@ class AppModel(private val context: Context) : LinkListener {
     }
 
     override fun onChatModels(models: List<ChatModel>) {
+        chatLink.onChatModels(models)
+    }
+
+    override fun onChatDelta(id: String, text: String) {
+        chatLink.onChatDelta(id, text)
+    }
+
+    override fun onChatDone(id: String, text: String?) {
+        chatLink.onChatDone(id, text)
+    }
+
+    override fun onChatError(id: String, reason: String, message: String) {
+        chatLink.onChatError(id, reason, message)
+    }
+
+    // ── ChatBackend.Listener (the link's thread, marshalled to the main one) ─────────────────────
+
+    override fun onModels(models: List<ChatModelOption>) {
         main.post {
             chatModels = models
             chatModel = ChatModels.pick(models, chatModel)
         }
     }
 
-    override fun onChatDelta(id: String, text: String) {
+    override fun onDelta(id: String, text: String) {
         main.post { chatSession.onDelta(id, text); chatChanged(save = false) }
     }
 
-    override fun onChatDone(id: String, text: String?) {
+    override fun onDone(id: String, text: String?) {
         main.post { chatSession.onDone(id, text); chatChanged(save = true) }
     }
 
-    override fun onChatError(id: String, reason: String, message: String) {
+    override fun onError(id: String, reason: String, message: String) {
         main.post { chatSession.onError(id, reason); chatChanged(save = true) }
     }
 
