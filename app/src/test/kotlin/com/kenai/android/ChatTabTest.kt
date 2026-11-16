@@ -3,6 +3,7 @@ package com.kenai.android
 import com.kenai.android.core.BarFit
 import com.kenai.android.core.ChatTab
 import com.kenai.android.core.ChatTabState
+import com.kenai.android.core.ProviderKeyState
 import com.kenai.android.core.Screen
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -46,11 +47,55 @@ class ChatTabTest {
         assertNull(ChatTab.action(ChatTabState.CHAT_OFF))
         assertNull(ChatTab.action(ChatTabState.NO_MODELS))
         assertNull(ChatTab.action(ChatTabState.READY))
+        // The providers screen comes in T1a-3b: until it exists the key states have a hint and no button.
+        assertNull(ChatTab.action(ChatTabState.NO_KEY))
+        assertNull(ChatTab.action(ChatTabState.KEY_LOST))
     }
 
-    @Test fun allFiveStatesAreReachable() {
-        val seen = setOf(s(paired = false), s(connected = false), s(offered = false), s(models = 0), s())
+    @Test fun allSevenStatesAreReachable() {
+        val seen = setOf(
+            s(paired = false), s(connected = false), s(offered = false), s(models = 0), s(),
+            p(ProviderKeyState.ABSENT), p(ProviderKeyState.LOST),
+        )
         assertEquals(ChatTabState.entries.toSet(), seen)
+    }
+
+    // ── A provider the phone calls itself (T1a-3a): no link to wait for ─────────────────────────────
+
+    /** A direct provider: the link's three answers are passed as false on purpose, as they are when nothing is paired. */
+    private fun p(key: ProviderKeyState, models: Int = 2) =
+        ChatTab.state(paired = false, connected = false, offered = false, modelCount = models, providerKey = key)
+
+    @Test fun aProviderWithNoKeySaysSoInsteadOfWaitingForTheLink() {
+        assertEquals(ChatTabState.NO_KEY, p(ProviderKeyState.ABSENT))
+        assertEquals(ChatTabState.NO_KEY, p(ProviderKeyState.ABSENT, models = 0))
+    }
+
+    @Test fun aProviderWhoseSavedKeyCannotBeReadSaysThat() {
+        assertEquals(ChatTabState.KEY_LOST, p(ProviderKeyState.LOST))
+        assertEquals(ChatTabState.KEY_LOST, p(ProviderKeyState.LOST, models = 5))
+    }
+
+    @Test fun aProviderWithItsKeyAndAModelIsReadyWithoutAnyLink() {
+        assertEquals(ChatTabState.READY, p(ProviderKeyState.PRESENT))
+        assertEquals(ChatTabState.READY, p(ProviderKeyState.PRESENT, models = 1))
+        assertEquals(ChatTabState.NO_MODELS, p(ProviderKeyState.PRESENT, models = 0))
+    }
+
+    @Test fun theKeyIsTheFirstThingThatMattersForAProvider() {
+        // Whatever the link says, a provider without a usable key is not the link's state.
+        val linkUp = ChatTab.state(paired = true, connected = true, offered = true, modelCount = 3, providerKey = ProviderKeyState.ABSENT)
+        assertEquals(ChatTabState.NO_KEY, linkUp)
+    }
+
+    @Test fun theLinkStatesKeepTheirOrderAndTheirMeaning() {
+        // providerKey = null is "the chat goes through the computer": exactly the rule of 0.1, in the same order.
+        assertEquals(ChatTabState.NOT_PAIRED, ChatTab.state(paired = false, connected = true, offered = true, modelCount = 3, providerKey = null))
+        assertEquals(ChatTabState.NOT_PAIRED, ChatTab.state(paired = false, connected = false, offered = false, modelCount = 0, providerKey = null))
+        assertEquals(ChatTabState.NOT_CONNECTED, ChatTab.state(paired = true, connected = false, offered = true, modelCount = 3))
+        assertEquals(ChatTabState.CHAT_OFF, ChatTab.state(paired = true, connected = true, offered = false, modelCount = 3))
+        assertEquals(ChatTabState.NO_MODELS, ChatTab.state(paired = true, connected = true, offered = true, modelCount = 0))
+        assertEquals(ChatTabState.READY, ChatTab.state(paired = true, connected = true, offered = true, modelCount = 1))
     }
 }
 
@@ -95,7 +140,7 @@ class ChatTabSourceTest {
 
     @Test fun theChatScreenShowsAnEmptyStateWhenThereIsNothingToChatWithOrRead() {
         assertTrue(chat.contains("if (tabState != ChatTabState.READY && messages.isEmpty())"))
-        assertTrue(chat.contains("ChatEmpty(tabState, onHome, onSettings)"))
+        assertTrue(chat.contains("ChatEmpty(tabState, onHome, onSettings"))
         assertTrue("a sleeping Kenai", chat.contains("BotState.SLEEPING"))
     }
 
@@ -117,6 +162,13 @@ class ChatTabSourceTest {
 
     @Test fun theModelStatePicksTheScreen() {
         assertTrue(src("app/AppModel.kt").contains("val chatTabState: ChatTabState get() = ChatTab.state("))
+    }
+
+    @Test fun theProviderStatesAreDrawnWithTheLinksOwnWords() {
+        assertTrue(chat.contains("ChatTabState.NO_KEY -> R.string.chat_nokey_title"))
+        assertTrue(chat.contains("ChatTabState.KEY_LOST -> R.string.chat_keylost_title"))
+        assertTrue(chat.contains("ChatTabState.NO_KEY -> R.string.chat_nokey_body"))
+        assertTrue(chat.contains("ChatTabState.KEY_LOST -> R.string.chat_keylost_body"))
     }
 
     @Test fun homeNoLongerHasAChatEntryAndThereIsNoUnreadDotToKeep() {

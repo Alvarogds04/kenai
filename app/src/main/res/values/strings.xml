@@ -236,6 +236,15 @@
     <string name="chat_err_internal">Something went wrong.</string>
     <string name="chat_err_connection">The connection to your computer was lost.</string>
     <string name="chat_err_interrupted">Stopped when the app closed.</string>
+    <string name="chat_nokey_title">Your provider needs its key</string>
+    <string name="chat_nokey_body">Load your provider\'s key to chat with it from this phone.</string>
+    <string name="chat_keylost_title">The saved key cannot be read</string>
+    <string name="chat_keylost_body">The saved key cannot be read: enter it again.</string>
+    <string name="chat_provider_no_key">Your provider still has no key.</string>
+    <string name="chat_provider_auth">The provider refused your key.</string>
+    <string name="chat_provider_unreachable">The provider could not be reached.</string>
+    <string name="chat_provider_rate">The provider is busy. Try again in a few minutes.</string>
+    <string name="chat_provider_failed">The provider did not answer.</string>
     <string name="session_details">Details</string>
     <string name="session_last">Last message</string>
     <string name="session_steps">Steps</string>

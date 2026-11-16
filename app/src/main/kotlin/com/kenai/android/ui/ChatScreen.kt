@@ -78,7 +78,6 @@ import com.kenai.android.core.ChatStatus
 import com.kenai.android.core.MarkdownLite
 import com.kenai.android.core.MdBlock
 import com.kenai.android.core.MdSpan
-import com.kenai.android.link.Protocol
 
 /** The words for a code the computer (or this app) gives when an answer did not complete. */
 @Composable
@@ -106,6 +105,8 @@ internal fun chatStateTitle(state: ChatTabState): Int = when (state) {
     ChatTabState.NOT_CONNECTED -> R.string.chat_off_offline_title
     ChatTabState.CHAT_OFF -> R.string.chat_off_title
     ChatTabState.NO_MODELS -> R.string.chat_nomodel_title
+    ChatTabState.NO_KEY -> R.string.chat_nokey_title
+    ChatTabState.KEY_LOST -> R.string.chat_keylost_title
     ChatTabState.READY -> R.string.chat_title
 }
 
@@ -113,12 +114,29 @@ internal fun chatStateBody(state: ChatTabState): Int = when (state) {
     ChatTabState.NOT_PAIRED -> R.string.chat_off_not_paired_body
     ChatTabState.NOT_CONNECTED -> R.string.chat_off_offline_body
     ChatTabState.CHAT_OFF, ChatTabState.NO_MODELS -> R.string.chat_off_hint
+    ChatTabState.NO_KEY -> R.string.chat_nokey_body
+    ChatTabState.KEY_LOST -> R.string.chat_keylost_body
     ChatTabState.READY -> R.string.chat_title
 }
 
+/**
+ * Why the source in use could not be asked which models it offers: a provider's own failure, said in the app's words and
+ * never with the provider's message (it could carry anything).
+ */
+@Composable
+private fun sourceErrorText(code: String): String = stringResource(
+    when (ChatReasons.key(code)) {
+        "no_key" -> R.string.chat_provider_no_key
+        "auth" -> R.string.chat_provider_auth
+        "unreachable" -> R.string.chat_provider_unreachable
+        "rate" -> R.string.chat_provider_rate
+        else -> R.string.chat_provider_failed
+    },
+)
+
 /** The Chat tab with nothing to chat with: a sleeping Kenai, what is wrong in plain words, and the one button that helps (if any). */
 @Composable
-private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () -> Unit) {
+private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () -> Unit, note: String? = null) {
     val t = tokens()
     val engine = remember { CharacterEngine({ android.os.SystemClock.elapsedRealtimeNanos() / 1e6 }).apply { setState(BotState.SLEEPING, force = true) } }
     Column(Modifier.fillMaxSize().padding(horizontal = Gutter)) {
@@ -136,6 +154,12 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
                 stringResource(chatStateBody(state)), Modifier.padding(top = 8.dp, bottom = 20.dp),
                 style = TypeScale.BODY.style(t.textDim.c()).copy(textAlign = TextAlign.Center),
             )
+            // A provider that could not be asked which models it offers says so here rather than nowhere.
+            note?.let {
+                Text(
+                    it, Modifier.padding(bottom = 20.dp), style = TypeScale.SECONDARY.style(t.danger.c()).copy(textAlign = TextAlign.Center),
+                )
+            }
             when (ChatTab.action(state)) {
                 Screen.HOME -> PillButton(stringResource(R.string.chat_go_pair), onHome, Modifier.fillMaxWidth(), PillKind.PRIMARY)
                 Screen.SETTINGS -> PillButton(stringResource(R.string.chat_go_settings), onSettings, Modifier.fillMaxWidth(), PillKind.PRIMARY)
@@ -168,7 +192,7 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
     val tabState = model.chatTabState
     // Nothing to chat with and nothing to read: say why, calmly, with the one thing to do about it.
     if (tabState != ChatTabState.READY && messages.isEmpty()) {
-        ChatEmpty(tabState, onHome, onSettings)
+        ChatEmpty(tabState, onHome, onSettings, model.chatSourceError?.let { sourceErrorText(it) })
         return
     }
 
@@ -195,6 +219,7 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                 Column(Modifier.padding(Gutter), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(chatStateTitle(tabState)), style = TypeScale.HEADLINE.style(tokens().text.c()))
                     Text(stringResource(chatStateBody(tabState)), style = TypeScale.SECONDARY.style(tokens().textDim.c()))
+                    model.chatSourceError?.let { Text(sourceErrorText(it), style = TypeScale.SECONDARY.style(tokens().danger.c())) }
                 }
             }
         }
@@ -318,7 +343,8 @@ private fun styled(spans: List<MdSpan>, codeBackground: androidx.compose.ui.grap
 
 @Composable
 private fun Composer(model: AppModel, text: String, refusal: ChatSession.Refusal?, onText: (String) -> Unit, onSend: () -> Unit) {
-    val limit = Protocol.CHAT_MAX_TEXT
+    // The limit of the source in use: the computer's 4000, or what the provider in use accepts.
+    val limit = model.chatMaxText
     val length = text.trim().length
     val t = tokens()
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

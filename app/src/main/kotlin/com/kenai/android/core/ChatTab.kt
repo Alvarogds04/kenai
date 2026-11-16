@@ -1,14 +1,38 @@
 package com.kenai.android.core
 
 /** What the always-visible Chat tab shows. */
-enum class ChatTabState { NOT_PAIRED, NOT_CONNECTED, CHAT_OFF, NO_MODELS, READY }
+enum class ChatTabState {
+    NOT_PAIRED,
+    NOT_CONNECTED,
+    CHAT_OFF,
+    NO_MODELS,
+    READY,
+
+    /** A provider the phone calls itself is the source, but there is no key on this phone yet. */
+    NO_KEY,
+
+    /** A provider is the source and it has a key, but the phone cannot read it any more (a reset Keystore). */
+    KEY_LOST,
+}
 
 object ChatTab {
     /**
-     * In order of what the user can do about it: no computer paired, the computer not reachable, the computer not offering
-     * chat (its switch is off), offering it with no model allowed, or ready.
+     * In order of what the user can do about it, for the computer: no computer paired, the computer not reachable, the computer
+     * not offering chat (its switch is off), offering it with no model allowed, or ready.
+     *
+     * [providerKey] is the other side: when it is not null the chat talks to a provider the phone calls itself, and the
+     * link's questions do not apply — a provider has no pairing and no link, only its key and its models. Null keeps the
+     * link's rules exactly as they were in 0.1, which is also the default when no provider has been chosen.
      */
-    fun state(paired: Boolean, connected: Boolean, offered: Boolean, modelCount: Int): ChatTabState = when {
+    fun state(paired: Boolean, connected: Boolean, offered: Boolean, modelCount: Int, providerKey: ProviderKeyState? = null): ChatTabState =
+        when (providerKey) {
+            ProviderKeyState.ABSENT -> ChatTabState.NO_KEY
+            ProviderKeyState.LOST -> ChatTabState.KEY_LOST
+            ProviderKeyState.PRESENT -> if (modelCount <= 0) ChatTabState.NO_MODELS else ChatTabState.READY
+            null -> linkState(paired, connected, offered, modelCount)
+        }
+
+    private fun linkState(paired: Boolean, connected: Boolean, offered: Boolean, modelCount: Int): ChatTabState = when {
         !paired -> ChatTabState.NOT_PAIRED
         !connected -> ChatTabState.NOT_CONNECTED
         !offered -> ChatTabState.CHAT_OFF
@@ -20,6 +44,7 @@ object ChatTab {
     fun action(state: ChatTabState): Screen? = when (state) {
         ChatTabState.NOT_PAIRED -> Screen.HOME
         ChatTabState.NOT_CONNECTED -> Screen.SETTINGS
+        // NO_KEY and KEY_LOST have no way out yet: the providers screen arrives in T1a-3b.
         else -> null
     }
 }
