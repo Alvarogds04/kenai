@@ -26,6 +26,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.kenai.android.core.IconKind
 import com.kenai.android.core.ChatConversationOption
+import com.kenai.android.core.ChatHeader
+import com.kenai.android.core.ChatHeaderAction
 import com.kenai.android.core.IslandSurface
 import com.kenai.android.core.Spacing
 import com.kenai.android.core.TypeScale
@@ -181,19 +183,20 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
         ScreenTitle(
             stringResource(R.string.chat_title), null,
             trailing = {
-                // With an engine that holds conversations the header opens the list; a desktop of 0.1 keeps Clear.
-                if (model.chatHasConversations) {
-                    Text(
+                // The header's rule (behaviour-tested in ChatTabTest): with conversations it opens the list; a desktop of
+                // 0.1 keeps Clear, whose sentence is true there.
+                when (ChatHeader.action(model.chatHasConversations, messages.isNotEmpty())) {
+                    ChatHeaderAction.CONVERSATIONS -> Text(
                         stringResource(R.string.chat_conversations),
                         Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { listOpen = true }.padding(horizontal = 12.dp, vertical = 14.dp),
                         style = TypeScale.LABEL.style(tokens().textDim.c()), maxLines = 1,
                     )
-                } else if (messages.isNotEmpty()) {
-                    Text(
+                    ChatHeaderAction.CLEAR -> Text(
                         stringResource(R.string.chat_clear),
                         Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { confirmClear = true }.padding(horizontal = 12.dp, vertical = 14.dp),
                         style = TypeScale.LABEL.style(tokens().textDim.c()), maxLines = 1,
                     )
+                    ChatHeaderAction.NONE -> {}
                 }
             },
         )
@@ -281,6 +284,8 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
             items(rows, key = { it.id }) { c ->
                 ConversationRow(
                     c,
+                    // The one that is still answering cannot go: the engine refuses it, and the phone would orphan the answer.
+                    canDelete = model.canDeleteConversation(c.id),
                     onOpen = { model.chatOpenConversation(c.id); onDismiss() },
                     onDelete = { onDelete(c) },
                 )
@@ -300,7 +305,7 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
 }
 
 @Composable
-private fun ConversationRow(c: ChatConversationOption, onOpen: () -> Unit, onDelete: () -> Unit) {
+private fun ConversationRow(c: ChatConversationOption, canDelete: Boolean, onOpen: () -> Unit, onDelete: () -> Unit) {
     val t = tokens()
     Row(Modifier.fillMaxWidth().heightIn(min = Spacing.MIN_TOUCH.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -311,7 +316,8 @@ private fun ConversationRow(c: ChatConversationOption, onOpen: () -> Unit, onDel
         )
         Text(
             stringResource(R.string.chat_conversations_delete),
-            Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button, onClick = onDelete).padding(horizontal = 12.dp, vertical = 14.dp),
+            Modifier.alpha(if (canDelete) 1f else 0.4f).heightIn(min = Spacing.MIN_TOUCH.dp)
+                .clickable(enabled = canDelete, role = Role.Button, onClick = onDelete).padding(horizontal = 12.dp, vertical = 14.dp),
             style = TypeScale.LABEL.style(t.danger.c()), maxLines = 1,
         )
     }

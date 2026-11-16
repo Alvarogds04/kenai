@@ -1,6 +1,8 @@
 package com.kenai.android
 
 import com.kenai.android.core.BarFit
+import com.kenai.android.core.ChatHeader
+import com.kenai.android.core.ChatHeaderAction
 import com.kenai.android.core.ChatTab
 import com.kenai.android.core.ChatTabState
 import com.kenai.android.core.Screen
@@ -117,6 +119,16 @@ class ChatTabSourceTest {
 
     @Test fun theModelStatePicksTheScreen() {
         assertTrue(src("app/AppModel.kt").contains("val chatTabState: ChatTabState get() = ChatTab.state("))
+    }
+
+    @Test fun theHeaderOpensTheListWhenTheEngineHasConversationsAndKeepsClearOtherwise() {
+        // The 0.1 Clear promises the computer forgets the conversation, which only stays true while the engine has no
+        // conversations: with a list the header opens it instead, so no reachable word promises a deletion that no
+        // longer happens (DESIGN Q3: the delete is its own button, asking «irreversible» first).
+        assertEquals(ChatHeaderAction.CONVERSATIONS, ChatHeader.action(hasConversations = true, hasMessages = true))
+        assertEquals(ChatHeaderAction.CONVERSATIONS, ChatHeader.action(hasConversations = true, hasMessages = false))
+        assertEquals(ChatHeaderAction.CLEAR, ChatHeader.action(hasConversations = false, hasMessages = true))
+        assertEquals(ChatHeaderAction.NONE, ChatHeader.action(hasConversations = false, hasMessages = false))
     }
 
     @Test fun homeNoLongerHasAChatEntryAndThereIsNoUnreadDotToKeep() {

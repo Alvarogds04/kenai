@@ -3,6 +3,29 @@ package com.kenai.android.core
 /** What the always-visible Chat tab shows. */
 enum class ChatTabState { NOT_PAIRED, NOT_CONNECTED, CHAT_OFF, NO_MODELS, READY }
 
+/** What the Chat header's one action is (KN-01, DESIGN Q3). */
+enum class ChatHeaderAction {
+    /** The engine holds conversations: open the list, which is also where one is created and deleted. */
+    CONVERSATIONS,
+    /** A desktop of 0.1: the 0.1 Clear, which forgets the conversation here and tells it to forget its side. */
+    CLEAR,
+    /** Nothing to act on. */
+    NONE,
+}
+
+object ChatHeader {
+    /**
+     * The header's action, and the rule behind it. An engine with conversations gets the list instead of Clear, because
+     * Clear's sentence («your computer forgets it») only stays true while there are no conversations to keep: there the
+     * deletion is its own button, asks first and says it is irreversible.
+     */
+    fun action(hasConversations: Boolean, hasMessages: Boolean): ChatHeaderAction = when {
+        hasConversations -> ChatHeaderAction.CONVERSATIONS
+        hasMessages -> ChatHeaderAction.CLEAR
+        else -> ChatHeaderAction.NONE
+    }
+}
+
 object ChatTab {
     /**
      * In order of what the user can do about it: no computer paired, the computer not reachable, the computer not offering

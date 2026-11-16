@@ -75,14 +75,9 @@ class ChatScreenTest {
         val model = src("app/AppModel.kt")
         assertTrue("the send names the open conversation", model.contains("chatBackend.send(sent.id, sent.model, sent.text, chatOpenId)"))
         assertTrue("a deletion is applied to the phone's copy", model.contains("conversations.onDeleted("))
-        assertTrue("a list swaps what is on screen", model.contains("conversations.onList("))
+        assertTrue("a list is applied to the phone's copy", model.contains("conversations.onList("))
         assertTrue("a new computer starts from nothing", model.contains("conversations.reset()"))
-        assertTrue("the old desktop keeps the 0.1 chat", model.contains("chatHasConversations"))
-    }
-
-    @Test fun nothingSwitchesConversationWhileAnAnswerIsArriving() {
-        // The engine refuses to open another conversation mid-turn; the phone does not even ask.
-        val model = src("app/AppModel.kt")
-        assertTrue(model.contains("chatSession.running != null"))
+        // The header's rule itself is behaviour-tested in ChatTabTest (`ChatHeader.action`), not by this text.
+        assertTrue("the screen asks the rule which action the header has", src("ui/ChatScreen.kt").contains("ChatHeader.action("))
     }
 }

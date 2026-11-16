@@ -298,6 +298,16 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatBusy = chatSession.running != null
         conversations.keep(chatSession.messages)
         if (save) chatHistory.save(chatSession.messages)
+        // An answer that was streaming is over: a list that arrived meanwhile moves the screen only now, so the answer
+        // it belonged to is never orphaned.
+        if (chatSession.running == null) {
+            val next = conversations.turnEnded(chatSession.messages) ?: return
+            chatSession.load(next)
+            chatMessages = chatSession.messages
+            conversations.keep(chatSession.messages)
+            chatHistory.save(chatSession.messages)
+            syncConversations()
+        }
     }
 
     private fun syncConversations() {
@@ -324,11 +334,18 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatBackend.openConversation(id)
     }
 
+    /** May the user delete this conversation right now? Not the one that is still answering: the answer would be lost. */
+    fun canDeleteConversation(id: String): Boolean = conversations.canDelete(id, chatSession.running != null)
+
     /**
      * Deletes it on the engine, for ever: the conversation and the history it holds (DESIGN Q3). The screen asked the
      * user first, and the question says it is irreversible; the engine answers with a fresh list and a `chatDeleted`.
+     * False when it may not go now (the open conversation while its answer is still streaming).
      */
-    fun chatDeleteConversation(id: String) { chatBackend.deleteConversation(id) }
+    fun chatDeleteConversation(id: String): Boolean {
+        if (!canDeleteConversation(id)) return false
+        return chatBackend.deleteConversation(id)
+    }
 
     fun chatSelect(id: String) {
         if (chatModels.any { it.id == id }) {
@@ -856,13 +873,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onConversations(items: List<ChatConversationOption>) {
         main.post {
-            // Nothing switches while an answer is still arriving: the engine refuses to open another one mid-turn too.
-            if (chatSession.running == null) {
-                val showing = conversations.onList(items, chatSession.messages)
-                if (showing != null) {
-                    chatSession.load(showing)
-                    chatChanged(save = true)
-                }
+            // A list that names another open conversation waits for the turn to end: switching now would drop the answer
+            // this phone is still receiving (the engine refuses to open another conversation mid-turn for the same reason).
+            val showing = conversations.onList(items, chatSession.messages, running = chatSession.running != null)
+            if (showing != null) {
+                chatSession.load(showing)
+                chatChanged(save = true)
             }
             syncConversations()
         }
@@ -870,9 +886,11 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onConversationDeleted(id: String) {
         main.post {
-            // Q11: the engine removed it, so the phone's copy of it goes too.
-            conversations.onDeleted(id)?.let {
-                chatSession.load(it)
+            // Q11: the engine removed it, so the phone's copy of it goes too. A conversation whose answer is still
+            // arriving keeps the screen until that answer ends (the engine never deletes one mid-turn).
+            val cleared = conversations.onDeleted(id)
+            if (cleared != null && chatSession.running == null) {
+                chatSession.load(cleared)
                 chatChanged(save = true)
             }
             syncConversations()

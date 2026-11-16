@@ -34,7 +34,7 @@ class ChatConversationsTest {
         assertEquals("c0", c.open)
         assertEquals(listOf("c0", "c1"), c.items.map { it.id })
         assertEquals("Presupuesto", c.items[1].title)
-        assertEquals("nothing was on screen before, so nothing to swap", emptyList<ChatMessage>(), shown)
+        assertNull("nothing was on screen before, so there is nothing to redraw", shown)
     }
 
     @Test fun theListIsTheWholeTruthAndARepeatedOneChangesNothing() {
@@ -118,5 +118,60 @@ class ChatConversationsTest {
         c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
         assertEquals(emptyList<ChatMessage>(), c.opened("c1", emptyList()))
         assertEquals(emptyList<ChatMessage>(), c.opened("c0", emptyList()))
+    }
+
+    @Test fun theFirstListKeepsWhatIsAlreadyOnScreen() {
+        // The phone was chatting in the engine's open conversation before it knew its id: when the first list names it,
+        // the messages on screen are that conversation's and must not be thrown away.
+        val c = ChatConversations()
+        val onScreen = listOf(msg("u-1", "pregunta"), msg("a-1", "respuesta"))
+        assertNull("nothing to redraw: the screen already shows that conversation", c.onList(listOf(conv("c0", open = true), conv("c1")), onScreen))
+        assertEquals("c0", c.open)
+        // And they are held as c0's: switching away and back brings them again.
+        assertEquals(emptyList<ChatMessage>(), c.opened("c1", onScreen))
+        assertEquals(onScreen, c.opened("c0", emptyList()))
+    }
+
+    @Test fun aListTheEngineNoLongerHasDropsWhatThePhoneHeldForIt() {
+        // The full list is the whole truth about what exists: a conversation that is gone cannot be opened again, and
+        // what the phone held for it must not come back from the dead (a lost chatDeleted leaves the same state).
+        val c = ChatConversations()
+        c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        c.keep(listOf(msg("a-1", "de la c0")))
+        assertEquals(emptyList<ChatMessage>(), c.opened("c1", listOf(msg("a-1", "de la c0"))))
+        c.keep(listOf(msg("b-1", "de la c1")))
+        // c1 is not in the list any more; c0 is the open one.
+        assertEquals(listOf(msg("a-1", "de la c0")), c.onList(listOf(conv("c0", open = true)), listOf(msg("b-1", "de la c1"))))
+        assertEquals("c0", c.open)
+        assertEquals(emptyList<ChatMessage>(), c.opened("c1", emptyList()))
+    }
+
+    @Test fun nothingSwitchesUnderAnAnswerAndTheLatestListAppliesWhenItEnds() {
+        // Another device can change the open conversation while this phone is still receiving an answer. Switching then
+        // would orphan the stream, so the list waits for the turn to end, and the last one of those lists wins.
+        val c = ChatConversations()
+        c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        val streaming = listOf(msg("u-1", "pregunta"))
+        assertNull("the list waits", c.onList(listOf(conv("c0"), conv("c1", open = true)), streaming, running = true))
+        assertEquals("c0", c.open)
+        assertNull("and a second list does not move it either", c.onList(listOf(conv("c0", open = true), conv("c1")), streaming, running = true))
+        assertEquals("c0", c.open)
+        // The turn ends and the latest list says c0 is still the open one: the screen does not move.
+        assertNull(c.turnEnded(streaming))
+        assertEquals("c0", c.open)
+        // A turn that ends with another conversation open does move, once.
+        c.onList(listOf(conv("c0"), conv("c1", open = true)), streaming, running = true)
+        assertEquals(emptyList<ChatMessage>(), c.turnEnded(streaming))
+        assertEquals("c1", c.open)
+        assertNull("nothing is left waiting", c.turnEnded(emptyList()))
+    }
+
+    @Test fun theOpenConversationCannotBeDeletedWhileItsAnswerIsStreaming() {
+        // The engine refuses to delete a conversation mid-turn; the phone must not orphan the answer it is showing either.
+        val c = ChatConversations()
+        c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        assertFalse(c.canDelete("c0", running = true))
+        assertTrue("another conversation may go", c.canDelete("c1", running = true))
+        assertTrue("an idle one may go", c.canDelete("c0", running = false))
     }
 }

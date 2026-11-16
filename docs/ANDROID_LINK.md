@@ -480,7 +480,8 @@ after every `welcome` that offered `chat` (right after `chatModels`) and again w
 ```
 
 `chatOpen` opens one the list named. The engine answers with a fresh list; while an answer is still being written
-there it refuses with `busy` (a phone never switches mid-turn either).
+there it refuses with `busy`, and the phone does not even ask while its own answer is streaming: it waits for the turn
+to end.
 
 | Field | Type | Required | Rules |
 | --- | --- | --- | --- |
@@ -506,7 +507,9 @@ side effect of opening a row.
 ```
 
 The engine answers a delete with a fresh `chatConversations` — never with anything that reads like a recoverable
-delete — and with the `chatDeleted` below.
+delete — and with the `chatDeleted` below. The one exception the phone makes on its own: while an answer is still
+streaming in the conversation that is open, the phone does not send this frame at all (the engine would answer `busy`,
+and the answer on screen would be orphaned).
 
 The phone only sends `chatNew`, `chatOpen` and `chatDelete` after a desktop has answered a list at least once on that
 connection; asking for the list is what finds out. None of the four frames exists in a desktop of 0.1, so it sees the
@@ -896,9 +899,15 @@ conversation" would only be true on the host.
 What the phone does with these, and what this slice does not promise:
 
 - The list is the whole truth about what exists: an id the phone once saw and does not see any more is not opened, and
-  the phone never invents one. Its list is replaced whole every time.
+  the phone never invents one. Its list is replaced whole every time, and what the phone held for a conversation the
+  list no longer names is dropped with it — it cannot be opened again, so its messages never come back.
 - The phone swaps the messages on screen when the open conversation changes on the engine (another device opened one).
-  It does not swap while an answer is streaming here.
+  **It never swaps while an answer is streaming here**: such a list waits, and the latest one is applied when the turn
+  ends, so a `chatDelta` of the running answer is never loaded over another conversation's messages.
+- Deleting the conversation that is open while its answer is still streaming is refused by the phone before the frame
+  is written (and by the engine as `busy`): the phone never orphans an answer it is showing.
+- The first list is the exception that proves the rule: the phone was already writing in the engine's open conversation
+  before it knew its id, so the messages on screen become that conversation's and the screen does not move.
 - The phone keeps, for the length of one run of the app, the messages of each conversation it opened, so opening one
   again shows what it had. **Persisting that copy and reading it with the engine off is the next step (Kenai T10).**
 - There is **no history frame yet**: an engine that pages a conversation's history over the front does so with a frame
