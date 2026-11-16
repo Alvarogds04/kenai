@@ -78,6 +78,20 @@ class NoDirectProvidersTest {
         assertTrue("the same limit as 0.1", chat.contains("Protocol.CHAT_MAX_TEXT"))
     }
 
+    @Test fun theProviderWordsAreGoneFromBothLanguagesAndFromTheSourceTheyAreWrittenIn() {
+        // The words of the providers screen and of a provider's own key had no other user: they leave with the screen
+        // (AC-01). They are written in i18n/ and generated from there, so both places must be free of them.
+        val xmlKeys = listOf("providers_", "chat_nokey", "chat_keylost", "chat_provider", "chat_note_provider", "chat_nomodel_provider")
+        for (file in listOf("res/values/strings.xml", "res/values-es/strings.xml")) {
+            val xml = source(file).readText()
+            for (key in xmlKeys) assertFalse("$file still draws \"$key", xml.contains("name=\"$key"))
+        }
+        for (file in listOf("app-strings.json", "app-strings.es.json")) {
+            val json = File("../i18n/$file").readText()
+            for (key in xmlKeys) assertFalse("i18n/$file still holds \"$key", json.contains("\"$key"))
+        }
+    }
+
     @Test fun theAppHoldsNoProviderSourceInTheSettingsItKeeps() {
         // The provider settings were one JSON document in the settings store; nothing reads or writes it now except the
         // one-time sweep, which only deletes it.
