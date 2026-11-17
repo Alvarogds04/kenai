@@ -220,7 +220,7 @@ network (guest Wi-Fi with client isolation, some corporate APs).
 | Liveness check | When the screen turns on, a network appears or the 4-minute alarm fires, the phone sends a ping and gives the desktop **8 s** (`pongWaitMs`) to answer *anything*; silence closes the connection so the loop reconnects instead of trusting a half-dead socket. |
 | Half-open sockets | A phone that slept or changed network keeps a socket that looks open and delivers nothing. That is why the phone pings and does its own liveness check; the desktop's `IDLE_TIMEOUT` closes the other side. |
 | Reconnect | Exponential backoff **1, 2, 4, 8, 16, 30 s** (`backoffMs`), capped at 30 s, reset as soon as a connection has worked. After a drop the first retry is 1 s. `retryNow()` cuts the wait short when the network changes or a new address is found. |
-| Fatal outcomes | A wrong token or protocol version is final: the phone shows the error and **stops retrying** with that pairing (nothing will ever change by retrying). It must be told as `{"type":"error","code":"auth"}` (token) or `{"type":"error","code":"version"}` (the phone compares `welcome.v` itself). Any other error code is shown and the link keeps retrying. |
+| Fatal outcomes | A wrong token is final: the phone shows the error and **stops retrying** with that pairing (nothing will ever change by retrying). It is told as `{"type":"error","code":"auth"}` — also for a wrong `hello` version, which the engine treats the same way. A wrong `welcome.v` is final too, but the phone raises the `version` error itself instead of waiting to be told: an `error` frame is final only with `code:"auth"`. Any other error code is shown and the link keeps retrying. |
 | Why a link ended | As far as the phone can tell: `SILENT` (read timeout or a liveness check went unanswered), `CLOSED` (desktop closed it), `NETWORK` (reset / unreachable / Wi-Fi changed). The category is what Home's “connection lost” line talks about. |
 | `bye` | On `stop()` the phone writes `{"type":"bye"}` best effort and closes. The desktop closes the connection on `bye`; it must not treat it as an error and must not keep the slot. |
 
@@ -946,7 +946,7 @@ Something the desktop refuses outside a request.
 | Field | Type | Required | Rules |
 | --- | --- | --- | --- |
 | `type` | string | yes | `"error"` |
-| `code` | string | no | A short code. `"auth"` and `"version"` are **final**: the phone stops retrying and says the pairing is wrong. Every other code is shown and the link keeps retrying. Missing is empty. |
+| `code` | string | no | A short code. `"auth"` is **final**: the phone stops retrying and says the pairing is wrong. `"version"` is the phone's own code for a `welcome.v` it cannot speak (it compares the value itself), so a desktop never needs to send it; every other code is shown and the link keeps retrying. Missing is empty. |
 | `message` | string | no | A short sentence for the user (shown next to the code). |
 
 ```json
@@ -1291,7 +1291,7 @@ next to Kenai `release/0.1`.
 | `chat` (`chatModels`, `chatSend`, `chatCancel`, `chatReset`, deltas/done/error) | Full screen, 4000 characters, one answer | **Missing**: no `phone_link/chat.rs`; the reference desktop copies rules from one that is not in this tree | Implement, or do not offer `chat` |
 | `ping` / `pong` | Ping every 20 s, expects pong, 8 s liveness wait | Answers `pong`; ignores unknown types | Keep as is |
 | `bye` | Best effort on stop | Closes the connection | Keep as is |
-| `error` | `auth`/`version` final, others retried | Sends `auth` (after 400 ms) and `protocol` (line too long) | Keep as is |
+| `error` | `auth` final, others retried; a wrong `welcome.v` is final as the phone's own `version` error | Sends `auth` (after 400 ms, also for a wrong `hello` version) and `protocol` (line too long) | Keep as is |
 | `details` capability | Session details screen (steps, last line, project, colour) | Constant exists; cannot be offered | Offer `details` and send the fields |
 | `prefs` / relay fields | Ignored on purpose (no wardrobe, LAN only) | Not ported (S5) | Nothing to do |
 
