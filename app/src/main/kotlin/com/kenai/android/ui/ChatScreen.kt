@@ -344,7 +344,8 @@ private fun Bubble(m: ChatMessage) {
                 Text(
                     m.text,
                     Modifier.widthIn(max = 300.dp)
-                        // KN-03: Koda's bubble — the 12/12/4/12 tail to the left, its translucent `--bubble` fill, the 8/12 padding.
+                        // KN-03: Koda's bubble — radius 12/12/4/12 with the small 4dp corner at the bottom-end (bottom-right
+                        // in LTR, like Koda's CSS `12px 12px 4px 12px`), its translucent `--bubble` fill, the 8/12 padding.
                         .clip(RoundedCornerShape(12.dp, 12.dp, 4.dp, 12.dp))
                         .background(tokens().bubble.c())
                         .padding(horizontal = 12.dp, vertical = 8.dp),

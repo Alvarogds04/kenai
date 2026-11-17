@@ -119,6 +119,10 @@ class TokensTest {
         // words on it stay readable over what it paints (the chat reads on the page). Values are the artboard's.
         assertEquals(0x1AFFFFFF, Tokens.DARK.bubble)
         assertEquals(0x12000000, Tokens.LIGHT.bubble)
+        // R3-001: the blend must come back as a canonical opaque ARGB long — exactly 32 bits, 0xFF alpha — or every
+        // value it feeds the contrast check carries garbage in the high bytes.
+        assertEquals(0xFF1A1A1AL, blendedOver(0x1AFFFFFFL, 0xFF000000L))
+        assertEquals(0xFFEDEDEDL, blendedOver(0x12000000L, 0xFFFFFFFFL))
         for ((n, t) in themes) {
             val painted = blendedOver(t.bubble, t.bg)
             assertTrue("$n text on bubble over page (${painted.toString(16)})", c(t.text, painted) >= 7.0)
@@ -143,7 +147,7 @@ class TokensTest {
             val base = ((under shr shift) and 0xFF).toInt()
             return Math.round(paint * a + base * (1 - a)).toInt()
         }
-        return (0xFF shl 24).toLong() or (mix(16).toLong() shl 16) or (mix(8).toLong() shl 8) or mix(0).toLong()
+        return 0xFF000000L or (mix(16).toLong() shl 16) or (mix(8).toLong() shl 8) or mix(0).toLong()
     }
 
     @Test fun reducedMotionFollowsTheAnimatorScale() {
