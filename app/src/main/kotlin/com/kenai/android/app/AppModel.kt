@@ -239,8 +239,19 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     // ── Chat through the computer (docs/ANDROID_LINK.md). The UI comes in the next step. ──────────
 
+    /** The phone's copy of the engine's conversations, in app-private storage (always: no secrets are in it). */
+    private val chatConversationsFile = ChatFile(java.io.File(context.filesDir, "chat-conversations.json"))
+
+    /**
+     * The phone's own copy of the list, of which conversation is open and of what it showed of each: restored from the
+     * last run, so with the engine off the chat still lists and reads what the user had (KN-01 AC-2).
+     */
+    private val conversations = ChatConversations.restored(chatConversationsFile)
+
     private val chatHistory = ChatHistory(ChatFile(java.io.File(context.filesDir, "chat-history.json")))
-    private val chatSession = ChatSession(chatHistory.load())
+
+    /** What the user reads: the copy of the open conversation when the engine knows conversations, else the 0.1 history. */
+    private val chatSession = ChatSession(if (conversations.known) conversations.openMessages() else chatHistory.load())
 
     /**
      * The chat's one seam: today the link to the computer. A second backend (a provider called straight from the phone,
@@ -266,15 +277,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     // ── The engine's conversations (KN-01, DESIGN §4): the list it holds, which one is open, what the phone keeps ──
 
-    /** The phone's own copy of the list and of what it showed of each conversation, for this run of the app. */
-    private val conversations = ChatConversations()
-
     /** The conversations the engine holds, as it last sent them; empty until it answers, or when it holds none. */
-    var chatConversationList by mutableStateOf<List<ChatConversationOption>>(emptyList()); private set
+    var chatConversationList by mutableStateOf(conversations.items); private set
     /** The engine answered a list, so it has conversations. A desktop of 0.1 never does, and the chat is the one of 0.1. */
-    var chatHasConversations by mutableStateOf(false); private set
+    var chatHasConversations by mutableStateOf(conversations.known); private set
     /** The conversation on screen, as the engine has it open; null when there is none. */
-    var chatOpenId by mutableStateOf<String?>(null); private set
+    var chatOpenId by mutableStateOf(conversations.open); private set
 
     /** The computer offers session details (steps, last message, project folder, colour) to this phone. */
     var detailsOffered by mutableStateOf(false); private set
@@ -297,7 +305,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         chatMessages = chatSession.messages
         chatBusy = chatSession.running != null
         conversations.keep(chatSession.messages)
-        if (save) chatHistory.save(chatSession.messages)
+        // The copy of the conversations is written when an answer is final, never once per piece of it (KN-01 AC-2).
+        if (save) { chatHistory.save(chatSession.messages); conversations.persist() }
         // An answer that was streaming is over: a list that arrived meanwhile moves the screen only now, so the answer
         // it belonged to is never orphaned.
         if (chatSession.running == null) {

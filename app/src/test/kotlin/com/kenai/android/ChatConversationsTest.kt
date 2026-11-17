@@ -4,6 +4,7 @@ import com.kenai.android.core.ChatConversationOption
 import com.kenai.android.core.ChatConversations
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatRole
+import com.kenai.android.core.TextFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -18,6 +19,13 @@ import org.junit.Test
 class ChatConversationsTest {
     private fun msg(id: String, text: String) = ChatMessage(id, ChatRole.ASSISTANT, text)
     private fun conv(id: String, open: Boolean = false, title: String = id) = ChatConversationOption(id, title, 0, open)
+
+    /** The private file, in memory: what a phone keeps between two runs of the app. */
+    private class Mem(var text: String? = null) : TextFile {
+        override fun read() = text
+        override fun write(text: String) { this.text = text }
+        override fun delete() { text = null }
+    }
 
     @Test fun anEngineThatNeverAnsweredHasNoListAndTheChatIsTheOneOfZeroOne() {
         // A desktop of 0.1 drops the request: nothing is known, so nothing is listed and no message names a conversation.
@@ -164,6 +172,80 @@ class ChatConversationsTest {
         assertEquals(emptyList<ChatMessage>(), c.turnEnded(streaming))
         assertEquals("c1", c.open)
         assertNull("nothing is left waiting", c.turnEnded(emptyList()))
+    }
+
+    @Test fun theNextRunReadsWhatThisOneHeld() {
+        // KN-01 AC-2: with the engine off the chat still has the list and the conversation that was open, so it can be read.
+        val file = Mem()
+        val first = ChatConversations.restored(file)
+        first.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        first.keep(listOf(msg("a-1", "hola"), msg("a-2", "qué tal")))
+        first.persist() // what AppModel does when the answer is final
+        val next = ChatConversations.restored(file)
+        assertTrue(next.known)
+        assertEquals("c0", next.open)
+        assertEquals(listOf("c0", "c1"), next.items.map { it.id })
+        assertEquals(listOf(msg("a-1", "hola"), msg("a-2", "qué tal")), next.openMessages())
+    }
+
+    @Test fun aDeletionIsPurgedFromTheFileToo() {
+        // Q11: the engine deleted it, so it is not on the phone after a restart either.
+        val file = Mem()
+        val c = ChatConversations.restored(file)
+        c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        c.keep(listOf(msg("a-1", "hola")))
+        c.opened("c1", listOf(msg("a-1", "hola")))
+        c.keep(listOf(msg("b-1", "de la c1")))
+        c.onDeleted("c1")
+        val next = ChatConversations.restored(file)
+        assertEquals(listOf("c0"), next.items.map { it.id })
+        assertEquals("what it held for c1 is gone", emptyList<ChatMessage>(), next.opened("c1", emptyList()))
+    }
+
+    @Test fun aFreshListThatNoLongerNamesAConversationPurgesItsCopyFromTheFile() {
+        val file = Mem()
+        val c = ChatConversations.restored(file)
+        c.onList(listOf(conv("c0", open = true), conv("c1")), emptyList())
+        c.opened("c1", emptyList())
+        c.keep(listOf(msg("b-1", "de la c1")))
+        c.onList(listOf(conv("c0", open = true)), listOf(msg("b-1", "de la c1")))
+        val next = ChatConversations.restored(file)
+        assertEquals(listOf("c0"), next.items.map { it.id })
+        assertEquals(emptyList<ChatMessage>(), next.opened("c1", emptyList()))
+    }
+
+    @Test fun aDesktopOfZeroOneWritesNothingAndADesktopIsNeverOverwrittenByNothing() {
+        // No list ever arrived (a desktop of 0.1): there is nothing to keep, and the chat is the single one of 0.1.
+        val file = Mem()
+        val c = ChatConversations.restored(file)
+        c.keep(listOf(msg("a-1", "hola")))
+        c.persist()
+        assertNull("nothing is written for a desktop with one conversation", file.text)
+        assertFalse(ChatConversations.restored(file).known)
+    }
+
+    @Test fun forgettingTheComputerDeletesTheFile() {
+        val file = Mem()
+        val c = ChatConversations.restored(file)
+        c.onList(listOf(conv("c0", open = true)), emptyList())
+        c.keep(listOf(msg("a-1", "hola")))
+        c.reset()
+        assertNull(file.text)
+        val next = ChatConversations.restored(file)
+        assertFalse(next.known)
+        assertNull(next.open)
+    }
+
+    @Test fun theCopyIsWrittenWhenTheTurnEndsAndNotOnEveryPiece() {
+        // One file write per turn, not one per delta: the text on screen is kept when it is final (and by persist()).
+        val file = Mem()
+        val c = ChatConversations.restored(file)
+        c.onList(listOf(conv("c0", open = true)), emptyList())
+        val before = file.text
+        c.keep(listOf(msg("a-1", "H")))
+        assertEquals("a piece of an answer does not rewrite the file", before, file.text)
+        c.persist()
+        assertTrue(file.text!!.contains("H"))
     }
 
     @Test fun theOpenConversationCannotBeDeletedWhileItsAnswerIsStreaming() {
