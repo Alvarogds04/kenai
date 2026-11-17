@@ -97,7 +97,9 @@ class ChatTabSourceTest {
     }
 
     @Test fun theChatScreenShowsAnEmptyStateWhenThereIsNothingToChatWithOrRead() {
-        assertTrue(chat.contains("if (tabState != ChatTabState.READY && messages.isEmpty())"))
+        // KN-01 AC-2: once the phone holds the engine's list there is always something to read, so the copy of the chat is
+        // shown instead of the empty state, with the reason above it.
+        assertTrue(chat.contains("if (tabState != ChatTabState.READY && !model.chatHasConversations && messages.isEmpty())"))
         assertTrue(chat.contains("ChatEmpty(tabState, onHome, onSettings)"))
         assertTrue("a sleeping Kenai", chat.contains("BotState.SLEEPING"))
     }
