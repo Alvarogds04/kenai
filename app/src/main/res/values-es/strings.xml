@@ -133,6 +133,8 @@
     <string name="chat_off_not_paired_body">Primero emparejá tu computadora; después vas a poder chatear a través de ella.</string>
     <string name="chat_off_offline_title">Sin conexión</string>
     <string name="chat_off_offline_body">Ahora no se puede llegar a tu computadora. Fijate que esté prendida, con Koda abierto y en el mismo Wi-Fi.</string>
+    <string name="chat_engine_down_title">Tu motor no responde</string>
+    <string name="chat_engine_down_body">Podés leer las conversaciones que ya abriste. Para escribir, esperá a que el motor vuelva.</string>
     <string name="chat_off_title">El chat está apagado en tu computadora</string>
     <string name="chat_nomodel_title">Tu computadora todavía no permite ningún modelo para el teléfono</string>
     <string name="chat_off_hint">En tu computadora abrí Koda &gt; Ajustes &gt; Teléfono Android, activá \"Dejar que el teléfono chatee con mis proveedores de IA\" y marcá un modelo.</string>

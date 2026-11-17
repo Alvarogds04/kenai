@@ -70,6 +70,7 @@ import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
 import com.kenai.android.core.ChatMessage
+import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
 import com.kenai.android.core.ChatTab
 import com.kenai.android.core.ChatTabState
@@ -173,8 +174,10 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
     }
 
     val tabState = model.chatTabState
-    // Nothing to chat with and nothing to read: say why, calmly, with the one thing to do about it.
-    if (tabState != ChatTabState.READY && messages.isEmpty()) {
+    val engineDown = ChatOffline.saysEngineDown(model.chatHasConversations)
+    // Nothing to chat with and nothing to read: say why, calmly, with the one thing to do about it. With the engine's
+    // list on the phone there is always something to read, so the copy of the chat is shown instead (KN-01 AC-2).
+    if (tabState != ChatTabState.READY && !model.chatHasConversations && messages.isEmpty()) {
         ChatEmpty(tabState, onHome, onSettings)
         return
     }
@@ -205,11 +208,17 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
             style = TypeScale.SECONDARY.style(tokens().textDim.c()),
         )
         if (!model.chatAvailable) {
-            // The conversation stays readable; the reason sits above it.
+            // The conversation stays readable; the reason sits above it, in the engine's own words when it has one.
             Panel(Modifier.padding(vertical = 4.dp)) {
                 Column(Modifier.padding(Gutter), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(chatStateTitle(tabState)), style = TypeScale.HEADLINE.style(tokens().text.c()))
-                    Text(stringResource(chatStateBody(tabState)), style = TypeScale.SECONDARY.style(tokens().textDim.c()))
+                    Text(
+                        stringResource(if (engineDown) R.string.chat_engine_down_title else chatStateTitle(tabState)),
+                        style = TypeScale.HEADLINE.style(tokens().text.c()),
+                    )
+                    Text(
+                        stringResource(if (engineDown) R.string.chat_engine_down_body else chatStateBody(tabState)),
+                        style = TypeScale.SECONDARY.style(tokens().textDim.c()),
+                    )
                 }
             }
         }
@@ -285,7 +294,8 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
                 ConversationRow(
                     c,
                     // The one that is still answering cannot go: the engine refuses it, and the phone would orphan the answer.
-                    canDelete = model.canDeleteConversation(c.id),
+                    // With the engine off nothing can be deleted either: the frame would never arrive (KN-01 AC-2).
+                    canDelete = model.canDeleteConversation(c.id) && model.chatAvailable,
                     onOpen = { model.chatOpenConversation(c.id); onDismiss() },
                     onDelete = { onDelete(c) },
                 )
@@ -294,7 +304,7 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
         PillButton(
             stringResource(R.string.chat_conversations_new),
             { model.chatNewConversation(); onDismiss() },
-            Modifier.fillMaxWidth().padding(top = 12.dp), kind = PillKind.PRIMARY, onDark = true,
+            Modifier.fillMaxWidth().padding(top = 12.dp), kind = PillKind.PRIMARY, enabled = model.chatAvailable, onDark = true,
         )
         PillButton(stringResource(R.string.chat_conversations_close), onDismiss, Modifier.fillMaxWidth().padding(top = 8.dp), onDark = true)
         Text(

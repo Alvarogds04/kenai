@@ -26,6 +26,14 @@ object ChatHeader {
     }
 }
 
+/**
+ * Whose words the Chat uses when nothing answers (KN-01 AC-2). The engine is named once the phone holds its
+ * conversations and can read them; a desktop of 0.1, which never sent a list, keeps the words it always had.
+ */
+object ChatOffline {
+    fun saysEngineDown(hasConversations: Boolean): Boolean = hasConversations
+}
+
 object ChatTab {
     /**
      * In order of what the user can do about it: no computer paired, the computer not reachable, the computer not offering

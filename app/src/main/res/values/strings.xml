@@ -133,6 +133,8 @@
     <string name="chat_off_not_paired_body">Pair your computer first, then you can chat through it.</string>
     <string name="chat_off_offline_title">Not connected</string>
     <string name="chat_off_offline_body">Your computer cannot be reached right now. Check that it is on, with Koda running, on the same Wi-Fi.</string>
+    <string name="chat_engine_down_title">Your engine is not responding</string>
+    <string name="chat_engine_down_body">You can read the conversations you already opened. To write, wait for the engine to come back.</string>
     <string name="chat_off_title">Chat is off on your computer</string>
     <string name="chat_nomodel_title">Your computer has no model allowed for the phone yet</string>
     <string name="chat_off_hint">On your computer open Koda &gt; Settings &gt; Android phone, turn on \"Let the phone chat with my AI providers\" and tick a model.</string>

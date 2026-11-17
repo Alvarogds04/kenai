@@ -3,6 +3,7 @@ package com.kenai.android
 import com.kenai.android.core.BarFit
 import com.kenai.android.core.ChatHeader
 import com.kenai.android.core.ChatHeaderAction
+import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatTab
 import com.kenai.android.core.ChatTabState
 import com.kenai.android.core.Screen
@@ -131,8 +132,24 @@ class ChatTabSourceTest {
         assertEquals(ChatHeaderAction.NONE, ChatHeader.action(hasConversations = false, hasMessages = false))
     }
 
-    @Test fun homeNoLongerHasAChatEntryAndThereIsNoUnreadDotToKeep() {
-        val main = src("MainActivity.kt")
+    @Test fun withTheEngineOffTheCachedChatIsReadAndTheWordsNameTheEngine() {
+        // KN-01 AC-2: once the phone holds the engine's conversations it says «Tu motor no responde», and the copy of the
+        // chat is read rather than hidden behind the empty state; a desktop of 0.1 keeps the words it had.
+        assertTrue(ChatOffline.saysEngineDown(hasConversations = true))
+        assertFalse("a desktop with no list is not called an engine", ChatOffline.saysEngineDown(hasConversations = false))
+        val ui = src("ui/ChatScreen.kt")
+        assertTrue(ui.contains("ChatOffline.saysEngineDown(model.chatHasConversations)"))
+        assertTrue(ui.contains("R.string.chat_engine_down_title"))
+        assertTrue(ui.contains("R.string.chat_engine_down_body"))
+        assertTrue("the cached list still opens with the engine off", ui.contains("!model.chatHasConversations"))
+        assertTrue("creating waits for the engine", ui.contains("enabled = model.chatAvailable, onDark = true"))
+        assertTrue(
+            "deleting too: it is a frame the engine has to take",
+            ui.contains("model.canDeleteConversation(c.id) && model.chatAvailable"),
+        )
+    }
+
+    @Test fun homeNoLongerHasAChatEntryAndThereIsNoUnreadDotToKeep() {        val main = src("MainActivity.kt")
         assertFalse(main.contains("AskBar") || main.contains("ChatEntry"))
         assertFalse(File("src/main").walkTopDown().filter { it.isFile && it.extension == "kt" }.any { Regex("""\bunread\b""", RegexOption.IGNORE_CASE).containsMatchIn(it.readText()) })
     }

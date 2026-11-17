@@ -28,6 +28,8 @@ internal class FakeEngine(private val answers: Boolean) : AutoCloseable {
     val received = LinkedBlockingQueue<String>()
     /** What the engine sends after a chatNew, chatOpen or chatDelete (and a chatDeleted when it deleted). */
     @Volatile var list = """{"type":"chatConversations","items":[{"id":"c0","title":"Chat","updatedAt":1,"open":true}]}"""
+    /** False: a connection that never lists its conversations, so the phone may not name one on it. */
+    @Volatile var answersList = true
     @Volatile var deleted: String? = null
     @Volatile private var out: java.io.OutputStream? = null
     /** The connections the phone opened, so a test can drop one. */
@@ -59,7 +61,7 @@ internal class FakeEngine(private val answers: Boolean) : AutoCloseable {
                 if (!answers) continue // an engine of 0.1: a frame it does not know is dropped, never answered
                 when {
                     line.contains("\"type\":\"chatModels\"") -> send("""{"type":"chatModels","models":[{"id":"openai/gpt-4o"}]}""")
-                    line.contains("\"type\":\"chatConversations\"") -> send(list)
+                    line.contains("\"type\":\"chatConversations\"") -> if (answersList) send(list)
                     line.contains("\"type\":\"chatNew\"") || line.contains("\"type\":\"chatOpen\"") || line.contains("\"type\":\"chatDelete\"") -> {
                         send(list)
                         deleted?.let { send("""{"type":"chatDeleted","id":"$it"}""") }

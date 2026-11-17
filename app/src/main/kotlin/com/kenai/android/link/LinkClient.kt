@@ -257,8 +257,14 @@ class LinkClient(
         answersOffered && Protocol.CAP_ANSWERS in caps && queue(ClientMsg.Answer(fingerprint, picks))
 
     override fun chatModels() { queue(ClientMsg.ChatModels) }
+
+    /**
+     * A question, with the engine's conversation it belongs to. A conversation is named only once *this* connection has
+     * listed them: the phone remembers its copy between two runs (KN-01), and a conversation of an older run may be gone
+     * on the engine, which would refuse the whole question.
+     */
     override fun chatSend(id: String, model: String, text: String, conversation: String?) =
-        queue(ClientMsg.ChatSend(id, model, text, conversation))
+        queue(ClientMsg.ChatSend(id, model, text, conversation?.takeIf { conversationsKnown }))
     override fun chatCancel(id: String) { queue(ClientMsg.ChatCancel(id)) }
     override fun chatReset() { queue(ClientMsg.ChatReset) }
 

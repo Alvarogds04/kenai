@@ -908,8 +908,21 @@ What the phone does with these, and what this slice does not promise:
   is written (and by the engine as `busy`): the phone never orphans an answer it is showing.
 - The first list is the exception that proves the rule: the phone was already writing in the engine's open conversation
   before it knew its id, so the messages on screen become that conversation's and the screen does not move.
-- The phone keeps, for the length of one run of the app, the messages of each conversation it opened, so opening one
-  again shows what it had. **Persisting that copy and reading it with the engine off is the next step (Kenai T10).**
+- The phone keeps the messages of each conversation it opened in app-private storage (KN-01 AC-2), bounded: the 200
+  conversations of the list, the 10 opened last, the newest 50 messages of each, the first 4000 characters of a message.
+  It holds ids, titles, roles, text and a reason code and nothing else, so it can hold no token, address or key (AC-4).
+- That copy is **what the phone reads when the engine does not answer**: with the link down the Chat says «Tu motor no
+  responde» (English: "Your engine is not responding"), still opens the list and every conversation it kept, and cannot
+  write — sending, creating and deleting are refused here before a frame is built, and the sheet's buttons say so.
+- The copy is written when it changes structurally (a list, an open, a deletion, a Clear) and when an answer is final,
+  never once per streamed piece. A `chatDeleted` and a fresh list still purge it: what the list no longer names keeps
+  no copy, so it cannot come back from the dead, and forgetting the computer deletes the file.
+- **A reconnect needs nothing from the desktop beyond the `welcome` and the list.** The device token is a file on the
+  engine and the pairing stays on the phone, so the engine coming back is the same connection as before: `welcome`,
+  `sessions`, `chatModels`, `chatConversations`, and the chat is usable again with no re-pairing (AC-3).
+- A conversation is named on `chatSend` only after **that** connection listed its conversations: the phone's copy may be
+  from an older run, and the engine would refuse the whole question for a conversation it no longer has. Until the list
+  arrives the frame goes without `conversation`, which is exactly the 0.1 frame.
 - There is **no history frame yet**: an engine that pages a conversation's history over the front does so with a frame
   this app does not know, and the phone drops it (unknown types are dropped, as always). DESIGN.md's engine unit T5-U4
   defines that frame; this document will name it when the phone reads it.
@@ -1188,8 +1201,9 @@ whose id it does not know, which is how a new service does not break an older ap
 - Cancel and reset are the user's actions, and the desktop answers a cancel with `chatError`/`canceled`.
 - The desktop's limits (4000 characters, 12 sends per 10 minutes, one answer at a time) exist on the desktop,
   not only in the phone: the phone refuses what it can see, and trusts the desktop for the rest.
-- Nothing of the conversation is persisted on the phone beyond its own local history; the desktop holds the
-  conversation state.
+- Nothing of the conversation is persisted on the phone except its own copy of what it read and of the engine's list
+  (KN-01, §6 of this document): the desktop holds the conversation state, and the phone's copy is read-only material for
+  when the engine does not answer.
 
 ---
 
