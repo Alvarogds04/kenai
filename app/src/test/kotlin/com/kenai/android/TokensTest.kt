@@ -114,6 +114,38 @@ class TokensTest {
         }
     }
 
+    @Test fun theBubbleMeetsTheArtboardAndKeepsItsTextReadable() {
+        // KN-03: the user's bubble is Koda's `--bubble` — translucent white in dark, translucent black in light — and the
+        // words on it stay readable over what it paints (the chat reads on the page). Values are the artboard's.
+        assertEquals(0x1AFFFFFF, Tokens.DARK.bubble)
+        assertEquals(0x12000000, Tokens.LIGHT.bubble)
+        for ((n, t) in themes) {
+            val painted = blendedOver(t.bubble, t.bg)
+            assertTrue("$n text on bubble over page (${painted.toString(16)})", c(t.text, painted) >= 7.0)
+            assertTrue("$n text on bubble over panel (${painted.toString(16)})", c(t.text, blendedOver(t.bubble, t.panel)) >= 4.5)
+        }
+    }
+
+    @Test fun theSendIsTheArtboardSLimeAndContrastsWithItsGlyph() {
+        // KN-03: the send button is the lime circle `#b8ff2e` with the black glyph, the same in both themes.
+        for ((_, t) in themes) {
+            assertEquals(0xFFB8FF2E, t.send)
+            assertEquals(0xFF000000, t.onSend)
+            assertTrue("glyph on the lime", c(t.onSend, t.send) >= 7.0)
+        }
+    }
+
+    /** A translucent token paints over what is already there: the colour the eye sees is the blend, not the number. */
+    private fun blendedOver(top: Long, under: Long): Long {
+        val a = ((top shr 24) and 0xFF).toInt() / 255.0
+        fun mix(shift: Int): Int {
+            val paint = ((top shr shift) and 0xFF).toInt()
+            val base = ((under shr shift) and 0xFF).toInt()
+            return Math.round(paint * a + base * (1 - a)).toInt()
+        }
+        return (0xFF shl 24).toLong() or (mix(16).toLong() shl 16) or (mix(8).toLong() shl 8) or mix(0).toLong()
+    }
+
     @Test fun reducedMotionFollowsTheAnimatorScale() {
         assertTrue(MotionSpec.isReduced(0f))
         assertTrue(!MotionSpec.isReduced(1f) && !MotionSpec.isReduced(0.5f))

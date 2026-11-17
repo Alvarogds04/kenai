@@ -229,7 +229,7 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                     style = TypeScale.BODY.style(tokens().textDim.c()).copy(textAlign = TextAlign.Center),
                 )
             } else {
-                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(Gap)) {
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(MessageGap)) {
                     items(messages, key = { it.id }) { m -> Bubble(m) }
                 }
             }
@@ -333,6 +333,9 @@ private fun ConversationRow(c: ChatConversationOption, canDelete: Boolean, onOpe
     }
 }
 
+/** KN-03: the artboard's 6dp between messages — tighter than the shared [Gap] (12dp), so it is the chat's own, not the scale's. */
+private val MessageGap = 6.dp
+
 @Composable
 private fun Bubble(m: ChatMessage) {
     if (m.role == ChatRole.USER) {
@@ -341,9 +344,10 @@ private fun Bubble(m: ChatMessage) {
                 Text(
                     m.text,
                     Modifier.widthIn(max = 300.dp)
-                        .clip(RoundedCornerShape(18.dp, 18.dp, 6.dp, 18.dp))
-                        .background(tokens().panel2.c())
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        // KN-03: Koda's bubble — the 12/12/4/12 tail to the left, its translucent `--bubble` fill, the 8/12 padding.
+                        .clip(RoundedCornerShape(12.dp, 12.dp, 4.dp, 12.dp))
+                        .background(tokens().bubble.c())
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                     style = TypeScale.BODY.style(tokens().text.c()),
                 )
             }
@@ -438,11 +442,11 @@ private fun Composer(model: AppModel, text: String, refusal: ChatSession.Refusal
                 val canSend = model.chatAvailable && length in 1..limit
                 val send = stringResource(R.string.chat_send)
                 Box(
-                    Modifier.alpha(if (canSend) 1f else 0.4f).size(56.dp).clip(CircleShape).background(t.primaryButton.c())
+                    Modifier.alpha(if (canSend) 1f else 0.4f).size(56.dp).clip(CircleShape).background(t.send.c())
                         .clickable(enabled = model.chatAvailable && length in 1..limit, role = Role.Button, onClick = onSend)
                         .semantics { contentDescription = send },
                     contentAlignment = Alignment.Center,
-                ) { KenaiIcon(IconKind.SEND, tint = t.onPrimaryButton.c(), size = 22.dp) }
+                ) { KenaiIcon(IconKind.SEND, tint = t.onSend.c(), size = 22.dp) }
             }
         }
         val note = when {

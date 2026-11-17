@@ -21,6 +21,8 @@ data class Tokens(
     val textFaint: Long,
     /** The one main action: a pill, as on the PC. */
     val primaryButton: Long, val onPrimaryButton: Long,
+    /** The chat's send circle (KN-03, the artboard's `#b8ff2e`) and its glyph; beside [primaryButton], never instead of it. */
+    val send: Long, val onSend: Long,
     /** Every other pill, as a solid colour on [panel]. */
     val secondaryButton: Long,
     val danger: Long,
@@ -28,12 +30,15 @@ data class Tokens(
     val online: Long,
     /** Alpha of the coloured glow at the bottom of a panel (0..1). */
     val washAlpha: Double,
+    /** KN-03: the user's message bubble, Koda's translucent `--bubble` — white in dark, black in light — read over the page. */
+    val bubble: Long,
 ) {
     companion object {
         val DARK = Tokens(
             bg = 0xFF000000, panel = 0xFF141518, panel2 = 0xFF1D1F23, line = 0xFF26282D,
             text = 0xFFF5F6F8, textDim = 0xFF9398A1, textFaint = 0xFF6E737C,
             primaryButton = 0xFFF5F6F8, onPrimaryButton = 0xFF0B0C0E, secondaryButton = 0xFF292A2D,
+            send = 0xFFB8FF2E, onSend = 0xFF000000, bubble = 0x1AFFFFFF,
             danger = 0xFFFF8D97, online = 0xFF34D399, washAlpha = 0.5,
         )
         /** The desktop's light theme (design/system.md): warm paper page, lighter cards, near-black ink and main button. */
@@ -41,6 +46,7 @@ data class Tokens(
             bg = 0xFFECE4D2, panel = 0xFFF7F2E7, panel2 = 0xFFE7E0D0, line = 0xFFDEDAD0,
             text = 0xFF1A1915, textDim = 0xFF5F5C54, textFaint = 0xFF6B675E,
             primaryButton = 0xFF201F1B, onPrimaryButton = 0xFFF7F4EC, secondaryButton = 0xFFE6E1D7,
+            send = 0xFFB8FF2E, onSend = 0xFF000000, bubble = 0x12000000,
             danger = 0xFFB42318, online = 0xFF0B7A55, washAlpha = 0.35,
         )
     }
