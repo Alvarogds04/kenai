@@ -302,6 +302,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         model.inForeground = true
+        model.ensureLinkService() // Android allows starting the foreground service from here, not from a background receiver
         model.refreshOverlayPermission() // maybe granted meanwhile, from this app's switch or Android's settings
         model.refreshBattery() // the battery setting may have been changed in Android's screen
     }

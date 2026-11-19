@@ -517,6 +517,15 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     val isPaired get() = store.loadPairing() != null
 
+    /**
+     * The link lives in the app, but only a foreground service keeps the process (and its network) alive in the background. A start
+     * asked from a background receiver is refused by Android and the link would then be cut as soon as the app leaves the screen
+     * (KN-04 live test), so every time the app is shown it asks again; starting an already running service changes nothing.
+     */
+    fun ensureLinkService() {
+        if (isPaired) LinkService.start(context)
+    }
+
     /** Called at launch and by the service: reconnects to the stored desktop, if any. */
     fun resume() {
         if (mode == Mode.DEMO || link != null) return

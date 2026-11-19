@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
+import android.util.Log
 
 /**
  * Keeps the desktop link alive while the app is in the background, so approvals arrive as
@@ -29,7 +30,9 @@ class LinkService : Service() {
 
     companion object {
         fun start(context: Context) {
+            // Android refuses this from a background receiver; the app retries it from the screen (AppModel.ensureLinkService).
             runCatching { context.startForegroundService(Intent(context, LinkService::class.java)) }
+                .onFailure { Log.w("KenaiLink", "foreground service not started: ${it.javaClass.simpleName}") }
         }
         fun stop(context: Context) {
             context.stopService(Intent(context, LinkService::class.java))
