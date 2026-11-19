@@ -17,20 +17,23 @@ object IslandPlan {
 
     /**
      * What is going on right now: a permission request (its text is the kind of action, never the command), a question, or an agent at work. Null when
-     * the island may not show or nothing needs it. [approvals] come first; [name] gives the agent's name.
+     * the island may not show or nothing needs it. [approvals] come first; [name] gives the agent's name; [questions] are the pill ids whose question
+     * frame this phone holds, so the island can open that question instead of just the app.
      */
     fun active(
         sessions: List<SessionInfo>,
         approvals: List<ApprovalRequest>,
         allowed: Boolean,
         name: (String) -> String,
+        questions: Set<String> = emptySet(),
     ): IslandSpec? {
         if (!allowed) return null
         approvals.firstOrNull()?.let {
             return IslandSpec(IslandSpec.Kind.APPROVAL, it.pillId, name(it.pillId), BotState.APPROVAL, ToolLabels.action(it.tool), it.fingerprint, ApprovalSheetPlan.canAllowHere(it))
         }
         val question = sessions.firstOrNull { it.state == BotState.QUESTION }
-        if (question != null) return spec(IslandSpec.Kind.QUESTION, question, name)
+        // The question itself when its frame is here; only «open the app» for one the phone cannot answer (no frame yet).
+        if (question != null) return spec(IslandSpec.Kind.QUESTION, question, name).copy(canAnswerHere = question.pillId in questions)
         val working = sessions.firstOrNull { it.state in WORKING }
         if (working != null) return spec(IslandSpec.Kind.WORKING, working, name)
         return null

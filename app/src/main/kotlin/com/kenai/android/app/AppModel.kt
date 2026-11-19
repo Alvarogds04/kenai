@@ -441,6 +441,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         onAllow = { notifier.openAllow(it) },
         onDeny = { decide(it, allow = false) },
         onOpen = { notifier.openApp() },
+        // A question the phone holds opens on itself, through the same non-exported door as «Responder» (KN-04 live finding).
+        onAnswer = { notifier.openQuestion(it) },
     )
 
     fun overlayPermitted() = overlay.permitted()
@@ -498,7 +500,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             overlay.hide()
             return
         }
-        overlay.setActive(IslandPlan.active(sessions, approvals, allowed = true, this::agentName))
+        overlay.setActive(IslandPlan.active(sessions, approvals, allowed = true, this::agentName, questions = questions.map { it.pillId }.toSet()))
     }
 
     /**
@@ -784,6 +786,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     /** Every card goes: the desktop offers a request again if it is still pending once we reconnect. */
     private fun dropApprovals() {
+        // Every question goes, and so does the notice that said «Tiene una pregunta»: its «Responder» would land on Home for nothing.
+        questions.map { it.pillId }.distinct().forEach { notifier.cancelStatus(it) }
         questions.forEach { expiry.remove(it.fingerprint)?.let { r -> main.removeCallbacks(r) } }
         questions = emptyList()
         sessions = withQuestions()
@@ -1004,8 +1008,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     private fun removeQuestion(fingerprint: String) {
+        val pillId = questions.firstOrNull { it.fingerprint == fingerprint }?.pillId
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         questions = questions.filter { it.fingerprint != fingerprint }
+        // The question is gone (answered, expired, resolved elsewhere, refused): its status notice goes with it, unless the same agent
+        // is still asking something else. Otherwise a stale «Responder» lands on Home with no question behind it.
+        if (pillId != null && questions.none { it.pillId == pillId }) notifier.cancelStatus(pillId)
         sessions = withQuestions()
         pushGlance()
     }

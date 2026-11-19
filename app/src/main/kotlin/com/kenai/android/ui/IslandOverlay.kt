@@ -96,6 +96,9 @@ import com.kenai.android.character.CharacterView
  * and keeps one timer, for the next deadline. Nothing exists while it is hidden: the window is added
  * when it opens and removed when it has gone up, so there is no timer and no frame loop.
  * Needs the user's one-time "display over other apps" permission.
+ *
+ * A question whose frame is on this phone ([IslandSpec.canAnswerHere]) opens THAT question on a tap; every other tap opens the app.
+ * Nothing is answered or allowed here: those decisions stay behind the app's own screen lock (KN-04 S10).
  */
 class IslandOverlay(
     private val context: Context,
@@ -103,6 +106,7 @@ class IslandOverlay(
     private val onAllow: (fingerprint: String) -> Unit,
     private val onDeny: (fingerprint: String) -> Unit,
     private val onOpen: () -> Unit,
+    private val onAnswer: (pillId: String) -> Unit,
 ) {
     private val wm = context.getSystemService(WindowManager::class.java)
     private val main = Handler(Looper.getMainLooper())
@@ -373,8 +377,13 @@ class IslandOverlay(
             IslandSpec.Kind.QUESTION -> R.string.notif_question
             else -> R.string.notif_finished
         }
+        // A question this phone holds opens on itself; anything else opens the app, exactly as before.
+        val tapped = {
+            if (s.kind == IslandSpec.Kind.QUESTION && s.canAnswerHere) tap("the question card") { onAnswer(s.pillId) }
+            else tap("the result card") { onOpen() }
+        }
         Row(
-            Modifier.fillMaxWidth().clickable { tap("the result card") { onOpen() } }.padding(horizontal = 18.dp, vertical = 8.dp),
+            Modifier.fillMaxWidth().clickable { tapped() }.padding(horizontal = 18.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CharacterView(engine, Modifier.size(52.dp))
@@ -385,7 +394,12 @@ class IslandOverlay(
                     Spacer(Modifier.width(8.dp))
                     Text(stringResource(label), color = dim, fontSize = 12.sp, maxLines = 1)
                 }
-                val text = if (s.kind == IslandSpec.Kind.QUESTION) stringResource(R.string.island_answer_on_pc) else s.text
+                val text = when {
+                    s.kind != IslandSpec.Kind.QUESTION -> s.text
+                    // Answered in the app, behind its own lock: the island never answers (S10). No frame here: the old line stays.
+                    s.canAnswerHere -> stringResource(R.string.island_answer_here)
+                    else -> stringResource(R.string.island_answer_on_pc)
+                }
                 if (text.isNotBlank()) Text(text, color = Color.White, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }

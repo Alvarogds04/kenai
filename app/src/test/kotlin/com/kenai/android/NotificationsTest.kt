@@ -152,6 +152,20 @@ class NotificationsTest {
         assertEquals("Responder", strings("src/main/res/values-es/strings.xml")["home_answer"])
     }
 
+    @Test fun theIslandOpensAQuestionThroughRespondersOwnDoorAndAnswersNothing() {
+        // Live finding: the island's question card opened a bare MainActivity, and its own line sent the user to the computer. It now
+        // sends the very PendingIntent of «Responder»: the non-exported entry point, the pill id as its only extra, no decision.
+        assertTrue("a public door for the island", Regex("""fun openQuestion\(pillId: String\) \{""").containsMatchIn(n))
+        // Its whole body: it sends that question's own intent and nothing else — no decision, no answer.
+        val sending = n.lines().map { it.trim() }.filter { it.contains("statusId(pillId)).send()") }
+        assertEquals(
+            "one line sends it, and only it",
+            listOf("runCatching { openQuestion(pillId, statusId(pillId)).send() }"),
+            sending,
+        )
+        assertEquals("one place builds the question intent", 1, Regex("""putExtra\(LaunchActivity.EXTRA_QUESTION, pillId\)""").findAll(n).count())
+    }
+
     @Test fun unlinkedMeansNoApprovalAndNoQuestionNotification() {
         // KN-04 criterion 4 (S5): with the phone unlinked nothing reaches it. A request's or a notice's notification is only posted
         // where the link delivers frames, and unlinking takes back whatever was already in the shade.

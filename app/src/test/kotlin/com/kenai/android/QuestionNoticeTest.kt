@@ -24,4 +24,29 @@ class QuestionNoticeTest {
             onQuestion.contains("lastState.putIfAbsent(request.pillId, BotState.IDLE)") && onQuestion.indexOf("putIfAbsent") < onQuestion.indexOf("announceSessions()"),
         )
     }
+
+    // ── Live finding: a question's status notice outlived its question ────────────────────────────
+
+    @Test fun theStatusNoticeOfAQuestionGoesWhenTheQuestionDoes() {
+        // The notice says «Tiene una pregunta» and offers «Responder»: once the question is gone (answered, expired, refused, link
+        // dropped) its «Responder» would land on Home for nothing, so the notice goes with it.
+        val model = File("src/main/kotlin/com/kenai/android/app/AppModel.kt").readText()
+        val remove = model.substringAfter("private fun removeQuestion(").substringBefore("/** One short buzz")
+        assertTrue("the agent of the question is known before it is forgotten", remove.contains("questions.firstOrNull { it.fingerprint == fingerprint }?.pillId"))
+        assertTrue("and its notice is cancelled", remove.contains("notifier.cancelStatus(pillId)"))
+        assertTrue(
+            "unless the same agent is still asking something else",
+            remove.contains("questions.none { it.pillId == pillId }"),
+        )
+        // The wipe (link lost, unlinked) takes the notices of every question it clears, not just the cards.
+        val drop = model.substringAfter("private fun dropApprovals()").substringBefore("private fun removeApproval")
+        assertTrue("one notice per question pill goes", drop.contains("notifier.cancelStatus("))
+    }
+
+    @Test fun aQuestionResolvedElsewhereAlsoTakesItsNotice() {
+        // `approvalResolved` and a refusal that says the request is gone both end in removeQuestion, so one rule covers them.
+        val model = File("src/main/kotlin/com/kenai/android/app/AppModel.kt").readText()
+        assertTrue(model.substringAfter("override fun onApprovalResolved(").substringBefore("override fun onDecisionNotSent(").contains("removeQuestion(fingerprint)"))
+        assertTrue(model.substringAfter("private fun answerRefused(").substringBefore("private fun refusalSentence").contains("removeQuestion(fp)"))
+    }
 }

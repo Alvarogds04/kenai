@@ -186,6 +186,7 @@
     <string name="notif_question">Tiene una pregunta</string>
     <string name="notif_ratelimit">Llegó a un límite de uso</string>
     <string name="island_answer_on_pc">Tocá para abrir Kenai, o respondé en tu computadora</string>
+    <string name="island_answer_here">Tocá para responder</string>
     <string name="state_ready">Listo</string>
     <string name="state_working">Trabajando</string>
     <string name="state_thinking">Pensando</string>

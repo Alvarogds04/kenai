@@ -286,6 +286,14 @@ class Notifications(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+    /**
+     * A question's card on the island: the same door as «Responder» on its notice, so a tap opens that question instead of a bare
+     * app. It only opens it — the answer stays behind the app's screen lock, and the intent carries nothing but the pill id.
+     */
+    fun openQuestion(pillId: String) {
+        runCatching { openQuestion(pillId, statusId(pillId)).send() }
+    }
+
     fun openApp() {
         Log.d("KenaiLaunch", "open the app (tap on the pill)")
         runCatching { open(null, false, 0).send() }

@@ -186,6 +186,7 @@
     "notif_question": "Tiene una pregunta",
     "notif_ratelimit": "Llegó a un límite de uso",
     "island_answer_on_pc": "Tocá para abrir Kenai, o respondé en tu computadora",
+    "island_answer_here": "Tocá para responder",
     "state_ready": "Listo",
     "state_working": "Trabajando",
     "state_thinking": "Pensando",

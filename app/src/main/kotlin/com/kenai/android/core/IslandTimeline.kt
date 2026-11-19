@@ -13,6 +13,12 @@ data class IslandSpec(
     val fingerprint: String? = null,
     /** False for a request whose command could not be shown in full: the island offers Deny only. */
     val canAllow: Boolean = true,
+    /**
+     * A question whose frame is on this phone: a tap opens THAT question in the app, where it is answered behind the screen lock.
+     * False (also for every other kind) keeps the old behaviour, a plain open of the app: the island never answers or allows
+     * anything by itself (KN-04 S10).
+     */
+    val canAnswerHere: Boolean = false,
 ) {
     enum class Kind { WORKING, QUESTION, APPROVAL, FINISHED, ERROR, RATELIMIT }
 
