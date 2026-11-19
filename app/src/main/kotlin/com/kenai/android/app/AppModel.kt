@@ -981,6 +981,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         main.post {
             questions = questions.filter { it.fingerprint != request.fingerprint } + request
             // A question is a request of its own: it shows (and is announced) even when no `sessions` row says the agent asks.
+            // An agent the phone has no state for is «already there» to the announcer (quiet); a question frame is news, so give it one.
+            lastState.putIfAbsent(request.pillId, BotState.IDLE)
             announceSessions()
             // The alert widget lists the phone's questions: it follows their arrival and their going (T18).
             pushGlance()
