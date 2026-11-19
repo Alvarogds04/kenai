@@ -16,7 +16,7 @@ KN-04: Kenai shows the agents' notices and requests (Claude Code, Codex, Pi with
 - S12: Refusal codes `off`, `resolved`, `truncated`, `invalid_answer`, `bad_request` are handled by Kenai, not shown as a generic error.
 
 ## Tasks
-- [x] T1 (S6) Gate «Answer» on a real approval/question; «esperando…» otherwise (core/HomePanel, ui/HomePanel, ResultHero, MainActivity:571, strings + i18n). Test-first. · neutral · test-first RED (canAnswer unresolved) then GREEN, full suite green
+- [x] T1 (S6) Gate «Answer» on a real approval/question; «esperando…» otherwise (core/HomePanel, ui/HomePanel, ResultHero, MainActivity:571, strings + i18n). Test-first. · neutral · test-first RED (canAnswer unresolved) then GREEN, full suite green · commit 636d46e, native review approved (review-7db43f216db575f5), 4 non-blocking findings fixed in the follow-up commit
 - [ ] T2 (S7) `hasDetails` stops counting `project`; update HomePanelTest/SessionScreenTest. · neutral
 - [ ] T3 (S4, S12) Map refusal codes in AppModel.onError; keep the card until `approvalResolved`/refusal; restore a claimed approval on refusal. · Risk: contract consumed both sides, security-adjacent (item 2/3), own commit
 - [ ] T4 (S3, S10, S9) Notification: approval gets Allow via biometric prompt (opens app gate), question gets «Responder»; no content in the shade. · Risk: item 2 (security), own commit

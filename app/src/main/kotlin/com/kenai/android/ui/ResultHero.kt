@@ -140,7 +140,7 @@ fun NextUp(model: AppModel, next: HomePanel.Next, onQuestion: (String) -> Unit, 
                 }
                 when (next.kind) {
                     HomePanel.NextKind.QUESTION ->
-                        if (model.questionFor(next.pillId) != null) PillButton(stringResource(R.string.home_answer), { onQuestion(next.pillId) }, kind = PillKind.PRIMARY)
+                        if (s != null && HomePanel.canAnswer(s, model.questions.map { it.pillId }.toSet())) PillButton(stringResource(R.string.home_answer), { onQuestion(next.pillId) }, kind = PillKind.PRIMARY)
                         else Text(stringResource(R.string.home_waiting_request), style = TypeScale.SECONDARY.style(t.textDim.c()))
                     HomePanel.NextKind.APPROVAL -> next.fingerprint?.let { fp ->
                         PillButton(stringResource(R.string.home_review), { onReview(fp) }, kind = PillKind.PRIMARY)

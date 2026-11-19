@@ -82,9 +82,9 @@ internal fun stateColor(state: BotState): Color =
 fun HeroCard(
     focus: SessionInfo?, engine: CharacterEngine, touch: Modifier, link: HomePanel.Link, running: Int,
     linkDot: Color, linkText: String, onLink: () -> Unit, onDetails: (() -> Unit)?,
-    /** Opens the question sheet; non-null only while the agent has a question. */
+    /** Opens the question sheet; non-null only while the agent's question frame is on the phone (KN-04 A-a). */
     onQuestion: (() -> Unit)? = null,
-    /** The phone can answer this question here (the `answers` capability): the button says so. */
+    /** The agent asks but its question frame has not arrived: say «esperando…» instead of offering «Responder». */
     waitingForRequest: Boolean = false,
     /** Inicio's status strip (kenai-0.1 S9): when given, it replaces the link row at the top. */
     strip: (@Composable () -> Unit)? = null,
@@ -263,7 +263,7 @@ private fun nameOf(s: SessionInfo) = s.agent.ifBlank { Pills.byId(s.pillId)?.nam
 @Composable
 fun AlsoWaiting(
     waiting: List<SessionInfo>, reviewFor: (SessionInfo) -> String?, onQuestion: (String) -> Unit, onReview: (String) -> Unit,
-    asks: SessionInfo? = null, asksLine: String = "", canAnswer: (SessionInfo) -> Boolean = { true },
+    asks: SessionInfo? = null, asksLine: String = "", canAnswer: (SessionInfo) -> Boolean,
 ) {
     if (waiting.isEmpty() && asks == null) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
