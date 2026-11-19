@@ -309,6 +309,7 @@
     <string name="home_running_title">Running · %1$d</string>
     <string name="home_others_title">Other agents</string>
     <string name="home_answer">Answer</string>
+    <string name="home_waiting_request">waiting for the request…</string>
     <string name="home_review">Review</string>
     <string name="home_unconfirmed">Unconfirmed</string>
     <string name="home_offline_body">Is the phone on the same Wi-Fi? Is the computer awake, with Koda open? Requests reach you as soon as the connection is back.</string>

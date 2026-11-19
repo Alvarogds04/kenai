@@ -526,6 +526,7 @@ private fun Home(
     if (engine.state != state && !touch.dizzy) engine.setState(state)
     engine.bodyColor = focus?.let { HomePanel.colorHex(it) }?.let { HomePanel.rgb(it) }
 
+    val questionPills = model.questions.map { it.pillId }.toSet()
     val groups = HomePanel.groups(
         model.sessions, heroPillId = if (scene == HomePanel.Scene.RESULT) next?.pillId else focus?.pillId ?: hero?.pillId,
         requestPills = model.approvals.map { it.pillId }.toSet(),
@@ -539,7 +540,7 @@ private fun Home(
             HomePanel.Scene.RESULT -> next?.takeIf { it.kind == HomePanel.NextKind.APPROVAL }?.pillId
             else -> null
         },
-        questionPills = model.questions.map { it.pillId }.toSet(),
+        questionPills = questionPills,
     )
     LazyColumn(
         state = listState,
@@ -568,8 +569,8 @@ private fun Home(
                     focus, engine, touch.modifier, pair, HomeText.running(model.sessions),
                     linkDot = linkDotColor(model), linkText = linkStatusText(model),
                     onDetails = if (focus != null && HomePanel.hasDetails(focus)) ({ onSession(focus.pillId) }) else null,
-                    onQuestion = if (focus != null && focus.state == BotState.QUESTION) ({ onQuestion(focus.pillId) }) else null,
-                    canAnswer = focus != null && model.questionFor(focus.pillId) != null,
+                    onQuestion = if (focus != null && HomePanel.canAnswer(focus, questionPills)) ({ onQuestion(focus.pillId) }) else null,
+                    waitingForRequest = focus != null && focus.state == BotState.QUESTION && !HomePanel.canAnswer(focus, questionPills),
                     onLink = {
                         when (pair) {
                             HomePanel.Link.PAIR -> onScan() // not reachable on Home (no computer shows the pairing screen), harmless
@@ -615,7 +616,7 @@ private fun Home(
                         groups.waiting,
                         reviewFor = { s -> model.approvals.drop(1).firstOrNull { it.pillId == s.pillId }?.fingerprint },
                         onQuestion = onQuestion, onReview = { onReview(it) },
-                        asks = asks,
+                        asks = asks, canAnswer = { HomePanel.canAnswer(it, questionPills) },
                         asksLine = asks?.let { HomeText.nextLine(model.questionFor(it.pillId)?.questions?.firstOrNull()?.question, it) }.orEmpty(),
                     )
                 }

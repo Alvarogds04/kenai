@@ -309,6 +309,7 @@
     "home_running_title": "En curso · %1$d",
     "home_others_title": "Otros agentes",
     "home_answer": "Responder",
+    "home_waiting_request": "esperando el pedido…",
     "home_review": "Revisar",
     "home_unconfirmed": "Sin confirmar",
     "home_offline_body": "¿El teléfono está en el mismo Wi-Fi? ¿La computadora está despierta, con Koda abierto? Los pedidos te llegan apenas vuelva la conexión.",

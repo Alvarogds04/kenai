@@ -107,6 +107,12 @@ object HomePanel {
         return sessions.firstOrNull { it.pillId == requestPillId && (it.state == BotState.QUESTION || it.pillId in questionPills) }
     }
 
+    /**
+     * KN-04 A-a: a session asking for something (QUESTION) can be answered only once its `question` frame is on the phone
+     * ([questionPills]); an `attention` notice alone has nothing to answer yet and Home says it is waiting.
+     */
+    fun canAnswer(s: SessionInfo, questionPills: Set<String>): Boolean = s.state == BotState.QUESTION && s.pillId in questionPills
+
     /** The bar's badge on Inicio: the requests plus the questions that wait. */
     fun waitingCount(approvals: Int, sessions: List<SessionInfo>): Int = approvals + sessions.count { it.state == BotState.QUESTION }
 
