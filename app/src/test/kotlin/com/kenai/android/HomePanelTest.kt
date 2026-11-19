@@ -69,7 +69,9 @@ class HomePanelTest {
         assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE)))
         assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(steps = listOf("x"))))
         assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(finalLine = "done")))
-        assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app")))
+        // KN-04 B-a: the project name alone (all the engine sends today) is not something to open.
+        assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app")))
+        assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app", steps = listOf("x"))))
         assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE).copy(finalLine = "  ", color = "#112233")))
     }
 

@@ -17,7 +17,7 @@ KN-04: Kenai shows the agents' notices and requests (Claude Code, Codex, Pi with
 
 ## Tasks
 - [x] T1 (S6) Gate «Answer» on a real approval/question; «esperando…» otherwise (core/HomePanel, ui/HomePanel, ResultHero, MainActivity:571, strings + i18n). Test-first. · neutral · test-first RED (canAnswer unresolved) then GREEN, full suite green · commit 636d46e, native review approved (review-7db43f216db575f5), 4 non-blocking findings fixed in the follow-up commit
-- [ ] T2 (S7) `hasDetails` stops counting `project`; update HomePanelTest/SessionScreenTest. · neutral
+- [x] T2 (S7) `hasDetails` stops counting `project`; update HomePanelTest/SessionScreenTest. · neutral · test-first RED then GREEN, full suite green
 - [ ] T3 (S4, S12) Map refusal codes in AppModel.onError; keep the card until `approvalResolved`/refusal; restore a claimed approval on refusal. · Risk: contract consumed both sides, security-adjacent (item 2/3), own commit
 - [ ] T4 (S3, S10, S9) Notification: approval gets Allow via biometric prompt (opens app gate), question gets «Responder»; no content in the shade. · Risk: item 2 (security), own commit
 - [ ] T5 (S5, S11) Docs/KDoc, ANDROID_LINK §7 sync, `agent_pi` pill, test «unlinked ⇒ no notification». · neutral
@@ -26,3 +26,5 @@ KN-04: Kenai shows the agents' notices and requests (Claude Code, Codex, Pi with
 ## Log
 - L1 (human, 17-19 Nov, verbatim in S1-S10; KN-04 criteria confirmed with «aa, ba»).
 - L2 (handoff): work only in this worktree; no push/merge without the human; no engine changes; ask jesscore via intercom.
+- L3 (human, 19 Nov, via jesscore, verbatim «1 si, 2 si»): (a) «Responder» on a question notification opens the app at that question, never a bare Allow in the shade. (b) Pi gets its own `agent_pi` pill/icon like Claude Code and Codex; no visual preference given, so a sober one consistent with the rest.
+- L4 (jesscore, 19 Nov): PC receiver ON (engine 83ed71e); phone d-3b099c35 paired with answers ON; jesscore runs the first live test with the human and reports the outcome.
