@@ -216,6 +216,33 @@ class DecisionOutcomeTest {
         assertNull(m.answerVisible(1_000))
     }
 
+    /**
+     * KN-04 T3 (S12): the computer refused the answer and left the request open, so «Enviando…» cannot stay — the request is on
+     * Home again, answerable — and the «Respuesta enviada» card of a refused answer goes with it.
+     */
+    @Test fun aRefusalThatLeavesTheRequestOpenTakesTheSendingCardAway() {
+        val m = machine()
+        m.decided(a, allow = true, nowMs = 1_000, wallMs = 50_000, expiresAtWallMs = 170_000)
+        m.refusedButPending("fpA")
+        assertNull("the card cannot stay in «Sending…»", m.current)
+        assertNull(m.visible(1_500))
+        assertEquals("nothing is waiting for a confirmation any more", 0, m.remembered())
+        // The same for the answer to a question, which the refusal proves never arrived.
+        m.answered("Respuesta enviada", nowMs = 2_000)
+        m.refusedButPending("fpA")
+        assertNull(m.answer)
+    }
+
+    @Test fun aRefusalLeavesAnotherRequestsResultAlone() {
+        val m = machine()
+        m.decided(a, allow = true, nowMs = 1_000, wallMs = 50_000, expiresAtWallMs = null)
+        m.resolved("fpA", shown = a, nowMs = 1_400, wallMs = 50_400, expiresAtWallMs = null)
+        // A refusal about a request that is not the one on screen says nothing about what the computer already confirmed.
+        m.refusedButPending("fpB")
+        assertEquals(OutcomeKind.ALLOWED, m.current!!.kind)
+        assertEquals("fpA", m.current!!.fingerprint)
+    }
+
     @Test fun eachResultHasItsKodaPoseAndRoleColour() {
         assertEquals(BotState.APPROVAL, DecisionOutcomes.pose(OutcomeKind.SENDING))
         assertEquals(BotState.FINISHED, DecisionOutcomes.pose(OutcomeKind.ALLOWED))

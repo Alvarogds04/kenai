@@ -1,5 +1,7 @@
 package com.kenai.android.link
 
+import com.kenai.android.core.Refusal
+import com.kenai.android.core.Refusals
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -46,6 +48,12 @@ interface LinkListener {
      * the request is back and can be decided again while it is valid. Told before the matching `onError("send", …)`.
      */
     fun onDecisionNotSent(fingerprint: String) {}
+    /**
+     * The computer refused an answer this phone sent (KN-04 T3, S12): [fingerprint] is the request it was about (null when nothing was
+     * in flight), and [refusal] says what becomes of the card — kept answerable, or gone. Told INSTEAD of `onError` for that code: a
+     * refusal of this phone's own answer is never a link error.
+     */
+    fun onAnswerRefused(fingerprint: String?, refusal: Refusal) {}
     /** A connection attempt failed before the computer answered; [consecutive] counts the failures in a row (1 for the first). */
     fun onConnectFailed(consecutive: Int) {}
     /** A link that had been working ended without the user asking for it (not for a wrong token or version: see [onError]). */
@@ -154,6 +162,13 @@ class LinkClient(
     @Volatile private var usageOffered = false
     /** The computer's welcome offered `services` on this connection. */
     @Volatile private var servicesOffered = false
+    /**
+     * The answer this phone has sent and the computer has not settled yet: the request it was about (null for a question's answer,
+     * which the app holds, not this book) and, for an approval, when it arrived so the claim can be given back with its own time.
+     * A refusal names no fingerprint, so this is what says which request it was.
+     */
+    private class Sent(val fingerprint: String, val request: ApprovalRequest?, val arrivedMs: Long)
+    @Volatile private var sent: Sent? = null
     /** The engine answered the conversation list on this connection: it has conversations, and they may be asked for. */
     @Volatile private var conversationsKnown = false
     @Volatile private var socket: Socket? = null
@@ -219,7 +234,9 @@ class LinkClient(
         val age = approvals.ageMs(fingerprint) ?: 0L
         val request = approvals.claim(fingerprint) ?: return false
         // If it cannot be sent it goes back with the time it has already used, not a fresh 120 s.
-        val back = { approvals.restore(request, clockMs() - age) }
+        val back = { approvals.restore(request, clockMs() - age); sent = null }
+        // What a refusal of this frame would be about: the error frame carries no fingerprint.
+        sent = Sent(request.fingerprint, request, clockMs() - age)
         return try {
             w.execute {
                 try {
@@ -253,8 +270,12 @@ class LinkClient(
     override fun getDiff(pillId: String, fileId: Long): Boolean =
         diffsOffered && Protocol.CAP_DIFFS in caps && queue(ClientMsg.GetDiff(pillId, fileId))
 
-    override fun answer(fingerprint: String, picks: List<List<String>>): Boolean =
-        answersOffered && Protocol.CAP_ANSWERS in caps && queue(ClientMsg.Answer(fingerprint, picks))
+    override fun answer(fingerprint: String, picks: List<List<String>>): Boolean {
+        if (!(answersOffered && Protocol.CAP_ANSWERS in caps)) return false
+        // The question itself is the app's; this only remembers whose answer a refusal would be about.
+        sent = Sent(fingerprint, null, 0L)
+        return queue(ClientMsg.Answer(fingerprint, picks)).also { if (!it) sent = null }
+    }
 
     override fun chatModels() { queue(ClientMsg.ChatModels) }
 
@@ -323,6 +344,7 @@ class LinkClient(
                 runCatching { socket?.close() }
                 socket = null
                 approvals.clear()
+                sent = null
             }
             if (fatal) running = false
             if (!running) break
@@ -336,6 +358,22 @@ class LinkClient(
             try { wake.tryAcquire(wait, java.util.concurrent.TimeUnit.MILLISECONDS) } catch (_: InterruptedException) { break }
         }
         listener.onState(LinkState.DISCONNECTED)
+    }
+
+    /**
+     * The computer refused the answer [sent] was about: the codes that leave the request open give the claim back (so it can be
+     * answered again while its 120 s last, deny included), and the app is told which request and why. `resolved` leaves it claimed:
+     * one request, one answer, whoever answered it (S4).
+     */
+    private fun refusedAnswer(refusal: Refusal) {
+        val out = sent
+        sent = null
+        if (out == null) { listener.onAnswerRefused(null, refusal); return }
+        if (Refusals.keeps(refusal)) out.request?.let { r ->
+            // A cut card stays cut: allow is never offered for it again, here or on the screen that draws it.
+            approvals.restore(if (refusal == Refusal.TRUNCATED) r.copy(truncated = true) else r, out.arrivedMs)
+        }
+        listener.onAnswerRefused(out.fingerprint, refusal)
     }
 
     private fun startPinger() = Thread({
@@ -376,7 +414,12 @@ class LinkClient(
                 }
                 is ServerMsg.Sessions -> listener.onSessions(msg.sessions)
                 is ServerMsg.Approval -> { approvals.add(msg.request); listener.onApproval(msg.request) }
-                is ServerMsg.ApprovalResolved -> { approvals.resolve(msg.fingerprint); listener.onApprovalResolved(msg.fingerprint) }
+                is ServerMsg.ApprovalResolved -> {
+                    // Settled: nothing of this request is waiting for an answer's confirmation any more.
+                    if (sent?.fingerprint == msg.fingerprint) sent = null
+                    approvals.resolve(msg.fingerprint)
+                    listener.onApprovalResolved(msg.fingerprint)
+                }
                 // Only offered to a phone that asked and was offered `answers`; ignored from a computer that did not.
                 is ServerMsg.Question -> if (answersOffered && Protocol.CAP_ANSWERS in caps) listener.onQuestion(msg.request)
                 // Only after the phone asked for it, and only on a connection that was offered `diffs`.
@@ -390,7 +433,14 @@ class LinkClient(
                 is ServerMsg.ChatDelta -> listener.onChatDelta(msg.id, msg.text)
                 is ServerMsg.ChatDone -> listener.onChatDone(msg.id, msg.text)
                 is ServerMsg.ChatError -> listener.onChatError(msg.id, msg.reason, msg.message)
-                is ServerMsg.Error -> { listener.onError(msg.code, msg.message); if (msg.code == "auth") { fatal = true; return } }
+                // An answer this phone sent was refused (KN-04 S12): the code decides what becomes of the card, and it is never also
+                // reported as a link error — the app has Kenai's own sentence for each one.
+                is ServerMsg.Error -> {
+                    val refusal = Refusals.of(msg.code)
+                    if (refusal != null && (sent != null || Refusals.onlyAnswers(refusal))) refusedAnswer(refusal)
+                    else listener.onError(msg.code, msg.message)
+                    if (msg.code == "auth") { fatal = true; return }
+                }
             }
         }
     }

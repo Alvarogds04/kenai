@@ -115,6 +115,14 @@
     <string name="question_ok">Aceptar</string>
     <string name="question_hint_answers">Responder acá está activado en Koda, en tu computadora. Si ya respondiste allá, esta pregunta se cierra sola.</string>
     <string name="question_gone">Esa pregunta ya no está esperando.</string>
+    <string name="refused_off">Las respuestas de este teléfono están desactivadas en tu computadora. Respondé este pedido allá.</string>
+    <string name="refused_resolved">Ya está resuelto: alguien lo respondió en tu computadora.</string>
+    <string name="refused_truncated">Tu computadora rechazó este permitir: ese comando llegó cortado al teléfono. Todavía podés denegarlo.</string>
+    <string name="refused_invalid_answer">Tu computadora no aceptó esa respuesta. Probá de nuevo.</string>
+    <string name="refused_bad_request">Tu computadora no entendió esa respuesta. Probá de nuevo.</string>
+    <string name="refused_unknown_request">Tu computadora ya no tiene este pedido.</string>
+    <string name="refused_not_offered">Tu computadora no está aceptando respuestas de este teléfono ahora.</string>
+    <string name="refused_expired">Este pedido caducó en tu computadora.</string>
     <string name="home_running">%1$d en curso</string>
     <string name="home_empty_title">No hay nada en curso</string>
     <string name="home_empty_hint">Iniciá un agente en tu computadora y va a aparecer acá.</string>

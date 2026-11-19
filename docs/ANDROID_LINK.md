@@ -968,6 +968,25 @@ The phone also reports its own failures through this code space as `send` (its `
 fails), which is why the desktop should not invent codes that collide with nothing: any new code must be
 descriptive and short.
 
+#### Refusing a `decision` or an `answer`
+
+A desktop may refuse an answer instead of staying silent: one `error` frame, a fixed `code`, a fixed sentence, and
+**nothing else** — no fingerprint, no label, no command, no question (abito-core PROTOCOL.md AC-07 U1). The frame
+names no request, so the phone pairs it with the answer it had in flight. Each code has the phone's own sentence:
+the engine's `message` is never shown for these, and none of them is a link error to the app.
+
+| `code` | The request | What the phone does |
+| --- | --- | --- |
+| `off` | stays open (the answers switch is off for this phone on that computer) | the card stays answerable and says answers are off there |
+| `truncated` | stays open, deny still taken (a cut card was asked to allow) | the card stays and only offers Deny from now on |
+| `invalid_answer` | stays open (not an answer the request offers) | the card stays, so a correct answer is still possible |
+| `bad_request` | stays open (not an answer the computer understands) | the card stays; on a `chatNew`/`chatOpen`/`chatDelete` the same code is still a link error |
+| `resolved` | gone (already settled, here, there or on another phone) | the card goes and this phone never answers it again (§8) |
+| `unknown_request`, `expired`, `not_offered` | gone (not one of its cards, past its deadline, `answers` never offered) | the card goes |
+
+**`approvalResolved` remains the only confirmation the phone accepts**; a refusal always means “this answer did not
+land”. The phone's own 120 s is unchanged, and a card that stays is still offered again after a reconnection.
+
 ---
 
 ## 7. Sessions
@@ -1054,7 +1073,10 @@ Details the desktop must respect:
 - The phone's clock is **its own** arrival time, never the request's `createdAt`: a computer whose clock is a few
   minutes off would otherwise make every request look expired (or immortal). `createdAt` is informational only.
 - A request is decidable **once**: the phone removes it when it sends the decision (`ApprovalBook.claim`), and
-  restores it (with the time it already used, not a fresh 120 s) only if it could not be written.
+  restores it (with the time it already used, not a fresh 120 s) only if it could not be written, or if the desktop
+  refused the decision with a code that leaves the request open — `off`, `truncated`, `invalid_answer`,
+  `bad_request` (§6, “Refusing a `decision` or an `answer`”). `resolved` never gives it back: it says someone else
+  answered, so the phone does not offer it again.
 - A request that arrives twice on one connection (the desktop re-sent it) keeps its first arrival time.
 - A link drop clears the phone's book: after the reconnect the desktop re-offers what is still pending.
 - The same 120 s rule applies to questions (§9.4).
@@ -1065,7 +1087,9 @@ Details the desktop must respect:
 The user taps Allow or Deny → the phone sends `decision` → the desktop applies it and sends `approvalResolved`
 with that fingerprint. Until `approvalResolved` arrives the phone shows its “Enviando / Permitido / Denegado”
 state; if the write failed it shows “no se pudo enviar” and puts the request back so it can be decided again
-while it is still valid. Silence is never a confirmation.
+while it is still valid. A refusal (§6) ends “Enviando” too: the codes that keep the request open leave the card
+answerable and say why in the phone's own words, and `resolved` takes the card away for good. Silence is never a
+confirmation and is never a refusal either: it leaves the card waiting out its 120 s.
 
 ### 8.4 Truncated commands
 
@@ -1099,8 +1123,10 @@ with the phone's screen lock (“Confirm it's you”); then `answer` is sent and
 | Empty question, no options | Never legal: the desktop must not send such a question (§“question” limits). |
 
 The reference desktop's `validPicks` is that table verbatim, and it answers an invalid `answer` with **silence**
-(it logs `ANSWER refused` and sends nothing), because a refusal is not a state the phone shows: the question
-simply stays until it is answered or expires. Therefore:
+(it logs `ANSWER refused` and sends nothing), because a silent refusal is not a state the phone shows: the question
+simply stays until it is answered or expires. A desktop that refuses with an `error` frame instead must use the
+codes of §6 (“Refusing a `decision` or an `answer`”): `invalid_answer`, `bad_request` and `off` keep the question
+answerable, `resolved` and `expired` take it away. Either way:
 
 - **On a valid answer the desktop MUST send `approvalResolved` with the question's fingerprint.** That is the only
   signal the phone accepts as “it is answered”.

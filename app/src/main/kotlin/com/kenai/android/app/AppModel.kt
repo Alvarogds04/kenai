@@ -27,6 +27,8 @@ import com.kenai.android.core.DecisionOutcomes
 import com.kenai.android.core.Answer
 import com.kenai.android.core.Outcome
 import com.kenai.android.core.OutcomeKind
+import com.kenai.android.core.Refusal
+import com.kenai.android.core.Refusals
 import com.kenai.android.core.WishStore
 import com.kenai.android.core.Pills
 import com.kenai.android.ui.IslandOverlay
@@ -995,12 +997,11 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     /**
      * Sends the picks; the lock check has already happened in the UI (BiometricGate). True if it was sent. What was
      * picked is not logged, not stored and not put in the history.
+     *
+     * The card stays until the computer settles the question — its own `approvalResolved`, or a refusal that says it is gone
+     * (KN-04 S4) — because sending is not the answer: the engine may have answered it already, or may refuse the picks.
      */
-    fun answerQuestion(fingerprint: String, picks: List<List<String>>): Boolean {
-        val sent = link?.answer(fingerprint, picks) ?: false
-        if (sent) removeQuestion(fingerprint)
-        return sent
-    }
+    fun answerQuestion(fingerprint: String, picks: List<List<String>>): Boolean = link?.answer(fingerprint, picks) ?: false
 
     // ── A file's change (cap `diffs`) ──────────────────────────────────────────────────
 
@@ -1057,6 +1058,51 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onDecisionNotSent(fingerprint: String) {
         main.post { outcomes.sendFailed(fingerprint); showOutcome() }
+    }
+
+    /** The computer refused an answer this phone sent (KN-04 T3, S4/S12): no generic link error, but Kenai's own sentence. */
+    override fun onAnswerRefused(fingerprint: String?, refusal: Refusal) {
+        main.post { answerRefused(fingerprint, refusal) }
+    }
+
+    /**
+     * What a refusal leaves behind. A code that keeps the request open takes «Enviando…» away and leaves the card answerable (a cut
+     * card only offers Deny from now on); a code that says the request is gone takes the card away too, and Home says the request is
+     * no longer pending, because this phone never answers it again (S4). Never the engine's sentence: [refusalSentence].
+     */
+    private fun answerRefused(fingerprint: String?, refusal: Refusal) {
+        val request = fingerprint?.let { fp -> approvals.firstOrNull { it.fingerprint == fp } }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val wall = System.currentTimeMillis()
+        val sending = outcome?.takeIf { it.fingerprint == fingerprint && it.kind == OutcomeKind.SENDING }
+        if (Refusals.keeps(refusal)) {
+            fingerprint?.let { outcomes.refusedButPending(it) }
+            if (refusal == Refusal.TRUNCATED && request != null) {
+                approvals = approvals.map { if (it.fingerprint == request.fingerprint) it.copy(truncated = true) else it }
+            }
+        } else {
+            fingerprint?.let { fp ->
+                if (request != null && sending != null) outcomes.refused(request, now, wall, expiresAtWall(fp))
+                else outcomes.refusedButPending(fp)
+                removeApproval(fp)
+                removeQuestion(fp)
+                if (wantAllow == fp) wantAllow = null
+            }
+        }
+        showOutcome()
+        message = context.getString(refusalSentence(refusal))
+    }
+
+    /** Kenai's own words for a refused answer (KN-04 S12): one short sentence per code, never the engine's. */
+    private fun refusalSentence(r: Refusal): Int = when (r) {
+        Refusal.OFF -> R.string.refused_off
+        Refusal.RESOLVED -> R.string.refused_resolved
+        Refusal.TRUNCATED -> R.string.refused_truncated
+        Refusal.INVALID_ANSWER -> R.string.refused_invalid_answer
+        Refusal.BAD_REQUEST -> R.string.refused_bad_request
+        Refusal.UNKNOWN_REQUEST -> R.string.refused_unknown_request
+        Refusal.NOT_OFFERED -> R.string.refused_not_offered
+        Refusal.EXPIRED -> R.string.refused_expired
     }
 
     /** A link that had worked ended on its own: remembered with its reason, so Home can say what happened. */

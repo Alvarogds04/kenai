@@ -98,6 +98,18 @@ class DecisionOutcomes {
         return set(Outcome(fingerprint, OutcomeKind.EXPIRED, null, shown.pillId, shown.tool, nowMs, wallMs, expiresAtWallMs))
     }
 
+    /**
+     * The computer refused the answer to [fingerprint] and left the request open (KN-04 S12: a cut card asked to allow, an answer the
+     * request does not offer, the answers switch off…). «Sending…» cannot stay — nobody said it arrived — so the result goes and the
+     * request is back on Home, answerable. The sentence saying why is Home's other message, and a refused answer's «Respuesta enviada»
+     * goes with it.
+     */
+    fun refusedButPending(fingerprint: String) {
+        decided.remove(fingerprint)
+        answer = null
+        if (current?.fingerprint == fingerprint && current?.kind == OutcomeKind.SENDING) current = null
+    }
+
     /** The phone's 120 s for [fingerprint] ran out. */
     fun expired(fingerprint: String, shown: ApprovalRequest?, nowMs: Long, wallMs: Long, expiresAtWallMs: Long?): Outcome? {
         decided.remove(fingerprint)
