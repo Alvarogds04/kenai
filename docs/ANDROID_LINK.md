@@ -621,7 +621,7 @@ An approval request: the agent is about to run a command and the user must allow
 | `pillId` | string | yes | The agent's pill id, as in `sessions`, so the phone can name it. |
 | `fingerprint` | string | yes | **64 lowercase hex characters** (§8.1). The phone refuses the whole message if it is not. Uppercase is refused too: send it lowercase. |
 | `tool` | string | yes | The tool the agent wants to use, as the agent names it (`"Bash"`, `"Write"`, `"Edit"`, `"WebFetch"…`). Shown as the eyebrow of the sheet. |
-| `command` | string | yes | What will run: the exact command line for Bash, or a one-line summary of the action. **The desktop cuts it to at most 500 characters** and flags it with `truncated`. |
+| `command` | string | yes | What will run: the exact command line for Bash, or a one-line summary of the action. **Jesscore sends the producer's own text verbatim, newlines kept, up to that producer's bound (500 characters, 2000 for structured requests)**; an older desktop may cut it at 500 and flag it with `truncated`. |
 | `createdAt` | long | yes | Epoch milliseconds when the request was made. The phone shows it in Diagnostics; it never uses it to expire the request (§8.2). |
 | `truncated` | bool | no | `true` when the desktop cut `command` at 500 characters, so the phone can say “the command was shortened”. Absent means `false` — which is also what an older desktop that never cuts sends. |
 
@@ -1069,7 +1069,7 @@ while it is still valid. Silence is never a confirmation.
 
 ### 8.4 Truncated commands
 
-`command` is cut by the desktop at **500 characters** and flagged `truncated`. The phone then shows the cut text
+A sender that cuts `command` (an older desktop at **500 characters**; jesscore does not cut) flags it `truncated`. The phone then shows the cut text
 with a notice, and never treats the shown text as the whole command: it decides about a request whose fingerprint
 was computed over the full one. A desktop may send `truncated:false` or omit the field; sending a cut command
 **without** the flag is a bug the user cannot see through the phone.

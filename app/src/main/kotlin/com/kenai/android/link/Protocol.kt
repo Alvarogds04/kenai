@@ -109,7 +109,11 @@ data class ApprovalRequest(
     val tool: String,
     val command: String,
     val createdAtMs: Long,
-    /** The computer cut the command to fit (it sends at most 500 characters): what is shown is not all of it. Additive; absent means false. */
+    /**
+     * The computer cut the command, so what is shown is not all of it: it can only be denied here. Jesscore sends the producer's
+     * text verbatim (up to 500 characters, 2000 with structured requests) and does not set this; the flag stays for older senders.
+     * Additive; absent means false.
+     */
     val truncated: Boolean = false,
 )
 

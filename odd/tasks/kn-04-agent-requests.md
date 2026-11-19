@@ -20,7 +20,7 @@ KN-04: Kenai shows the agents' notices and requests (Claude Code, Codex, Pi with
 - [x] T2 (S7) `hasDetails` stops counting `project`; update HomePanelTest/SessionScreenTest. · neutral · test-first RED then GREEN, full suite green
 - [ ] T3 (S4, S12) Map refusal codes in AppModel.onError; keep the card until `approvalResolved`/refusal; restore a claimed approval on refusal. · Risk: contract consumed both sides, security-adjacent (item 2/3), own commit
 - [ ] T4 (S3, S10, S9) Notification: approval gets Allow via biometric prompt (opens app gate), question gets «Responder»; no content in the shade. · Risk: item 2 (security), own commit
-- [ ] T5 (S5, S11) Docs/KDoc, ANDROID_LINK §7 sync, `agent_pi` pill, test «unlinked ⇒ no notification». · neutral
+- [ ] T5 (S5, S11) Docs/KDoc done (Protocol.kt, ANDROID_LINK §6/8.4); `agent_pi` pill BLOCKED: Kenai's catalog mirrors Koda's pills.ts (PillsTest) and Koda has no `agent_pi`; test «unlinked ⇒ no notification» pending. · neutral
 - [ ] T6 Live check with a real agent through jesscore once the PC receiver is on (UNVERIFIED until then).
 
 ## Log
