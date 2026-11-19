@@ -787,7 +787,10 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     /** Every card goes: the desktop offers a request again if it is still pending once we reconnect. */
     private fun dropApprovals() {
         // Every question goes, and so does the notice that said «Tiene una pregunta»: its «Responder» would land on Home for nothing.
-        questions.map { it.pillId }.distinct().forEach { notifier.cancelStatus(it) }
+        questions.map { it.pillId }.distinct().forEach {
+            notifier.cancelStatus(it)
+            if (sentSessions.none { s -> s.pillId == it }) lastState.remove(it)
+        }
         questions.forEach { expiry.remove(it.fingerprint)?.let { r -> main.removeCallbacks(r) } }
         questions = emptyList()
         sessions = withQuestions()
@@ -1013,8 +1016,13 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         questions = questions.filter { it.fingerprint != fingerprint }
         // The question is gone (answered, expired, resolved elsewhere, refused): its status notice goes with it, unless the same agent
         // is still asking something else. Otherwise a stale «Responder» lands on Home with no question behind it.
-        if (pillId != null && questions.none { it.pillId == pillId }) notifier.cancelStatus(pillId)
+        if (pillId != null && questions.none { it.pillId == pillId }) {
+            notifier.cancelStatus(pillId)
+            // An agent the computer never listed has no state but this question: forget it, so its next question is news again.
+            if (sentSessions.none { it.pillId == pillId }) lastState.remove(pillId)
+        }
         sessions = withQuestions()
+        refreshIsland()
         pushGlance()
     }
 

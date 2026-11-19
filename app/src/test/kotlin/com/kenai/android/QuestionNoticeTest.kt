@@ -49,4 +49,18 @@ class QuestionNoticeTest {
         assertTrue(model.substringAfter("override fun onApprovalResolved(").substringBefore("override fun onDecisionNotSent(").contains("removeQuestion(fingerprint)"))
         assertTrue(model.substringAfter("private fun answerRefused(").substringBefore("private fun refusalSentence").contains("removeQuestion(fp)"))
     }
+
+    // Native review R3-001/R4 (19 Nov): the second question of an agent with no `sessions` row went unannounced, because the first one left
+    // QUESTION in lastState and the synthetic row vanished without the announcer ever seeing it go.
+    @Test fun anAgentWithNoSessionsRowForgetsItsQuestionStateWhenTheQuestionGoes() {
+        val model = File("src/main/kotlin/com/kenai/android/app/AppModel.kt").readText()
+        val remove = model.substringAfter("private fun removeQuestion(").substringBefore("/** One short buzz")
+        assertTrue(
+            "the prior state of an agent the computer never listed is dropped, so its next question is news again",
+            remove.contains("sentSessions.none { it.pillId == pillId }") && remove.contains("lastState.remove(pillId)"),
+        )
+        assertTrue("and the island follows the list", remove.contains("refreshIsland()"))
+        val drop = model.substringAfter("private fun dropApprovals()").substringBefore("private fun removeApproval")
+        assertTrue("a wiped question forgets its state too", drop.contains("lastState.remove("))
+    }
 }
