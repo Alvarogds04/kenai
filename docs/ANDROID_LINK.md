@@ -623,7 +623,7 @@ An approval request: the agent is about to run a command and the user must allow
 | `tool` | string | yes | The tool the agent wants to use, as the agent names it (`"Bash"`, `"Write"`, `"Edit"`, `"WebFetch"…`). Shown as the eyebrow of the sheet. |
 | `command` | string | yes | What will run: the exact command line for Bash, or a one-line summary of the action. **Jesscore sends the producer's own text verbatim, newlines kept, up to that producer's bound (500 characters, 2000 for structured requests)**; an older desktop may cut it at 500 and flag it with `truncated`. |
 | `createdAt` | long | yes | Epoch milliseconds when the request was made. The phone shows it in Diagnostics; it never uses it to expire the request (§8.2). |
-| `truncated` | bool | no | `true` when the desktop cut `command` at 500 characters, so the phone can say “the command was shortened”. Absent means `false` — which is also what an older desktop that never cuts sends. |
+| `truncated` | bool | no | `true` when the sender cut `command` (an older desktop at 500 characters), so the phone can say “the command was shortened”. Absent means `false`; jesscore never cuts and never sets it. |
 
 ```json
 {"type":"approval","pillId":"integration_claude","fingerprint":"6f1c0e13a9b6d0c58b7c1a94e2d3f4a5b6c7d8e9f0a1b2c3d4e5f60718293a4b","tool":"Bash","command":"npm run build","createdAt":1710000000000,"truncated":false}
