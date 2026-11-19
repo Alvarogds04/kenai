@@ -306,8 +306,11 @@ class Notifications(private val context: Context) {
         const val ACTION_DENY = "com.kenai.android.DENY"
         const val EXTRA_FP = "fingerprint"
         const val EXTRA_ALLOW = "allow"
-        /** Even ids for the request, +1 for its Allow action and +2 for its «Review request»: never collides with ONGOING_ID. */
-        fun idFor(fp: String) = (fp.hashCode() and 0x3fffffff) * 2 + 2
+        /**
+         * A multiple of four for the request, +1 for its Allow action and +2 for its «Review request»: the three codes of one request
+         * never equal a code of another request (PendingIntents match by code, not extras), and never collide with ONGOING_ID.
+         */
+        fun idFor(fp: String) = (fp.hashCode() and 0x1fffffff) * 4 + 4
     }
 }
 

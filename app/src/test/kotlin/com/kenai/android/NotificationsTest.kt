@@ -58,6 +58,14 @@ class NotificationsTest {
 
     // ── How it is built ─────────────────────────────────────────────────────────────────────────────
 
+    // Review of one request must never share a PendingIntent code with another request's notification or button (T4 review R3).
+    @Test fun noTwoRequestsShareAPendingIntentCode() {
+        val ids = (0 until 2000).map { com.kenai.android.app.Notifications.idFor("fp$it") }
+        val codes = ids.flatMap { listOf(it, it + 1, it + 2) }
+        assertEquals(codes.size, codes.toSet().size)
+        assertTrue(ids.all { it % 4 == 0 && it >= 4 })
+    }
+
     @Test fun theActionsAreDenyReviewAndAnAllowThatOnlyOpensTheApp() {
         // Pure: what the shade offers for a whole request, in the order it is drawn. Deny first, Allow last and furthest from it.
         val whole = ApprovalRequest("agent_claude", "fp-1", "Bash", "ls", 0L)

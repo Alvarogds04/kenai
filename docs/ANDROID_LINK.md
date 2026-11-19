@@ -1278,7 +1278,7 @@ approval.
    `name`s are **always last segments**, and the phone strips any path a desktop sends anyway.
    The notification's own buttons decide nothing that needs consent: Deny refuses at once, Allow only opens the
    app on that request's fingerprint / screen-lock prompt, and «Responder» only opens the question — so no `decision`
-   and no `answer` can be sent from the shade, and a `truncated` request never offers Allow at all.
+   and no `answer` can be sent from the shade (the one decision it sends is Deny), and a `truncated` request never offers Allow at all.
 7. **Length limits are a defence, not decoration.** 64 KiB per line, plus every cap in this document (16
    sessions, 20 files, 20 steps of 200 characters, 200 diff lines of 400 characters, 4 questions with 8 options,
    7 service cards of 3 lines of 80 characters, 4000 characters of chat). The phone drops what breaks the shape
