@@ -97,6 +97,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     var mode by mutableStateOf(Mode.NONE); private set
     var linkState by mutableStateOf(LinkState.DISCONNECTED); private set
     var desktopName by mutableStateOf<String?>(null); private set
+    /** What the computer sent in `sessions`, before the phone's own pending questions are added (see [sessions]). */
+    private var sentSessions: List<SessionInfo> = emptyList()
     var sessions by mutableStateOf<List<SessionInfo>>(emptyList()); private set
     var approvals by mutableStateOf<List<ApprovalRequest>>(emptyList()); private set
     /** When each pending request arrived, by this phone's elapsed-time clock, for Home's "Expires in m:ss" (kenai-0.1 S9). */
@@ -775,6 +777,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     private fun dropApprovals() {
         questions.forEach { expiry.remove(it.fingerprint)?.let { r -> main.removeCallbacks(r) } }
         questions = emptyList()
+        sessions = withQuestions()
         overlay.hide()
         expiry.values.forEach { main.removeCallbacks(it) }
         expiry.clear()
@@ -910,27 +913,37 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onSessions(sessions: List<SessionInfo>) {
         main.post {
-            this.sessions = sessions
-            val minute = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
-            for (s in sessions) {
-                val prev = lastState.put(s.pillId, s.state)
-                // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
-                if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
-                val name = agentName(s.pillId)
-                val sound = com.kenai.android.character.StateColors.STATE_SOUND[s.state]
-                if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
-                val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
-                if (a.sound && sound != null) sounds.play(sound)
-                if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
-                IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
-                // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
-                if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
-                // The agent moved on: the notice about the last state is stale.
-                if (prev != s.state && s.state !in NEWSWORTHY) notifier.cancelStatus(s.pillId)
-            }
-            lastState.keys.retainAll(sessions.map { it.pillId }.toSet())
-            refreshIsland()
+            sentSessions = sessions
+            announceSessions()
         }
+    }
+
+    /**
+     * Takes [withQuestions] as the session list and announces what changed (sound, notice, island, counter). Both the computer's
+     * `sessions` frame and a `question` frame come through here, so a question with no row of its own still reaches Home and the shade.
+     */
+    private fun announceSessions() {
+        val sessions = withQuestions()
+        this.sessions = sessions
+        val minute = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
+        for (s in sessions) {
+            val prev = lastState.put(s.pillId, s.state)
+            // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
+            if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
+            val name = agentName(s.pillId)
+            val sound = com.kenai.android.character.StateColors.STATE_SOUND[s.state]
+            if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
+            val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
+            if (a.sound && sound != null) sounds.play(sound)
+            if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
+            IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
+            // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
+            if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
+            // The agent moved on: the notice about the last state is stale.
+            if (prev != s.state && s.state !in NEWSWORTHY) notifier.cancelStatus(s.pillId)
+        }
+        lastState.keys.retainAll(sessions.map { it.pillId }.toSet())
+        refreshIsland()
     }
 
     override fun onApproval(request: ApprovalRequest) {
@@ -958,6 +971,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     override fun onQuestion(request: QuestionRequest) {
         main.post {
             questions = questions.filter { it.fingerprint != request.fingerprint } + request
+            // A question is a request of its own: it shows (and is announced) even when no `sessions` row says the agent asks.
+            announceSessions()
             // The alert widget lists the phone's questions: it follows their arrival and their going (T18).
             pushGlance()
             buzzOnArrival(Arrival.QUESTION, request.pillId, request.fingerprint)
@@ -980,6 +995,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     private fun removeQuestion(fingerprint: String) {
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         questions = questions.filter { it.fingerprint != fingerprint }
+        sessions = withQuestions()
         pushGlance()
     }
 
@@ -992,6 +1008,9 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     /** The question of this agent, if one waits for the phone's answer. */
+    private fun withQuestions(): List<SessionInfo> =
+        com.kenai.android.core.SessionsWithQuestions.merge(sentSessions, questions.map { it.pillId }.toSet(), System.currentTimeMillis())
+
     fun questionFor(pillId: String): QuestionRequest? = questions.firstOrNull { it.pillId == pillId }
 
     /**

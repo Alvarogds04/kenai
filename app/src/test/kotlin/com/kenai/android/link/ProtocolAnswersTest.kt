@@ -60,4 +60,13 @@ class ProtocolAnswersTest {
         // unknown to an old phone, ignored by a new one when it was not offered (see LinkAnswersTest)
         assertEquals(setOf("chat", "details", "answers", "diffs", "usage", "services"), Protocol.CAPABILITIES.toSet())
     }
+
+    // KN-04 live probe (19 Nov): the exact frame jesscore's engine sent for a Pi ask_user_choice (no multiSelect, no description).
+    @Test fun theFrameTheEngineSentForAPiQuestionIsDecoded() {
+        val engineFp = "0d2d9131" + "ab".repeat(28)
+        val json = """{"type":"question","pillId":"agent_pi","fingerprint":"$engineFp","createdAt":1795127809141,"questions":[{"question":"PROBE: toca A o B en Kenai","options":[{"label":"A"},{"label":"B"}]}]}"""
+        val m = Wire.decodeServer(json) as ServerMsg.Question
+        assertEquals("agent_pi", m.request.pillId)
+        assertEquals(listOf("A", "B"), m.request.questions.single().options.map { it.label })
+    }
 }
