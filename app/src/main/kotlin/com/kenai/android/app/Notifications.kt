@@ -16,6 +16,7 @@ import com.kenai.android.R
 import com.kenai.android.core.Glance
 import com.kenai.android.core.GlanceBuilder
 import com.kenai.android.core.GlanceTone
+import com.kenai.android.core.NotificationPlan
 import com.kenai.android.core.OverlayPolicy
 import com.kenai.android.core.SafeText
 import com.kenai.android.core.ToolLabels
@@ -24,9 +25,13 @@ import com.kenai.android.link.ApprovalRequest
 import com.kenai.android.character.BotState
 
 /**
- * Notifications: one quiet ongoing notification for the link, and a loud one per approval.
- * Deny acts straight from the notification; «Review request» opens the app on it, where Allow takes the biometric check.
- * The command is never in a notification.
+ * Notifications: one quiet ongoing notification for the link, a loud one per approval and a quiet one per notice.
+ *
+ * What a notification may do is decided by [NotificationPlan] and nowhere else. A request offers Deny — the one button that decides
+ * anything, and it only refuses — «Review request», which opens the app on it, and Allow, which does not allow: it opens the app on
+ * that request's biometric / screen-lock prompt, the same door as the pill's (kenai-0.2 S4: Allow always asks, and an intent never
+ * carries an allow). A question offers «Responder», which opens the app on that question, where the answer goes behind the same
+ * prompt. The command is never in a notification, no option label is ever a button, and Kenai launches nothing (KN-04 T4, S9/S10).
  *
  * Each kind carries its own group key ([GROUP_APPROVALS], [GROUP_LINK], [GROUP_STATUS]) and none of them posts a summary:
  * Android only autogroups the notifications of an app that have no group of their own (kenai-0.1 T20), so an approval next
@@ -158,7 +163,7 @@ class Notifications(private val context: Context) {
         // «Claude Code necesita tu aprobación» / «Quiere ejecutar un comando» (kenai-0.1 S9, screen 5): the kind of action, never the
         // command. The time left is only in the header, counted down live, so no fixed text can disagree with it.
         val notice = SafeText.approvalNotice(agentName, r.tool)
-        val n = Notification.Builder(context, channel)
+        val b = Notification.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_kenai)
             .setContentTitle(notice.title)
             .setContentText(notice.line)
@@ -177,11 +182,25 @@ class Notifications(private val context: Context) {
             .setAutoCancel(true)
             .setTimeoutAfter(com.kenai.android.link.Protocol.APPROVAL_TTL_MS)
             .setContentIntent(open(r.fingerprint, false, id))
-            .addAction(Notification.Action.Builder(null, context.getString(R.string.action_deny), deny).build())
-            // «Revisar el pedido»: the app on that request (Home's hero, or its sheet), like a tap on the notification. Saying yes
-            // always takes the app and the fingerprint, so there is no Allow here.
-            .addAction(Notification.Action.Builder(null, context.getString(R.string.action_review), open(r.fingerprint, false, id + 1)).build())
-            .build()
+        // One button per action the plan allows, in its order. Deny sends its refusal straight from the shade; the other two only
+        // open the app, where the prompt — not the shade — is what allows (KN-04 T4, S10). Each has its own request code: Android
+        // keeps two PendingIntents apart by code plus intent, and these must not become the same one.
+        for (a in NotificationPlan.approvalActions(r)) {
+            val button = when (a) {
+                NotificationPlan.Action.DENY ->
+                    Notification.Action.Builder(null, context.getString(R.string.action_deny), deny).build()
+                // «Revisar el pedido»: the app on that request (Home's hero, or its sheet), like a tap on the notification.
+                NotificationPlan.Action.REVIEW ->
+                    Notification.Action.Builder(null, context.getString(R.string.action_review), open(r.fingerprint, false, id + 2)).build()
+                // Allow: never decided here. It opens the app on this request's own fingerprint / screen-lock prompt.
+                NotificationPlan.Action.ALLOW ->
+                    Notification.Action.Builder(null, context.getString(R.string.action_allow), open(r.fingerprint, true, id + 1)).build()
+                // A question's button is never on a request's notification: the plan gives it to showStatus.
+                NotificationPlan.Action.RESPOND -> continue
+            }
+            b.addAction(button)
+        }
+        val n = b.build()
         runCatching { nm.notify(id, n) } // POST_NOTIFICATIONS may be denied: the in-app card still works
         if (alert == OverlayPolicy.ApprovalAlert.HEADS_UP) wakeScreen()
     }
@@ -210,7 +229,7 @@ class Notifications(private val context: Context) {
                 else -> R.string.notif_finished
             },
         )
-        val n = Notification.Builder(context, CH_UPDATES)
+        val b = Notification.Builder(context, CH_UPDATES)
             .setSmallIcon(R.drawable.ic_stat_kenai)
             .setContentTitle(agentName)
             .setContentText(what)
@@ -225,7 +244,17 @@ class Notifications(private val context: Context) {
             )
             .setAutoCancel(true)
             .setContentIntent(open(null, false, 0))
-            .build()
+        // «Responder» when the agent asks something (KN-04 T4): it opens that question in the app, behind the same screen lock, and
+        // carries nothing but its pill id — never a pick, never an answer. Nothing answers from the shade.
+        for (a in NotificationPlan.statusActions(state)) {
+            if (a != NotificationPlan.Action.RESPOND) continue
+            b.addAction(
+                Notification.Action.Builder(
+                    null, context.getString(R.string.home_answer), openQuestion(pillId, statusId(pillId)),
+                ).build(),
+            )
+        }
+        val n = b.build()
         runCatching { nm.notify(STATUS_TAG, statusId(pillId), n) }
     }
 
@@ -243,6 +272,19 @@ class Notifications(private val context: Context) {
         Log.d("KenaiLaunch", "open the app on Allow (tap on the pill)")
         runCatching { open(fp, true, idFor(fp) + 1).send() }
     }
+
+    /**
+     * «Responder» on a question's notice: the app on that question, through the non-exported entry point, with the pill id as its
+     * only extra. The answer itself still takes the app's own screen-lock prompt; nothing is answered from the shade (KN-04 T4).
+     */
+    private fun openQuestion(pillId: String, code: Int): PendingIntent =
+        PendingIntent.getActivity(
+            context, code,
+            Intent(context, LaunchActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(LaunchActivity.EXTRA_QUESTION, pillId),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
     fun openApp() {
         Log.d("KenaiLaunch", "open the app (tap on the pill)")
@@ -264,12 +306,12 @@ class Notifications(private val context: Context) {
         const val ACTION_DENY = "com.kenai.android.DENY"
         const val EXTRA_FP = "fingerprint"
         const val EXTRA_ALLOW = "allow"
-        /** Even ids for the request, +1 for its «Review request» action; never collides with ONGOING_ID. */
+        /** Even ids for the request, +1 for its Allow action and +2 for its «Review request»: never collides with ONGOING_ID. */
         fun idFor(fp: String) = (fp.hashCode() and 0x3fffffff) * 2 + 2
     }
 }
 
-/** Handles the Deny button. Denying needs no biometric check: it can only make things safer. */
+/** Handles the Deny button. Denying needs no biometric check: it can only make things safer. Nothing in a notification sends an allow. */
 class ActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Notifications.ACTION_DENY) return

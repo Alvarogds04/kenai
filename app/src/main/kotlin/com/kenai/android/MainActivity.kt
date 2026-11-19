@@ -349,9 +349,10 @@ class MainActivity : ComponentActivity() {
         }
         // A tap on a widget button: a screen of the closed list ([LaunchScreen]), even when the app is locked, not connected or not paired.
         model.launch.takeScreen()?.let { screen = it.screen }
-        // A tap on the quick-settings tile while a question waits: its screen, where the answer still goes behind the screen lock.
+        // A tap on the quick-settings tile or «Responder» on a question's notification: its screen, where the answer still goes behind
+        // the screen lock. The question may be gone meanwhile (answered on the computer, expired): Home then, not a card of nothing.
         model.launch.takeQuestion()?.let { pill ->
-            if (model.questionFor(pill) != null) openQuestion(pill)
+            if (model.questionFor(pill) != null) openQuestion(pill) else { questionPill = null; screen = Screen.HOME }
         }
         val launch = model.launch.take() ?: return
         val fp = launch.fingerprint
@@ -378,7 +379,13 @@ class MainActivity : ComponentActivity() {
             request != null -> approve(request)
             // The app was closed: the desktop offers the request again once the link is back.
             model.linkState != LinkState.CONNECTED -> model.wantAllow = fp
-            else -> model.message = getString(R.string.msg_not_pending)
+            // Already decided here or on the computer, or expired: Home, in its own words. Nothing is sent for a request that is
+            // not here, and the allow is not kept for whatever arrives next (KN-04 T4: no stale allow).
+            else -> {
+                questionPill = null
+                screen = Screen.HOME
+                model.message = getString(R.string.msg_not_pending)
+            }
         }
     }
 
