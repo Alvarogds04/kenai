@@ -29,6 +29,7 @@ object Pills {
         PillDefinition("agent_amp", "Amp", "#F59E0B", PillCategory.AGENT),
         PillDefinition("agent_hermes", "Hermes", "#C084FC", PillCategory.AGENT),
         PillDefinition("agent_claude-desktop", "Claude Desktop", "#D97757", PillCategory.AGENT),
+        PillDefinition("agent_pi", "Pi", "#8B5CF6", PillCategory.AGENT),
         PillDefinition("ai_anthropic", "Anthropic", "#E07950", PillCategory.AI),
         PillDefinition("ai_google", "Google AI", "#4285F4", PillCategory.AI),
         PillDefinition("ai_openai", "OpenAI", "#10A37F", PillCategory.AI),
