@@ -267,6 +267,20 @@ class LinkClientTest {
         assertFalse(c.decide(req.fingerprint, allow = true))
     }
 
+    @Test fun resolvedOnAnotherSurfaceRemovesTheApprovalWhateverTheBy() {
+        val d = FakeDesktop(tls = true).track()
+        val rec = Recorder()
+        val c = client(d, rec)
+        c.start()
+        assertTrue(rec.connected.await(5, TimeUnit.SECONDS))
+        d.push(d.approvalJson(now))
+        val req = rec.approvals.poll(5, TimeUnit.SECONDS)!!
+        d.push("""{"type":"approvalResolved","fingerprint":"${req.fingerprint}","by":"koda","future":true}""")
+        assertEquals(req.fingerprint, rec.resolved.poll(5, TimeUnit.SECONDS))
+        assertTrue(c.approvals.active().none { it.fingerprint == req.fingerprint })
+        assertFalse(c.decide(req.fingerprint, allow = true))
+    }
+
     @Test fun reconnectsAfterTheLinkDrops() {
         val d = FakeDesktop(tls = true).track()
         val rec = Recorder()

@@ -82,4 +82,10 @@ class ProtocolTest {
         assertEquals(ServerMsg.ApprovalResolved(fp), Wire.decodeServer("""{"type":"approvalResolved","fingerprint":"$fp"}"""))
         assertEquals(ServerMsg.Welcome(1, "PC", "windows"), Wire.decodeServer("""{"type":"welcome","v":1,"desktop":"PC","os":"windows"}"""))
     }
+
+    @Test fun approvalResolvedIgnoresByAndUnknownKeys() {
+        for (by in listOf("pi", "koda", "phone")) {
+            assertEquals(ServerMsg.ApprovalResolved(fp), Wire.decodeServer("""{"type":"approvalResolved","fingerprint":"$fp","by":"$by","extra":{"a":1}}"""))
+        }
+    }
 }
