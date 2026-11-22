@@ -31,9 +31,13 @@ const scn = {
   view: "widgets", chip: null,
   follow: true, kind: "WORKING", denyOnly: false,
   onScreen: false, switchOff: false, noPermit: false,
-  islKey: "", islShownAt: -1e9, guardHit: false, flashKey: "", retracted: false, flashTimer: null, guardTimer: null,
+  islKey: "", islShownAt: -1e9, guardHit: false, flashKey: "", retracted: false,
+  flashTimer: null, retractTimer: null, guardTimer: null,
   alert: "heads", nkind: "auto", notifAt: 0, chronoTimer: null,
 };
+/** The replica's own words for an empty approval slot: the app posts no approval notification unless one is waiting
+ *  (there is no string for that state, and this line is the page's, not the app's). */
+const SCN_NO_REQUEST = "No request waiting on the phone";
 
 /* ---------- the toolbar: a View control, and a shorter subtitle so one row still fits ---------- */
 function scnToolbar() {
@@ -52,6 +56,7 @@ function scnToolbar() {
 
 function scnView(v) {
   scn.view = v;
+  scnFlashReset(); // another view is another look at the phone: a retracted flash is not a state to carry
   $("#widgets").hidden = v !== "widgets";
   $("#scenes").hidden = v === "widgets";
   document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
@@ -309,11 +314,15 @@ const scnN = (inner, o = {}) => `<article class="shd-n${o.pub ? " pub" : ""}${o.
     ${o.channel ? `<span class="shd-ch">${esc(o.channel)}</span>` : ""}</div>
   ${inner}</article>`;
 
-function scnApprovalNotice() {
+/** The request the live phone really has, with its own fp; null when nothing waits. */
+function scnApprovalLive() {
   const r = approvals()[0];
-  const agent = r ? agentName(r.pill) : SCN_DEMO.APPROVAL.agent;
-  const tool = r ? r.tool : "Bash";
-  return { fp: r ? r.fp : null, agent, line: fmt("approval_wants", toolAction(tool)) };
+  return r ? { fp: r.fp, agent: agentName(r.pill), line: fmt("approval_wants", toolAction(r.tool)) } : null;
+}
+/** The demo's sample request, for a Kind picked by hand only: in Follow nothing is invented (R2). */
+function scnApprovalSample() {
+  const d = SCN_DEMO.APPROVAL;
+  return { fp: null, agent: d.agent, line: fmt("approval_wants", toolAction("Bash")) };
 }
 function scnStatusList() {
   if (scn.nkind === "auto") return sessions().filter((s) => SCN_STATUS[s.state]).slice(0, 3);
@@ -323,10 +332,15 @@ function scnStatusList() {
   return [live || { pill: d.pill, agent: d.agent, state: scn.nkind, text: d.text }];
 }
 function scnNotifModel() {
-  const wantApproval = scn.nkind === "auto" || scn.nkind === "approval";
-  const approval = wantApproval ? scnApprovalNotice() : null;
+  let approval = null;
+  if (scn.nkind === "auto") approval = scnApprovalLive();
+  else if (scn.nkind === "approval") approval = scnApprovalLive() || scnApprovalSample();
   const statuses = scn.nkind === "link" ? [] : scnStatusList();
-  return { approval, statuses };
+  return { approval, statuses, waiting: scn.nkind === "auto" && !approval };
+}
+/** Follow with nothing pending: the slot says so; the app posts no approval notification at all in that state. */
+function scnWaitingCard() {
+  return `<p class="shd-empty" id="scn-no-request">${esc(SCN_NO_REQUEST)}</p>`;
 }
 
 function scnNotifChannel() {
@@ -362,7 +376,8 @@ function scnNotif() {
   const m = scnNotifModel();
   if (m.approval && !scn.notifAt) scn.notifAt = Date.now();
   if (!m.approval) scn.notifAt = 0;
-  const shade = [m.approval ? scnShadeCard(m.approval) : "", ...m.statuses.map(scnStatusCard),
+  const slot = m.approval ? scnShadeCard(m.approval) : "";
+  const shade = [slot || (m.waiting ? scnWaitingCard() : ""), ...m.statuses.map(scnStatusCard),
     scnLinkCard(!m.approval), // while a request waits the link notification says the link only
   ].filter(Boolean).join("");
   const headsUp = m.approval && scn.alert === "heads" ? `<div class="shd-hu" role="status">
@@ -404,6 +419,8 @@ function scnNotif() {
           <p class="scn-note">${scn.nkind === "auto" ? "Following the live phone." : `Overridden: ${esc((SCN_NKINDS.find((k) => k[0] === scn.nkind) || [])[1] || "")}.`}</p>
           <p class="scn-note">Each kind has its own group (<code>kenai.approvals</code>, <code>kenai.link</code>, <code>kenai.status</code>) and no summary, so no «2» bundle.</p>
           <p class="scn-note">No Allow here: it always takes the app and the fingerprint. The link one is ongoing and not dismissible, and while a request waits it shows the link state only.</p>
+          <p class="scn-note">Following the live phone nothing is invented: with no request pending there is no approval notification and no
+            countdown, only the link and the states the phone has. The empty line in that slot is the page's, not the app's.</p>
         </section>
       </div>
     </div>`;
@@ -445,7 +462,13 @@ function scnChronoStop() {
 }
 function scnFlashStop() {
   clearTimeout(scn.flashTimer); scn.flashTimer = null;
+  clearTimeout(scn.retractTimer); scn.retractTimer = null;
   scn.flashKey = "";
+}
+/** What the user changed can change what the pill shows: the flash's two timers and its retraction are dropped (R3). */
+function scnFlashReset() {
+  scnFlashStop();
+  scn.retracted = false;
 }
 function scnChronoTick() {
   const t = scnChronoText();
@@ -455,16 +478,20 @@ function scnChronoTick() {
   if (b) b.textContent = t;
 }
 
-/** IslandTimeline: a finished, an error and a rate limit are held 10 s, then the island curves back up in 340 ms. */
+/** IslandTimeline: a finished, an error and a rate limit are held 10 s, then the island curves back up in 340 ms.
+ *  Anything else — a persistent kind, another key, nothing — cancels both timers, so a stale flash never hides it. */
 function scnFlashWatch(spec) {
-  if (!spec || !SCN_FLASH.includes(spec.kind) || spec.key === scn.flashKey) return;
-  scn.flashKey = spec.key;
+  const key = spec && SCN_FLASH.includes(spec.kind) ? spec.key : null;
+  if (key && key === scn.flashKey) return; // the same flash, still held: its timer keeps running
+  scnFlashStop();
+  if (!key) return;
+  scn.flashKey = key;
   scn.retracted = false;
-  clearTimeout(scn.flashTimer);
   scn.flashTimer = setTimeout(() => {
+    scn.flashTimer = null;
     const el = $("#scn-isl");
     if (el) { el.classList.remove("in"); el.classList.add("out"); }
-    setTimeout(() => { scn.retracted = true; changed(); }, SCN_ISL.retractMs + 30);
+    scn.retractTimer = setTimeout(() => { scn.retractTimer = null; scn.retracted = true; changed(); }, SCN_ISL.retractMs + 30);
   }, SCN_ISL.holdMs);
 }
 
@@ -506,11 +533,11 @@ const SCN_ACTIONS = {
   "scene:lost": () => { scnReset(); setMode("paired"); st.link = "lost"; st.batterySnoozed = false; st.diag = { running: false, results: [] }; changed(); },
   "scene:notfound": () => { scnReset(); setMode("paired"); st.link = "notfound"; st.batterySnoozed = false; st.diag = { running: false, results: [] }; changed(); },
 
-  "switch:follow": () => { scn.follow = !scn.follow; scn.islKey = ""; changed(); },
-  "switch:denyOnly": () => { scn.denyOnly = !scn.denyOnly; scn.islKey = ""; changed(); },
-  "switch:onScreen": () => { scn.onScreen = !scn.onScreen; changed(); },
-  "switch:switchOff": () => { scn.switchOff = !scn.switchOff; changed(); },
-  "switch:noPermit": () => { scn.noPermit = !scn.noPermit; changed(); },
+  "switch:follow": () => { scn.follow = !scn.follow; scn.islKey = ""; scnFlashReset(); changed(); },
+  "switch:denyOnly": () => { scn.denyOnly = !scn.denyOnly; scn.islKey = ""; scnFlashReset(); changed(); },
+  "switch:onScreen": () => { scn.onScreen = !scn.onScreen; scnFlashReset(); changed(); },
+  "switch:switchOff": () => { scn.switchOff = !scn.switchOff; scnFlashReset(); changed(); },
+  "switch:noPermit": () => { scn.noPermit = !scn.noPermit; scnFlashReset(); changed(); },
   "island:again": () => { scn.retracted = false; scn.flashKey = ""; scn.islKey = ""; changed(); },
 
   "alert:heads": () => { scn.alert = "heads"; changed(); },
@@ -534,7 +561,7 @@ function scnBinder() {
     const b = e.target.closest("[data-scn]");
     if (!b || b.disabled || !root.contains(b)) return;
     const key = b.dataset.scn;
-    if (key.startsWith("kind:")) { scn.follow = false; scn.kind = key.slice(5); scn.retracted = false; scn.flashKey = ""; scn.islKey = ""; changed(); return; }
+    if (key.startsWith("kind:")) { scn.follow = false; scn.kind = key.slice(5); scn.islKey = ""; scnFlashReset(); changed(); return; }
     if (key.startsWith("nkind:")) { scn.nkind = key.slice(6); scn.notifAt = 0; changed(); return; }
     const fn = SCN_ACTIONS[key];
     if (!fn) return;

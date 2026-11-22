@@ -133,6 +133,9 @@
 .shd-t{margin:0;font-size:13px;line-height:17px;font-weight:600;color:#F2F4F7}
 .shd-x{margin:0;font-size:12px;line-height:16px;color:#CBD0D8}
 .shd-s{margin:0;font-size:11px;line-height:15px;color:#9398A1}
+/* Follow with nothing pending (R2): a stand-in in the approval slot, not a notification — the app posts none. */
+.shd-empty{margin:0;padding:9px 12px;border-radius:18px;font-size:12px;line-height:16px;color:#7d828b;
+  background:none;box-shadow:inset 0 0 0 1px #2A2C31;border:1px dashed #3A3D44}
 .shd-lines{margin:0;font-size:11px;line-height:15px;color:#9398A1}
 .shd-a{display:flex;gap:4px;padding-top:2px}
 .shd-a button{min-height:32px;padding:0 10px;border-radius:16px;font-size:12.5px;font-weight:600;color:var(--m3-primary)}
