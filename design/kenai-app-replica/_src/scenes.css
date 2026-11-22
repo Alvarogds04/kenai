@@ -1,0 +1,149 @@
+/* T15 (S18-S19): the three views beside the live phone — Screens, Over other apps and Notifications.
+   Colours: the app's own tokens for anything that is Kenai (var(--text), var(--dim), var(--pri)…), IslandSurface's values for the
+   island (#000, #F5F6F8, #9398A1, #2A2B2E) and neutral dark greys for Android's chrome (shade, lock screen) and for the fake
+   "other app", which is a stand-in, not the app. Nothing else is invented here. */
+
+/* The View control hides one column and shows the other: display:flex on .col-home would win over [hidden] otherwise. */
+[hidden]{display:none!important}
+#scenes{overflow:auto;overflow-x:hidden;scrollbar-width:thin;padding:0 6px 6px 0}
+#scenes::-webkit-scrollbar{width:8px}
+#scenes::-webkit-scrollbar-thumb{background:#26282d;border-radius:4px}
+
+/* The toolbar holds one more control and must stay on one row at 1440 px. */
+#tbar{gap:8px}
+#stepinfo{width:150px;min-width:0}
+.tbar .cb,#tbar .cb{padding:0 11px}
+.brand b{font-size:14px}
+#tbar #mode button{padding:0 8px;font-size:11.5px}
+#linksel{max-width:120px}
+.vctl{font-size:12px;color:#8a8f98;flex:none}
+.seg.vseg button{min-height:30px;padding:0 7px;font-size:11.5px}
+
+/* ---------- shared canvas pieces ---------- */
+.scn-head{display:flex;align-items:flex-start;gap:16px;padding:2px 0 4px}
+.scn-head.tight{align-items:baseline;gap:12px;padding:0 0 4px}
+.scn-head.tight h2{flex:none}
+.scn-head.tight .scn-note{flex:1;min-width:0;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scn-head h2{font-size:15px;font-weight:600;color:#f1f2f4;margin:0 0 2px}
+.scn-note{font-size:11.5px;line-height:1.45;color:#8a8f98;max-width:82ch}
+.scn-note code,.scn-now code{font-family:var(--mono);font-size:11px;color:#b6bac2}
+.scn-k{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a8f98}
+.scn-now{font-size:11.5px;color:#b6bac2;padding-bottom:8px}
+.scn-dim{color:#7d828b}
+.scn-play{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+.scn-play .seg button{min-height:30px;padding:0 12px;font-size:11.5px}
+.scn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:10px;align-items:start}
+.scn-row{display:flex;gap:20px;align-items:flex-start}
+.scn-frame{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.scn-cap{font-size:10.5px;color:#7d828b;text-align:center;max-width:360px;line-height:1.35}
+.scn-side{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.scn-side.narrow{flex:0 1 222px}
+.scn-card{background:var(--panel);border:1px solid #23252b;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.scn-card.wide{grid-column:span 2}
+.scn-card h3{margin:0;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#c9ccd2}
+.scn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.scn-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:42px;padding:6px 10px;border-radius:10px;
+  background:#17181d;border:1px solid #23252b;font-size:12.5px;line-height:16px;color:#e3e5e9;text-align:left;min-width:0;max-width:100%}
+.scn-chip:hover{border-color:#2a2c33}
+.scn-chip[aria-pressed=true]{border-color:var(--m3-primary);box-shadow:inset 0 0 0 1px rgba(138,180,255,.45);background:#1a1e26}
+.scn-chip.sm{min-height:30px;padding:4px 10px;font-size:11.5px}
+.scn-chip .dot{vertical-align:middle;margin-right:6px}
+.scn-cl{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.scn-h{display:block;font-size:10.5px;color:#7d828b;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scn-tg{display:flex;align-items:flex-start;gap:8px}
+.scn-tg .sw{min-width:44px;min-height:32px;align-self:flex-start}
+.scn-tgt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;padding-top:3px}
+.scn-tgt b{font-size:12.5px;font-weight:600;color:#e3e5e9}
+.scn-tgt span{font-size:11px;line-height:1.4;color:#8a8f98}
+.scn-badge{align-self:flex-start;display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;
+  background:#17181d;border:1px solid #23252b;font-size:11px;color:#7d828b;transition:color .5s,border-color .5s}
+.scn-badge.hit{color:var(--text);border-color:var(--m3-primary)}
+
+/* ---------- Over other apps: the fake app (a stand-in, invented) ---------- */
+.scn-phone{background:#F2F3F5;color:#14161A}
+.sbar.lite{color:#14161A}
+.sbar.lite .cam{background:#050506;box-shadow:inset 0 0 0 2px #0c0d10}
+.sbar.lite .r i{background:#14161A}
+.sbar.lite .r i.w{background:none;box-shadow:inset 0 0 0 1.5px #14161A}
+.sbar.lite .r i.w::after{background:#14161A}
+.oth{position:absolute;inset:0;padding-top:28px;display:flex;flex-direction:column;background:#F2F3F5;color:#14161A}
+.oth-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:17px;border-bottom:1px solid #E1E4E9}
+.oth-back{font-size:22px;line-height:1;color:#5B616B}
+.oth-me{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#D9DEE6;color:#3B424C;font-size:12px;display:flex;align-items:center;justify-content:center}
+.oth-list{display:flex;flex-direction:column}
+.oth-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #E7E9ED}
+.oth-av{width:38px;height:38px;border-radius:50%;background:#DDE3EC;color:#3B424C;display:flex;align-items:center;justify-content:center;font-weight:600;flex:none}
+.oth-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.oth-col b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oth-col span{font-size:12.5px;color:#5B616B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oth-when{font-size:11px;color:#7A808A;flex:none}
+#scn-isl-phone .gbar{background:transparent}
+#scn-isl-phone .gbar button::after{background:#14161A}
+
+/* ---------- Over other apps: the island (ui/IslandOverlay.kt, core/IslandGeometry.kt) ---------- */
+.isl{position:absolute;left:50%;top:0;z-index:80;width:var(--iw);height:var(--ih);background:#000;color:#F5F6F8;
+  border-radius:0 0 var(--ic) var(--ic);transform:translate(-50%,calc(-100% - 24px));
+  transition:transform 340ms cubic-bezier(.45,0,.2,1);will-change:transform}
+.isl.in{transform:translate(-50%,0)}
+.isl.out{transform:translate(-50%,calc(-100% - 24px))}
+.isl-ear{position:absolute;top:0;width:14px;height:14px;background:#000;pointer-events:none}
+.isl-ear.l{left:-14px;background:radial-gradient(circle at 0 14px,transparent 13.4px,#000 14px)}
+.isl-ear.r{right:-14px;background:radial-gradient(circle at 14px 14px,transparent 13.4px,#000 14px)}
+.isl-in{position:absolute;left:0;right:0;top:28px;bottom:0;overflow:hidden} /* under the status bar / camera cut-out */
+.isl-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.isl-col b{font-size:13px;line-height:18px;font-weight:600;color:#F5F6F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-work{display:flex;align-items:center;gap:10px;height:100%;padding:6px 18px;cursor:pointer}
+.isl-work .isl-col span{font-size:12px;line-height:16px;color:#9398A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-res{display:flex;align-items:center;gap:12px;height:100%;padding:8px 18px;cursor:pointer}
+.isl-row{display:flex;align-items:center;gap:8px;min-width:0}
+.isl-row b{font-size:14px;line-height:18px;font-weight:700;color:#F5F6F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-row span{font-size:12px;line-height:16px;color:#9398A1;flex:none}
+.isl-res p{font-size:13px;line-height:17px;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-req{display:flex;flex-direction:column;gap:10px;padding:6px 16px}
+.isl-head{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+.isl-agent{font-size:13px;line-height:18px;color:#9398A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-ask{margin:0;font-size:16px;line-height:22px;font-weight:600;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-btns{display:flex;gap:8px}
+.isl-btn{flex:1;min-width:0;height:40px;border-radius:999px;background:#2A2B2E;color:#F5F6F8;font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.isl-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.isl-btn.pri{background:var(--pri);color:var(--onpri)}
+.isl-hint{margin:0;font-size:12px;line-height:16px;color:#9398A1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-blocked{position:absolute;left:12px;right:12px;top:40px;z-index:80;display:flex;flex-direction:column;gap:4px;padding:10px 12px;
+  border-radius:12px;background:#141518;box-shadow:inset 0 0 0 1px #26282D}
+.isl-blocked code{font-family:var(--mono);font-size:12px;color:var(--danger);word-break:break-word}
+
+/* ---------- Notifications: Android's chrome as a stand-in (neutral dark greys) ---------- */
+.nt-app{position:absolute;left:0;right:0;top:0;height:300px;overflow:hidden}
+.shd{position:absolute;left:0;right:0;top:270px;bottom:0;z-index:40;display:flex;flex-direction:column;gap:8px;padding:8px 10px 0;
+  background:#121316;border-radius:22px 22px 0 0;box-shadow:0 -12px 34px rgba(0,0,0,.55);color:#E8EAED}
+.shd-grab{width:36px;height:4px;border-radius:2px;background:#3A3D44;margin:2px auto 4px}
+.shd-q{display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-size:12px;color:#CBD0D8}
+.shd-qr{display:flex;align-items:center;gap:6px;opacity:.85}
+.shd-qr i{display:inline-block;width:12px;height:9px;border-radius:2px;background:#CBD0D8}
+.shd-qr i.b{width:20px;height:10px;border-radius:3px;background:none;box-shadow:inset 0 0 0 1.5px #CBD0D8}
+.shd-list{display:flex;flex-direction:column;gap:6px;overflow:hidden;min-height:0}
+.shd-n{display:flex;flex-direction:column;gap:2px;padding:9px 12px 10px;border-radius:18px;background:#1D1F23;box-shadow:inset 0 0 0 1px #26282D}
+.shd-n.pub{background:rgba(29,31,35,.86)}
+.shd-h{display:flex;align-items:center;gap:6px;min-height:22px;font-size:11px;color:#9398A1}
+.shd-ic{flex:none;width:22px;height:22px;border-radius:50%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.shd-app{font-size:11px;color:#CBD0D8}
+.shd-chrono{font-size:11px;color:#9398A1;font-variant-numeric:tabular-nums}
+.shd-ch{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7d828b;max-width:122px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shd-t{margin:0;font-size:13px;line-height:17px;font-weight:600;color:#F2F4F7}
+.shd-x{margin:0;font-size:12px;line-height:16px;color:#CBD0D8}
+.shd-s{margin:0;font-size:11px;line-height:15px;color:#9398A1}
+.shd-lines{margin:0;font-size:11px;line-height:15px;color:#9398A1}
+.shd-a{display:flex;gap:4px;padding-top:2px}
+.shd-a button{min-height:32px;padding:0 10px;border-radius:16px;font-size:12.5px;font-weight:600;color:var(--m3-primary)}
+.shd-hu{position:absolute;left:8px;right:8px;top:34px;z-index:55;display:flex;flex-direction:column;gap:2px;padding:9px 12px 8px;
+  border-radius:20px;background:#2A2C31;box-shadow:0 12px 30px rgba(0,0,0,.6);animation:huIn .35s cubic-bezier(.2,1.2,.4,1)}
+.scn-lock{background:radial-gradient(120% 80% at 20% 0%,#2A2F4A 0%,rgba(42,47,74,0) 62%),radial-gradient(80% 70% at 100% 100%,#3A2433 0%,rgba(58,36,51,0) 62%),#0C0E12}
+.scn-lock .sbar{color:#E8EAED}
+.scn-lock .sbar .r i{background:#E8EAED}
+.scn-lock .sbar .r i.w{background:none;box-shadow:inset 0 0 0 1.5px #E8EAED}
+.scn-lock .sbar .r i.w::after{background:#E8EAED}
+.lk-clock{position:absolute;top:62px;left:0;right:0;text-align:center;font-size:56px;line-height:1;font-weight:300;letter-spacing:-1px;color:#F2F4F7}
+.lk-date{position:absolute;top:124px;left:0;right:0;text-align:center;font-size:13px;color:#CBD0D8}
+.lk-lock{position:absolute;top:148px;left:0;right:0;display:flex;justify-content:center;color:#CBD0D8}
+.scn-lock .shd-list{position:absolute;left:10px;right:10px;top:182px;bottom:28px;overflow:hidden}

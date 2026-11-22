@@ -291,6 +291,156 @@ textarea.field:focus{padding:15px}
 .kw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,.25);margin-top:2px;overflow:hidden}
 .kw-bar i{display:block;height:100%;border-radius:3px;min-width:6px}
 .kw button:focus-visible{outline:2px solid var(--w-text);outline-offset:-2px}
+
+/* T15 (S18-S19): the three views beside the live phone — Screens, Over other apps and Notifications.
+   Colours: the app's own tokens for anything that is Kenai (var(--text), var(--dim), var(--pri)…), IslandSurface's values for the
+   island (#000, #F5F6F8, #9398A1, #2A2B2E) and neutral dark greys for Android's chrome (shade, lock screen) and for the fake
+   "other app", which is a stand-in, not the app. Nothing else is invented here. */
+
+/* The View control hides one column and shows the other: display:flex on .col-home would win over [hidden] otherwise. */
+[hidden]{display:none!important}
+#scenes{overflow:auto;overflow-x:hidden;scrollbar-width:thin;padding:0 6px 6px 0}
+#scenes::-webkit-scrollbar{width:8px}
+#scenes::-webkit-scrollbar-thumb{background:#26282d;border-radius:4px}
+
+/* The toolbar holds one more control and must stay on one row at 1440 px. */
+#tbar{gap:8px}
+#stepinfo{width:150px;min-width:0}
+.tbar .cb,#tbar .cb{padding:0 11px}
+.brand b{font-size:14px}
+#tbar #mode button{padding:0 8px;font-size:11.5px}
+#linksel{max-width:120px}
+.vctl{font-size:12px;color:#8a8f98;flex:none}
+.seg.vseg button{min-height:30px;padding:0 7px;font-size:11.5px}
+
+/* ---------- shared canvas pieces ---------- */
+.scn-head{display:flex;align-items:flex-start;gap:16px;padding:2px 0 4px}
+.scn-head.tight{align-items:baseline;gap:12px;padding:0 0 4px}
+.scn-head.tight h2{flex:none}
+.scn-head.tight .scn-note{flex:1;min-width:0;max-width:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scn-head h2{font-size:15px;font-weight:600;color:#f1f2f4;margin:0 0 2px}
+.scn-note{font-size:11.5px;line-height:1.45;color:#8a8f98;max-width:82ch}
+.scn-note code,.scn-now code{font-family:var(--mono);font-size:11px;color:#b6bac2}
+.scn-k{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#8a8f98}
+.scn-now{font-size:11.5px;color:#b6bac2;padding-bottom:8px}
+.scn-dim{color:#7d828b}
+.scn-play{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+.scn-play .seg button{min-height:30px;padding:0 12px;font-size:11.5px}
+.scn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:10px;align-items:start}
+.scn-row{display:flex;gap:20px;align-items:flex-start}
+.scn-frame{display:flex;flex-direction:column;align-items:center;gap:4px;flex:none}
+.scn-cap{font-size:10.5px;color:#7d828b;text-align:center;max-width:360px;line-height:1.35}
+.scn-side{display:flex;flex-direction:column;gap:10px;flex:1;min-width:0}
+.scn-side.narrow{flex:0 1 222px}
+.scn-card{background:var(--panel);border:1px solid #23252b;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.scn-card.wide{grid-column:span 2}
+.scn-card h3{margin:0;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#c9ccd2}
+.scn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.scn-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:42px;padding:6px 10px;border-radius:10px;
+  background:#17181d;border:1px solid #23252b;font-size:12.5px;line-height:16px;color:#e3e5e9;text-align:left;min-width:0;max-width:100%}
+.scn-chip:hover{border-color:#2a2c33}
+.scn-chip[aria-pressed=true]{border-color:var(--m3-primary);box-shadow:inset 0 0 0 1px rgba(138,180,255,.45);background:#1a1e26}
+.scn-chip.sm{min-height:30px;padding:4px 10px;font-size:11.5px}
+.scn-chip .dot{vertical-align:middle;margin-right:6px}
+.scn-cl{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.scn-h{display:block;font-size:10.5px;color:#7d828b;max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.scn-tg{display:flex;align-items:flex-start;gap:8px}
+.scn-tg .sw{min-width:44px;min-height:32px;align-self:flex-start}
+.scn-tgt{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;padding-top:3px}
+.scn-tgt b{font-size:12.5px;font-weight:600;color:#e3e5e9}
+.scn-tgt span{font-size:11px;line-height:1.4;color:#8a8f98}
+.scn-badge{align-self:flex-start;display:inline-flex;align-items:center;min-height:24px;padding:0 10px;border-radius:999px;
+  background:#17181d;border:1px solid #23252b;font-size:11px;color:#7d828b;transition:color .5s,border-color .5s}
+.scn-badge.hit{color:var(--text);border-color:var(--m3-primary)}
+
+/* ---------- Over other apps: the fake app (a stand-in, invented) ---------- */
+.scn-phone{background:#F2F3F5;color:#14161A}
+.sbar.lite{color:#14161A}
+.sbar.lite .cam{background:#050506;box-shadow:inset 0 0 0 2px #0c0d10}
+.sbar.lite .r i{background:#14161A}
+.sbar.lite .r i.w{background:none;box-shadow:inset 0 0 0 1.5px #14161A}
+.sbar.lite .r i.w::after{background:#14161A}
+.oth{position:absolute;inset:0;padding-top:28px;display:flex;flex-direction:column;background:#F2F3F5;color:#14161A}
+.oth-bar{display:flex;align-items:center;gap:12px;padding:10px 16px;font-size:17px;border-bottom:1px solid #E1E4E9}
+.oth-back{font-size:22px;line-height:1;color:#5B616B}
+.oth-me{margin-left:auto;width:28px;height:28px;border-radius:50%;background:#D9DEE6;color:#3B424C;font-size:12px;display:flex;align-items:center;justify-content:center}
+.oth-list{display:flex;flex-direction:column}
+.oth-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid #E7E9ED}
+.oth-av{width:38px;height:38px;border-radius:50%;background:#DDE3EC;color:#3B424C;display:flex;align-items:center;justify-content:center;font-weight:600;flex:none}
+.oth-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.oth-col b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oth-col span{font-size:12.5px;color:#5B616B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.oth-when{font-size:11px;color:#7A808A;flex:none}
+#scn-isl-phone .gbar{background:transparent}
+#scn-isl-phone .gbar button::after{background:#14161A}
+
+/* ---------- Over other apps: the island (ui/IslandOverlay.kt, core/IslandGeometry.kt) ---------- */
+.isl{position:absolute;left:50%;top:0;z-index:80;width:var(--iw);height:var(--ih);background:#000;color:#F5F6F8;
+  border-radius:0 0 var(--ic) var(--ic);transform:translate(-50%,calc(-100% - 24px));
+  transition:transform 340ms cubic-bezier(.45,0,.2,1);will-change:transform}
+.isl.in{transform:translate(-50%,0)}
+.isl.out{transform:translate(-50%,calc(-100% - 24px))}
+.isl-ear{position:absolute;top:0;width:14px;height:14px;background:#000;pointer-events:none}
+.isl-ear.l{left:-14px;background:radial-gradient(circle at 0 14px,transparent 13.4px,#000 14px)}
+.isl-ear.r{right:-14px;background:radial-gradient(circle at 14px 14px,transparent 13.4px,#000 14px)}
+.isl-in{position:absolute;left:0;right:0;top:28px;bottom:0;overflow:hidden} /* under the status bar / camera cut-out */
+.isl-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.isl-col b{font-size:13px;line-height:18px;font-weight:600;color:#F5F6F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-work{display:flex;align-items:center;gap:10px;height:100%;padding:6px 18px;cursor:pointer}
+.isl-work .isl-col span{font-size:12px;line-height:16px;color:#9398A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-res{display:flex;align-items:center;gap:12px;height:100%;padding:8px 18px;cursor:pointer}
+.isl-row{display:flex;align-items:center;gap:8px;min-width:0}
+.isl-row b{font-size:14px;line-height:18px;font-weight:700;color:#F5F6F8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-row span{font-size:12px;line-height:16px;color:#9398A1;flex:none}
+.isl-res p{font-size:13px;line-height:17px;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-req{display:flex;flex-direction:column;gap:10px;padding:6px 16px}
+.isl-head{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+.isl-agent{font-size:13px;line-height:18px;color:#9398A1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-ask{margin:0;font-size:16px;line-height:22px;font-weight:600;color:#fff;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-btns{display:flex;gap:8px}
+.isl-btn{flex:1;min-width:0;height:40px;border-radius:999px;background:#2A2B2E;color:#F5F6F8;font-size:14px;font-weight:600;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.isl-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.isl-btn.pri{background:var(--pri);color:var(--onpri)}
+.isl-hint{margin:0;font-size:12px;line-height:16px;color:#9398A1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.isl-blocked{position:absolute;left:12px;right:12px;top:40px;z-index:80;display:flex;flex-direction:column;gap:4px;padding:10px 12px;
+  border-radius:12px;background:#141518;box-shadow:inset 0 0 0 1px #26282D}
+.isl-blocked code{font-family:var(--mono);font-size:12px;color:var(--danger);word-break:break-word}
+
+/* ---------- Notifications: Android's chrome as a stand-in (neutral dark greys) ---------- */
+.nt-app{position:absolute;left:0;right:0;top:0;height:300px;overflow:hidden}
+.shd{position:absolute;left:0;right:0;top:270px;bottom:0;z-index:40;display:flex;flex-direction:column;gap:8px;padding:8px 10px 0;
+  background:#121316;border-radius:22px 22px 0 0;box-shadow:0 -12px 34px rgba(0,0,0,.55);color:#E8EAED}
+.shd-grab{width:36px;height:4px;border-radius:2px;background:#3A3D44;margin:2px auto 4px}
+.shd-q{display:flex;align-items:center;justify-content:space-between;padding:0 4px;font-size:12px;color:#CBD0D8}
+.shd-qr{display:flex;align-items:center;gap:6px;opacity:.85}
+.shd-qr i{display:inline-block;width:12px;height:9px;border-radius:2px;background:#CBD0D8}
+.shd-qr i.b{width:20px;height:10px;border-radius:3px;background:none;box-shadow:inset 0 0 0 1.5px #CBD0D8}
+.shd-list{display:flex;flex-direction:column;gap:6px;overflow:hidden;min-height:0}
+.shd-n{display:flex;flex-direction:column;gap:2px;padding:9px 12px 10px;border-radius:18px;background:#1D1F23;box-shadow:inset 0 0 0 1px #26282D}
+.shd-n.pub{background:rgba(29,31,35,.86)}
+.shd-h{display:flex;align-items:center;gap:6px;min-height:22px;font-size:11px;color:#9398A1}
+.shd-ic{flex:none;width:22px;height:22px;border-radius:50%;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.shd-app{font-size:11px;color:#CBD0D8}
+.shd-chrono{font-size:11px;color:#9398A1;font-variant-numeric:tabular-nums}
+.shd-ch{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#7d828b;max-width:122px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shd-t{margin:0;font-size:13px;line-height:17px;font-weight:600;color:#F2F4F7}
+.shd-x{margin:0;font-size:12px;line-height:16px;color:#CBD0D8}
+.shd-s{margin:0;font-size:11px;line-height:15px;color:#9398A1}
+.shd-lines{margin:0;font-size:11px;line-height:15px;color:#9398A1}
+.shd-a{display:flex;gap:4px;padding-top:2px}
+.shd-a button{min-height:32px;padding:0 10px;border-radius:16px;font-size:12.5px;font-weight:600;color:var(--m3-primary)}
+.shd-hu{position:absolute;left:8px;right:8px;top:34px;z-index:55;display:flex;flex-direction:column;gap:2px;padding:9px 12px 8px;
+  border-radius:20px;background:#2A2C31;box-shadow:0 12px 30px rgba(0,0,0,.6);animation:huIn .35s cubic-bezier(.2,1.2,.4,1)}
+.scn-lock{background:radial-gradient(120% 80% at 20% 0%,#2A2F4A 0%,rgba(42,47,74,0) 62%),radial-gradient(80% 70% at 100% 100%,#3A2433 0%,rgba(58,36,51,0) 62%),#0C0E12}
+.scn-lock .sbar{color:#E8EAED}
+.scn-lock .sbar .r i{background:#E8EAED}
+.scn-lock .sbar .r i.w{background:none;box-shadow:inset 0 0 0 1.5px #E8EAED}
+.scn-lock .sbar .r i.w::after{background:#E8EAED}
+.lk-clock{position:absolute;top:62px;left:0;right:0;text-align:center;font-size:56px;line-height:1;font-weight:300;letter-spacing:-1px;color:#F2F4F7}
+.lk-date{position:absolute;top:124px;left:0;right:0;text-align:center;font-size:13px;color:#CBD0D8}
+.lk-lock{position:absolute;top:148px;left:0;right:0;display:flex;justify-content:center;color:#CBD0D8}
+.scn-lock .shd-list{position:absolute;left:10px;right:10px;top:182px;bottom:28px;overflow:hidden}
 </style></head>
 <body>
 <header class="tbar" id="tbar"></header>
@@ -301,13 +451,14 @@ textarea.field:focus{padding:15px}
     <div class="hint" id="hint">The phone is live: tap it like the real app.</div>
   </div>
   <section id="widgets" class="col-home" aria-label="Home screen widgets"></section>
+  <section id="scenes" class="col-home" aria-label="Screens, over other apps, notifications" hidden></section>
 </main>
 <script>
 /* ---- data.js ---- */
 "use strict";
 /* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
 /* Data copied from the app. Strings: res/values/strings.xml (injected verbatim by _build.mjs). */
-const S = {"app_name":"Kenai","koda_description":"Koda, Kenai's cat","about_unofficial":"Kenai for Android. Part of its code comes from Coucou for Android by Rhytam Biswas (MIT License).","about_repo":"github.com/Alvarogds04/kenai","licences_title":"Licences","licences_intro":"Kenai's code is MIT-licensed; part of it comes from Coucou for Android (MIT). The libraries are listed with their licence.","about_assets":"Kenai does not use Coucou's name, the Mochi character, Coucou's icon or its sounds, which are © Louis Raillé. The code taken from Coucou for Android is © Rhytam Biswas, released under the MIT License.","action_allow":"Allow","action_deny":"Deny","action_close":"Close","widget_description":"Who is working and what waits for you.","widget_glance_label":"Agents summary","widget_solo_label":"At a glance","widget_list_label":"All your agents","widget_solo_description":"Kenai and your most urgent agent.","widget_list_description":"Every agent and what it is doing.","widget_character_description":"Kenai, %1$s","widget_badge_description":"%1$d waiting for you","widget_big_label":"Big status","widget_big_description":"Kenai, your plan usage and quick buttons.","widget_pill_label":"One-line status","widget_pill_description":"Your most urgent agent on one line.","widget_alert_label":"Approvals waiting","widget_alert_description":"Calm, until an agent needs your approval.","widget_ring_label":"Plan usage","widget_ring_description":"How much of your Claude or Codex plan is used.","widget_today_label":"Finished today","widget_today_description":"Agent tasks finished today.","widget_mood_label":"Agents' mood","widget_mood_description":"Just Kenai's face, in your agents' mood.","widget_today_unit":"done today","widget_usage_off":"Turn on plan usage in the app","widget_big_usage_off":"Plan usage is off","widget_big_usage_off_line":"Turn it on in the app","widget_big_not_connected":"Not connected","widget_ring_cd":"%1$s plan usage, %2$d percent used","widget_today_cd":"%1$d agent tasks finished today","tile_waiting":"%1$d waiting","widget_pill_cd":"%1$s, %2$s","widget_initial_title":"Kenai","widget_initial_line":"Waiting for your agents","widget_initial_count":"0","widget_btn_home":"Home","widget_btn_chat":"Chat","widget_btn_settings":"Settings","widget_btn_recent":"Recent","widget_btn_session":"Top agent","widget_btn_pair":"Pair again","widget_btn_home_cd":"Open Kenai","widget_btn_chat_cd":"Open Chat","widget_btn_settings_cd":"Open Settings","widget_btn_recent_cd":"Open recent decisions","widget_btn_session_cd":"Open the top agent","widget_btn_pair_cd":"Pair again with your computer","widget_sample_claude":"Claude Code","widget_sample_claude_short":"Claude","widget_sample_codex":"Codex","widget_sample_gemini":"Gemini CLI","widget_sample_approval":"Waiting for your approval","widget_sample_working":"Working","widget_sample_finished":"Finished","widget_sample_header":"Waiting for you","widget_sample_one":"1","widget_sample_two_waiting":"2 waiting","widget_sample_ring_pct":"68%","widget_sample_ring_label":"Claude · 5 h","widget_sample_pct_a":"68%","widget_sample_pct_b":"41%","widget_sample_codex_week":"Codex · week","widget_sample_today":"5","widget_sample_two_agents":"2 agents working","widget_sample_thinking":"Thinking","widget_sample_idle":"Idle","widget_sample_waiting":"Waiting","status_connected":"Connected","status_connecting":"Connecting…","status_not_connected":"Not connected","demo_mode":"Demo mode","demo_try":"Try demo mode","pair_button":"Pair","approval_title":"Approval needed","action_unpair":"Disconnect this computer","demo_leave":"Leave demo mode","gallery":"Kenai gallery","pair_paste_short":"Paste the link","pairing_headline":"Connect to your computer","pairing_help":"On your computer open Koda, then Settings, Android phone, and scan the code it shows.","pairing_footer":"Kenai for Android.","pairing_about":"About","paste_title":"Paste the pairing link","paste_hint":"Copy it from Koda on your computer (Settings, Android phone).","approval_later":"Not now","approval_wants":"Wants to %1$s","approval_too_long":"Command is longer than shown","approval_on_computer":"Answer this request on your computer. Allow is not offered here, because the whole command cannot be shown on the phone.","approval_caution":"Allow only if you asked for this.","approval_show_cmd":"Show exact command","approval_hide_cmd":"Hide exact command","question_title":"%1$s has a question","question_body":"Answer it on your computer. To answer here, turn on \"Let the phone answer Claude Code's questions\" in Koda on your computer (Settings > Android phone).","question_see_answer":"Answer the question","question_position":"Question %1$d of %2$d","question_pick_many":"Pick one or more","question_next":"Next","question_back":"Back","question_send":"Send answer","question_confirm_title":"Send your answer","question_sent":"Answer sent","question_not_sent":"The answer could not be sent. Your computer may have answered already.","question_see":"See the question","question_ok":"OK","home_running":"%1$d running","home_empty_title":"Nothing is running","home_empty_hint":"Start an agent on your computer and it shows up here.","recent_title":"Recent","recent_all":"See all","status_looking":"Looking for your computer…","discovery_title":"Can't find your computer","discovery_body":"Is the phone on the same Wi-Fi as the computer? Is the computer awake, with Koda running and the phone link on, and does Windows allow Koda on private networks? Some hotspots and guest networks block devices from finding each other (client isolation).","discovery_pair_again":"Pair again","discovery_enter_address":"Enter address manually","address_title":"Computer address","address_hint":"For example 192.168.1.20 or 192.168.1.20:47821. Your pairing stays as it is: only the address changes.","address_save":"Use this address","address_bad":"That is not a valid address.","chat_off_not_paired_title":"Not connected","chat_off_not_paired_body":"Pair your computer first, then you can chat through it.","chat_off_offline_title":"Not connected","chat_off_offline_body":"Your computer cannot be reached right now. Check that it is on, with Koda running, on the same Wi-Fi.","chat_off_title":"Chat is off on your computer","chat_nomodel_title":"Your computer has no model allowed for the phone yet","chat_off_hint":"On your computer open Koda > Settings > Android phone, turn on \"Let the phone chat with my AI providers\" and tick a model.","chat_go_pair":"Connect to your computer","chat_go_settings":"Open Settings","tab_home":"Home","tab_chat":"Chat","tab_settings":"Settings","design_note":"The building blocks of the new look. No other screen uses them yet.","pair_clipboard":"Paste from clipboard","notif_unlock":"Unlock to see the request","msg_not_pending":"That request is no longer pending.","msg_bad_link":"That is not a Kenai pairing link.","msg_rejected":"The desktop rejected this phone. Pair again.","msg_link_error":"Link error","msg_need_lock":"Set a screen lock to approve from your phone.","approval_hint":"Allow on the phone asks for the fingerprint or the screen lock. Deny does not.","overlay_title":"Show Kenai over other apps","overlay_hint":"An island drops from the top of the screen while an agent works, then goes back up.","msg_overlay_permission":"Allow “display over other apps” for Kenai, then come back.","settings_title":"Settings","settings_sound":"Kenai's sounds","settings_volume":"Volume","settings_vibrate":"Vibrate","settings_vibrate_hint":"A short buzz when a request or a question arrives, even in quiet hours.","notify_done":"When an agent finishes or fails","notify_done_hint":"A quiet notice in the notification shade, and the pill if it is on. Permission requests and questions always notify you.","quiet_hours":"Quiet hours","quiet_hint":"No sound and no pill for finished or failed agents. Requests and questions still come through.","quiet_from":"From","quiet_to":"To","history_title":"Activity","history_empty":"Your decisions will appear here. They stay on this phone.","history_today":"Today","history_yesterday":"Yesterday","history_clear":"Clear history","history_note":"Kept only on this phone, never sent anywhere.","action_back":"Back","notif_finished":"Finished","notif_error":"Stopped on an error","notif_question":"Has a question","notif_ratelimit":"Hit a usage limit","island_answer_on_pc":"Tap to open Kenai, or answer on your computer","state_ready":"Ready","state_working":"Working","state_thinking":"Thinking","state_searching":"Searching","state_approval":"Waiting for your OK","state_question":"Has a question","state_error":"Error","state_finished":"Finished","state_ratelimit":"Limit reached","state_sleeping":"Sleeping","state_dizzy":"Dizzy","emote_love":"Loving","emote_surprised":"Surprised","emote_proud":"Proud","emote_wink":"Wink","emote_yawn":"Yawning","emote_happy":"Happy","emote_annoyed":"Annoyed","agent_kind":"Agent","link_pair":"Pair with your computer","link_approval":"Review request","overlay_missing":"Allow “display over other apps” so the island can show.","overlay_allow":"Allow","settings_section_computer":"Computer","settings_section_sound":"Sound","settings_section_notices":"Notices","settings_section_display":"Display","settings_section_more":"More","settings_section_about":"About","settings_computer_none":"No computer connected yet. You can pair one from the Home screen.","action_cancel":"Cancel","chat_title":"Chat","chat_note":"Uses your computer's API key. Your computer sends your messages to the provider you pick; the key never reaches this phone.","chat_empty":"Ask anything. Your message goes to the model you pick above the box.","chat_placeholder":"Ask me anything…","chat_send":"Send","chat_stop":"Stop","chat_clear":"Clear","chat_clear_title":"Clear this chat?","chat_clear_body":"This removes the conversation from this phone and tells your computer to forget it.","chat_model":"Model: %1$s","chat_count":"%1$d / %2$d","chat_ref_too_long":"That message is too long.","chat_ref_no_model":"Pick a model first.","chat_ref_busy":"Wait for the answer to finish, or stop it.","chat_ref_offline":"Not connected to your computer.","chat_err_off":"Chat is turned off on your computer.","chat_err_not_allowed":"That model is not allowed for the phone.","chat_err_busy":"Another answer is still being written.","chat_err_rate":"Too many messages. Try again in a few minutes.","chat_err_too_long":"The message is too long.","chat_err_empty":"Nothing to send.","chat_err_no_key":"Your computer has no key for that provider.","chat_err_unreachable":"Your computer could not reach the provider.","chat_err_auth":"The provider refused your computer's key.","chat_err_provider":"The provider returned an error.","chat_err_canceled":"Stopped.","chat_err_internal":"Something went wrong.","chat_err_connection":"The connection to your computer was lost.","chat_err_interrupted":"Stopped when the app closed.","session_details":"Details","session_last":"Last message","session_steps":"Steps","session_step_working":"Working","session_step_done":"Step done","session_no_steps":"No steps yet.","session_hint":"Turn on “Show session details on the phone” in your computer's Settings to see the steps and the last message here.","session_ended":"This session is no longer running.","session_project":"Project: %1$s","scan_button":"Scan QR code","scan_title":"Scan QR code","scan_hint":"Point the camera at the code in your computer's Settings → Android phone.","scan_not_pairing":"That is not a Kenai pairing code","scan_why":"Kenai uses the camera only on this screen, to read the pairing code. Nothing is saved or sent.","scan_allow":"Allow camera","scan_blocked":"The camera is off for Kenai. Turn it on in Android's settings, or paste the link instead.","scan_open_settings":"Open settings","scan_paste_instead":"Paste the link instead","scan_camera_error":"The camera could not start. Paste the link instead.","pair_confirm_title":"Pair with %1$s?","pair_confirm_body":"%1$s:%2$d on your network. Only pair with a computer you own.","pair_confirm_replace":"This replaces the computer you are connected to now.","pair_confirm_ok":"Pair","files_heading":"Files changed","files_counts":"+%1$d −%2$d","files_new":"New file","file_loading":"Loading the changes…","file_failed":"Could not load this change. Check the connection and try again.","file_gone":"This change is no longer available on your computer.","file_too_large":"This change is too large to show line by line.","file_truncated":"Only the first 200 lines are shown.","file_empty":"Nothing to show.","file_close":"Close","file_summary":"+%1$d added, −%2$d removed","usage_title":"Plan usage","usage_claude":"Claude","usage_codex":"Codex","usage_five_hours":"5 hours","usage_week":"Week","usage_pct":"%1$d%%","usage_resets_now":"Resetting…","usage_resets_hm":"Resets in %1$d h %2$d","usage_resets_m":"Resets in %1$d min","usage_resets_week":"Resets %1$s","usage_credits":"%1$d free resets available","usage_desc":"%1$s, %2$s: %3$d percent used","services_title":"Services","diag_title":"Can't connect?","diag_intro":"These checks find where the connection breaks. Nothing secret is shown or copied: the report hides the pairing code, the fingerprint, the computer's name and its full address.","diag_run":"Check again","diag_running":"Checking…","diag_copy":"Copy report","diag_copied":"Report copied","diag_ok":"OK","diag_problem":"Problem","diag_skipped":"Not checked","battery_title":"Keep the connection while the screen is off","battery_body":"Android pauses background apps to save battery. If requests stop reaching you when the phone is locked, let Kenai run without restrictions. This is only a suggestion.","battery_open":"Open settings","battery_not_now":"Not now"};
+const S = {"app_name":"Kenai","koda_description":"Koda, Kenai's cat","about_unofficial":"Kenai for Android. Part of its code comes from Coucou for Android by Rhytam Biswas (MIT License).","about_repo":"github.com/Alvarogds04/kenai","licences_title":"Licences","licences_intro":"Kenai's code is MIT-licensed; part of it comes from Coucou for Android (MIT). The libraries are listed with their licence.","about_assets":"Kenai does not use Coucou's name, the Mochi character, Coucou's icon or its sounds, which are © Louis Raillé. The code taken from Coucou for Android is © Rhytam Biswas, released under the MIT License.","action_allow":"Allow","action_deny":"Deny","action_review":"Review request","action_close":"Close","widget_description":"Who is working and what waits for you.","widget_glance_label":"Agents summary","widget_solo_label":"At a glance","widget_list_label":"All your agents","widget_solo_description":"Kenai and your most urgent agent.","widget_list_description":"Every agent and what it is doing.","widget_character_description":"Kenai, %1$s","widget_badge_description":"%1$d waiting for you","widget_big_label":"Big status","widget_big_description":"Kenai, your plan usage and quick buttons.","widget_pill_label":"One-line status","widget_pill_description":"Your most urgent agent on one line.","widget_alert_label":"Approvals waiting","widget_alert_description":"Calm, until an agent needs your approval.","widget_ring_label":"Plan usage","widget_ring_description":"How much of your Claude or Codex plan is used.","widget_today_label":"Finished today","widget_today_description":"Agent tasks finished today.","widget_mood_label":"Agents' mood","widget_mood_description":"Just Kenai's face, in your agents' mood.","widget_today_unit":"done today","widget_usage_off":"Turn on plan usage in the app","widget_big_usage_off":"Plan usage is off","widget_big_usage_off_line":"Turn it on in the app","widget_big_not_connected":"Not connected","widget_ring_cd":"%1$s plan usage, %2$d percent used","widget_today_cd":"%1$d agent tasks finished today","tile_waiting":"%1$d waiting","widget_pill_cd":"%1$s, %2$s","widget_initial_title":"Kenai","widget_initial_line":"Waiting for your agents","widget_initial_count":"0","widget_btn_home":"Home","widget_btn_chat":"Chat","widget_btn_settings":"Settings","widget_btn_recent":"Recent","widget_btn_session":"Top agent","widget_btn_pair":"Pair again","widget_btn_home_cd":"Open Kenai","widget_btn_chat_cd":"Open Chat","widget_btn_settings_cd":"Open Settings","widget_btn_recent_cd":"Open recent decisions","widget_btn_session_cd":"Open the top agent","widget_btn_pair_cd":"Pair again with your computer","widget_sample_claude":"Claude Code","widget_sample_claude_short":"Claude","widget_sample_codex":"Codex","widget_sample_gemini":"Gemini CLI","widget_sample_approval":"Waiting for your approval","widget_sample_working":"Working","widget_sample_finished":"Finished","widget_sample_header":"Waiting for you","widget_sample_one":"1","widget_sample_two_waiting":"2 wait for you","widget_sample_pc":"Your PC","widget_sample_ring_pct":"68%","widget_sample_ring_label":"Claude · 5 h","widget_sample_pct_a":"68%","widget_sample_pct_b":"41%","widget_sample_codex_week":"Codex · week","widget_sample_today":"5","widget_sample_two_agents":"2 agents working","widget_sample_thinking":"Thinking","widget_sample_idle":"Idle","widget_sample_waiting":"Waiting","status_connected":"Connected","status_connecting":"Connecting…","status_not_connected":"Not connected","demo_mode":"Demo mode","demo_try":"Try demo mode","pair_button":"Pair","approval_title":"Approval needed","action_unpair":"Disconnect this computer","demo_leave":"Leave demo mode","gallery":"Kenai gallery","pair_paste_short":"Paste the link","pairing_headline":"Connect to your computer","pairing_help":"On your computer open Koda, then Settings, Android phone, and scan the code it shows.","pairing_footer":"Kenai for Android.","pairing_about":"About","paste_title":"Paste the pairing link","paste_hint":"Copy it from Koda on your computer (Settings, Android phone).","approval_later":"Not now","approval_wants":"Wants to %1$s","approval_too_long":"Command is longer than shown","approval_on_computer":"Answer this request on your computer. Allow is not offered here, because the whole command cannot be shown on the phone.","approval_caution":"Allow only if you asked for this.","approval_show_cmd":"Show exact command","approval_hide_cmd":"Hide exact command","question_title":"%1$s has a question","question_body":"Answer it on your computer. To answer here, turn on \"Let the phone answer Claude Code's questions\" in Koda on your computer (Settings > Android phone).","question_see_answer":"Answer the question","question_position":"Question %1$d of %2$d","question_pick_many":"Pick one or more","question_next":"Next","question_back":"Back","question_send":"Send answer","question_sent":"Answer sent","question_not_sent":"The answer could not be sent. Your computer may have answered already.","question_see":"See the question","question_ok":"OK","question_hint_answers":"Answering here is turned on in Koda, on your computer. If you already answered there, this question closes by itself.","question_gone":"That question is no longer waiting.","home_running":"%1$d running","home_empty_title":"Nothing is running","home_empty_hint":"Start an agent on your computer and it shows up here.","recent_title":"Recent","recent_all":"See all","status_looking":"Looking for your computer…","discovery_title":"Can't find your computer","discovery_body":"Is the phone on the same Wi-Fi as the computer? Is the computer awake, with Koda running and the phone link on, and does Windows allow Koda on private networks? Some hotspots and guest networks block devices from finding each other (client isolation).","discovery_pair_again":"Pair again","discovery_enter_address":"Enter address manually","address_title":"Computer address","address_hint":"For example 192.168.1.20 or 192.168.1.20:47821. Your pairing stays as it is: only the address changes.","address_save":"Use this address","address_bad":"That is not a valid address.","chat_off_not_paired_title":"Not connected","chat_off_not_paired_body":"Pair your computer first, then you can chat through it.","chat_off_offline_title":"Not connected","chat_off_offline_body":"Your computer cannot be reached right now. Check that it is on, with Koda running, on the same Wi-Fi.","chat_engine_down_title":"Your engine is not responding","chat_engine_down_body":"You can read the conversations you already opened. To write, wait for the engine to come back.","chat_off_title":"Chat is off on your computer","chat_nomodel_title":"Your computer has no model allowed for the phone yet","chat_off_hint":"On your computer open Koda > Settings > Android phone, turn on \"Let the phone chat with my AI providers\" and tick a model.","chat_go_pair":"Connect to your computer","chat_go_settings":"Open Settings","tab_home":"Home","tab_chat":"Chat","tab_settings":"Settings","design_note":"The building blocks of the new look. No other screen uses them yet.","pair_clipboard":"Paste from clipboard","notif_unlock":"Unlock to see the request","msg_not_pending":"That request is no longer pending.","msg_bad_link":"That is not a Kenai pairing link.","msg_rejected":"The desktop rejected this phone. Pair again.","msg_link_error":"Link error","msg_need_lock":"Set a screen lock to approve from your phone.","approval_hint":"Allow on the phone asks for the fingerprint or the screen lock. Deny does not.","overlay_title":"Show Kenai over other apps","overlay_hint":"An island drops from the top of the screen while an agent works, then goes back up.","msg_overlay_permission":"Allow “display over other apps” for Kenai, then come back.","settings_title":"Settings","settings_sound":"Kenai's sounds","settings_volume":"Volume","settings_vibrate":"Vibrate","settings_vibrate_hint":"A short buzz when a request or a question arrives, even in quiet hours.","notify_done":"When an agent finishes or fails","notify_done_hint":"A quiet notice in the notification shade, and the pill if it is on. Permission requests and questions always notify you.","quiet_hours":"Quiet hours","quiet_hint":"No sound and no pill for finished or failed agents. Requests and questions still come through.","quiet_from":"From","quiet_to":"To","history_title":"Activity","history_empty":"Your decisions will appear here. They stay on this phone.","history_today":"Today","history_yesterday":"Yesterday","history_clear":"Clear history","history_note":"Kept only on this phone, never sent anywhere.","action_back":"Back","notif_finished":"Finished","notif_error":"Stopped on an error","notif_question":"Has a question","notif_ratelimit":"Hit a usage limit","island_answer_on_pc":"Tap to open Kenai, or answer on your computer","state_ready":"Ready","state_working":"Working","state_thinking":"Thinking","state_searching":"Searching","state_approval":"Waiting for your OK","state_question":"Has a question","state_error":"Error","state_finished":"Finished","state_ratelimit":"Limit reached","state_sleeping":"Sleeping","state_dizzy":"Dizzy","emote_love":"Loving","emote_surprised":"Surprised","emote_proud":"Proud","emote_wink":"Wink","emote_yawn":"Yawning","emote_happy":"Happy","emote_annoyed":"Annoyed","agent_kind":"Agent","link_pair":"Pair with your computer","link_approval":"Review request","overlay_missing":"Allow “display over other apps” so the island can show.","overlay_allow":"Allow","settings_section_computer":"Computer","settings_section_sound":"Sound","settings_section_notices":"Notices","settings_section_display":"Display","settings_section_more":"More","settings_section_about":"About","settings_computer_none":"No computer connected yet. You can pair one from the Home screen.","action_cancel":"Cancel","chat_title":"Chat","chat_note":"Uses your computer's API key. Your computer sends your messages to the provider you pick; the key never reaches this phone.","chat_empty":"Ask anything. Your message goes to the model you pick above the box.","chat_placeholder":"Ask me anything…","chat_send":"Send","chat_stop":"Stop","chat_clear":"Clear","chat_clear_title":"Clear this chat?","chat_clear_body":"This removes the conversation from this phone and tells your computer to forget it.","chat_model":"Model: %1$s","chat_conversations":"Conversations","chat_conversations_new":"New conversation","chat_conversations_delete":"Delete","chat_conversations_delete_title":"Delete this conversation?","chat_conversations_delete_body":"It is removed from your engine for good, with all its history. This cannot be undone: it is irreversible.","chat_conversations_close":"Close","chat_count":"%1$d / %2$d","chat_ref_too_long":"That message is too long.","chat_ref_no_model":"Pick a model first.","chat_ref_busy":"Wait for the answer to finish, or stop it.","chat_ref_offline":"Not connected to your computer.","chat_err_off":"Chat is turned off on your computer.","chat_err_not_allowed":"That model is not allowed for the phone.","chat_err_busy":"Another answer is still being written.","chat_err_rate":"Too many messages. Try again in a few minutes.","chat_err_too_long":"The message is too long.","chat_err_empty":"Nothing to send.","chat_err_no_key":"Your computer has no key for that provider.","chat_err_unreachable":"Your computer could not reach the provider.","chat_err_auth":"The provider refused your computer's key.","chat_err_provider":"The provider returned an error.","chat_err_canceled":"Stopped.","chat_err_internal":"Something went wrong.","chat_err_connection":"The connection to your computer was lost.","chat_err_interrupted":"Stopped when the app closed.","session_details":"Details","session_last":"Last message","session_steps":"Steps","session_step_working":"Working","session_step_done":"Step done","session_no_steps":"No steps yet.","session_hint":"Turn on “Show session details on the phone” in your computer's Settings to see the steps and the last message here.","session_ended":"This session is no longer running.","session_project":"Project: %1$s","scan_button":"Scan QR code","scan_title":"Scan QR code","scan_hint":"Point the camera at the code in your computer's Settings → Android phone.","scan_not_pairing":"That is not a Kenai pairing code","scan_why":"Kenai uses the camera only on this screen, to read the pairing code. Nothing is saved or sent.","scan_allow":"Allow camera","scan_blocked":"The camera is off for Kenai. Turn it on in Android's settings, or paste the link instead.","scan_open_settings":"Open settings","scan_paste_instead":"Paste the link instead","scan_camera_error":"The camera could not start. Paste the link instead.","pair_confirm_title":"Pair with %1$s?","pair_confirm_body":"%1$s:%2$d on your network. Only pair with a computer you own.","pair_confirm_replace":"This replaces the computer you are connected to now.","pair_confirm_ok":"Pair","files_heading":"Files changed","files_counts":"+%1$d −%2$d","files_new":"New file","file_loading":"Loading the changes…","file_failed":"Could not load this change. Check the connection and try again.","file_gone":"This change is no longer available on your computer.","file_too_large":"This change is too large to show line by line.","file_truncated":"Only the first 200 lines are shown.","file_empty":"Nothing to show.","file_close":"Close","file_summary":"+%1$d added, −%2$d removed","usage_title":"Plan usage","usage_claude":"Claude","usage_codex":"Codex","usage_five_hours":"5 hours","usage_week":"Week","usage_pct":"%1$d%%","usage_resets_now":"Resetting…","usage_resets_hm":"Resets in %1$d h %2$d","usage_resets_m":"Resets in %1$d min","usage_resets_week":"Resets %1$s","usage_credits":"%1$d free resets available","usage_desc":"%1$s, %2$s: %3$d percent used","services_title":"Services","diag_title":"Can't connect?","diag_intro":"These checks find where the connection breaks. Nothing secret is shown or copied: the report hides the pairing code, the fingerprint, the computer's name and its full address.","diag_run":"Check again","diag_running":"Checking…","diag_copy":"Copy report","diag_copied":"Report copied","diag_ok":"OK","diag_problem":"Problem","diag_skipped":"Not checked","battery_title":"Keep the connection while the screen is off","battery_body":"Android pauses background apps to save battery. If requests stop reaching you when the phone is locked, let Kenai run without restrictions. This is only a suggestion.","battery_open":"Open settings","battery_not_now":"Not now","home_calm_title":"Nothing waits for you","home_also_waiting":"Also waiting for you","home_running_title":"Running · %1$d","home_others_title":"Other agents","home_answer":"Answer","home_review":"Review","home_unconfirmed":"Unconfirmed","home_offline_body":"Is the phone on the same Wi-Fi? Is the computer awake, with Koda open? Requests reach you as soon as the connection is back.","home_retry":"Try again","request_command":"Exact command","request_hint":"Allow asks for your fingerprint. Deny does not.","tab_home_waiting":"%1$s, %2$d waiting for you","confirm_title":"Confirm it's you","confirm_command":"Allow %1$s to run a command on %2$s","confirm_action":"Allow %1$s to %2$s on %3$s","confirm_answer":"Answer %1$s on %2$s","result_next":"Up next","result_sending":"Sending…","result_retry":"Try again"};
 const KODA = {"s32": "data:image/png;base64,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", "s24": "data:image/png;base64,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", "seq": {"reposo": {"row": 0, "seq": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 2, 2, 0, 0, 3, 0, 0, 1, 1, 1, 1], "fps": 8}, "escucha": {"row": 1, "seq": [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 1, 1, 1, 3, 3, 0, 0], "fps": 8}, "piensa": {"row": 2, "seq": [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 2, 2, 3, 3, 3, 3, 1, 1, 1, 1, 0, 0, 0], "fps": 8}, "trabaja": {"row": 3, "seq": [0, 0, 1, 1, 2, 2, 3, 3], "fps": 8}, "espera": {"row": 4, "seq": [0, 0, 0, 1, 2, 2, 3, 3, 0, 1, 2, 3, 3, 0, 0, 0], "fps": 8}, "termino": {"row": 5, "seq": [0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 0, 0, 0, 0, 0, 0], "fps": 8}, "error": {"row": 6, "seq": [0, 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 2, 3, 2, 3, 0, 0, 0, 0, 1, 1], "fps": 8}}};
 /* res/drawable/ic_launcher_fg.xml (Koda's face) as SVG, converted by _build.mjs. */
 const LAUNCHER_FG = "<g transform=\"translate(23.6 30.25) scale(1.9 1.9)\"><path fill=\"#1C2030\" d=\"M11,15h2v1h-2zM20,15h2v1h-2zM11,16h2v1h-2zM20,16h2v1h-2z\"/><path fill=\"#3B3647\" d=\"M7,3h2v1h-2zM23,3h2v1h-2zM7,4h1v1h-1zM9,4h1v1h-1zM22,4h1v1h-1zM24,4h1v1h-1zM7,5h1v1h-1zM10,5h1v1h-1zM21,5h1v1h-1zM24,5h1v1h-1zM6,6h1v1h-1zM11,6h1v1h-1zM20,6h1v1h-1zM25,6h1v1h-1zM6,7h1v1h-1zM12,7h1v1h-1zM19,7h1v1h-1zM25,7h1v1h-1zM6,8h1v1h-1zM12,8h8v1h-8zM25,8h1v1h-1zM6,9h1v1h-1zM25,9h1v1h-1zM5,10h1v1h-1zM26,10h1v1h-1zM5,11h1v1h-1zM26,11h1v1h-1zM5,12h1v1h-1zM26,12h1v1h-1zM5,13h1v1h-1zM26,13h1v1h-1zM5,14h1v1h-1zM26,14h1v1h-1zM5,15h1v1h-1zM26,15h1v1h-1zM5,16h1v1h-1zM26,16h1v1h-1zM5,17h1v1h-1zM26,17h1v1h-1zM2,18h1v1h-1zM4,18h2v1h-2zM26,18h2v1h-2zM29,18h1v1h-1zM6,19h1v1h-1zM15,19h2v1h-2zM25,19h1v1h-1zM7,20h1v1h-1zM14,20h1v1h-1zM17,20h1v1h-1zM24,20h1v1h-1zM7,21h18v1h-18z\"/><path fill=\"#5F86AD\" d=\"M10,13h3v1h-3zM19,13h3v1h-3zM9,14h1v1h-1zM13,14h1v1h-1zM18,14h1v1h-1zM22,14h1v1h-1zM9,15h1v1h-1zM13,15h1v1h-1zM18,15h1v1h-1zM22,15h1v1h-1zM9,16h1v1h-1zM13,16h1v1h-1zM18,16h1v1h-1zM22,16h1v1h-1zM10,17h3v1h-3zM19,17h3v1h-3z\"/><path fill=\"#867D76\" d=\"M13,9h1v1h-1zM15,9h2v1h-2zM18,9h1v1h-1zM11,10h1v1h-1zM13,10h1v1h-1zM15,10h2v1h-2zM18,10h1v1h-1zM20,10h1v1h-1zM11,11h1v1h-1zM13,11h1v1h-1zM15,11h2v1h-2zM18,11h1v1h-1zM20,11h1v1h-1zM15,12h2v1h-2zM8,15h1v1h-1zM23,15h1v1h-1zM7,16h1v1h-1zM24,16h1v1h-1z\"/><path fill=\"#8E7963\" d=\"M15,16h2v1h-2z\"/><path fill=\"#A9C8E6\" d=\"M11,14h2v1h-2zM20,14h2v1h-2zM10,15h1v1h-1zM19,15h1v1h-1zM10,16h1v1h-1zM19,16h1v1h-1z\"/><path fill=\"#B9B1B6\" d=\"M8,4h1v1h-1zM23,4h1v1h-1zM8,5h2v1h-2zM22,5h2v1h-2zM7,6h1v1h-1zM10,6h1v1h-1zM21,6h1v1h-1zM24,6h1v1h-1zM7,7h1v1h-1zM11,7h1v1h-1zM20,7h1v1h-1zM24,7h1v1h-1zM7,8h1v1h-1zM11,8h1v1h-1zM20,8h1v1h-1zM24,8h1v1h-1zM7,9h1v1h-1zM11,9h2v1h-2zM14,9h1v1h-1zM17,9h1v1h-1zM19,9h2v1h-2zM24,9h1v1h-1zM6,10h1v1h-1zM10,10h1v1h-1zM12,10h1v1h-1zM14,10h1v1h-1zM17,10h1v1h-1zM19,10h1v1h-1zM21,10h1v1h-1zM25,10h1v1h-1zM6,11h5v1h-5zM12,11h1v1h-1zM14,11h1v1h-1zM17,11h1v1h-1zM19,11h1v1h-1zM21,11h5v1h-5zM6,12h3v1h-3zM14,12h1v1h-1zM17,12h1v1h-1zM23,12h3v1h-3zM6,13h2v1h-2zM24,13h2v1h-2zM6,14h1v1h-1zM25,14h1v1h-1zM6,15h1v1h-1zM25,15h1v1h-1z\"/><path fill=\"#E7A9B3\" d=\"M8,6h2v1h-2zM22,6h2v1h-2zM8,7h3v1h-3zM21,7h3v1h-3zM8,8h3v1h-3zM21,8h3v1h-3zM8,9h3v1h-3zM21,9h3v1h-3zM7,10h3v1h-3zM22,10h3v1h-3zM14,17h4v1h-4zM15,18h2v1h-2z\"/><path fill=\"#F3F1F4\" d=\"M9,12h5v1h-5zM18,12h5v1h-5zM8,13h2v1h-2zM13,13h6v1h-6zM22,13h2v1h-2zM7,14h2v1h-2zM10,14h1v1h-1zM14,14h4v1h-4zM19,14h1v1h-1zM23,14h2v1h-2zM7,15h1v1h-1zM14,15h4v1h-4zM24,15h1v1h-1zM6,16h1v1h-1zM8,16h1v1h-1zM14,16h1v1h-1zM17,16h1v1h-1zM23,16h1v1h-1zM25,16h1v1h-1zM2,17h3v1h-3zM6,17h4v1h-4zM13,17h1v1h-1zM18,17h1v1h-1zM22,17h4v1h-4zM27,17h3v1h-3zM6,18h9v1h-9zM17,18h9v1h-9zM7,19h8v1h-8zM17,19h8v1h-8zM3,20h3v1h-3zM8,20h6v1h-6zM15,20h2v1h-2zM18,20h6v1h-6zM26,20h3v1h-3z\"/></g>";
@@ -1935,6 +2086,562 @@ widgetsShell();
 K.subscribe(() => { wState.today = todayCounter.observe(K); drawWidgets(); });
 wState.today = todayCounter.observe(K);
 drawWidgets();
+
+/* ---- scenes.js ---- */
+"use strict";
+/* eslint-disable no-unused-vars, no-undef -- the _src files are concatenated into one script by ../_build.mjs */
+/* T15 (S18-S19): three views beside the live phone, on the same page and in the same state.
+   - Screens: a jump rail that puts the live phone on every screen, sheet and state (it drives window.kenai).
+   - Over other apps: the island of ui/IslandOverlay.kt over a fake app, by Kind, with core/OverlayPolicy.kt's gating and tap guard.
+   - Notifications: the heads-up, the shade and the lock screen of app/Notifications.kt, loud and quiet.
+   Design only, no app code: it reads and drives the phone only through window.kenai, and every app text is S.* (strings.xml).
+   The island's sizes and rules come from core/IslandGeometry.kt, core/IslandTimeline.kt and core/IslandPlan.kt; the colours are
+   IslandSurface's (pure black, #F5F6F8, #9398A1, #2A2B2E) plus the app's PRIMARY for Allow. Android's shade and lock screen are
+   stand-ins: no RemoteViews and no real system UI. */
+
+const SC = window.kenai;
+/** No motion: no transition, and the chronometer stays still (the page also kills CSS motion, app.css). */
+const scnReduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/** core/IslandGeometry.kt at a 360 px screen and 1 dp = 1 px, and the timings of IslandTimeline / OverlayPolicy / Protocol. */
+const SCN_ISL = {
+  ear: 14, sbar: 28,
+  workingW: 240, workingH: 52,
+  cardW: Math.min(360 - 2 * 12 - 2 * 14, 340), cardH: 96, approvalH: 168,
+  tapGuardMs: 600, holdMs: 10000, retractMs: 340, ttlS: 120,
+  cornerSmall: 14, cornerLarge: 22,
+};
+const SCN_VIEWS = [["widgets", "Widgets"], ["screens", "Screens"], ["island", "Over other apps"], ["notif", "Notifications"]];
+const SCN_KINDS = [["WORKING", "Working"], ["APPROVAL", "Approval"], ["QUESTION", "Question"], ["FINISHED", "Finished"], ["ERROR", "Error"], ["RATELIMIT", "Rate limit"]];
+const SCN_STATUS = { finished: S.notif_finished, error: S.notif_error, question: S.notif_question, ratelimit: S.notif_ratelimit };
+const SCN_NKINDS = [["auto", "Follow the live phone"], ["approval", "Approval"], ["finished", "Finished"], ["error", "Error"], ["question", "Question"], ["ratelimit", "Rate limit"], ["link", "Link only"]];
+
+/** Everything these views own. The phone's state stays st (model.js); this is only what the page is showing. */
+const scn = {
+  view: "widgets", chip: null,
+  follow: true, kind: "WORKING", denyOnly: false,
+  onScreen: false, switchOff: false, noPermit: false,
+  islKey: "", islShownAt: -1e9, guardHit: false, flashKey: "", retracted: false, flashTimer: null, guardTimer: null,
+  alert: "heads", nkind: "auto", notifAt: 0, chronoTimer: null,
+};
+
+/* ---------- the toolbar: a View control, and a shorter subtitle so one row still fits ---------- */
+function scnToolbar() {
+  const sub = $("#tbar .brand span");
+  if (sub) sub.textContent = "Today's app · demo loop, 2.5 s a step";
+  const wrap = document.createElement("div");
+  wrap.className = "ctl vctl";
+  setHTML(wrap, '<span>View</span><div class="seg vseg" role="group" aria-label="View">' +
+    SCN_VIEWS.map(([k, l]) => `<button type="button" data-view="${k}">${esc(l)}</button>`).join("") + "</div>");
+  $("#tbar").appendChild(wrap);
+  wrap.addEventListener("click", (e) => { const b = e.target.closest("[data-view]"); if (b) scnView(b.dataset.view); });
+  // Any other toolbar change (mode, step, play, link) is not a chip any more.
+  $("#tbar").addEventListener("click", (e) => { if (!e.target.closest("[data-view]")) scn.chip = null; });
+  $("#tbar").addEventListener("change", () => { scn.chip = null; });
+}
+
+function scnView(v) {
+  scn.view = v;
+  $("#widgets").hidden = v !== "widgets";
+  $("#scenes").hidden = v === "widgets";
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+  if (v === "island") scn.islKey = ""; // entering the view opens the island with its motion
+  scnRender();
+}
+
+/* ---------- what a chip leaves behind: nothing ---------- */
+function scnReset() {
+  st.closedApproval = null; st.diff = null; st.questionPill = null; st.sys = null; st.detailPill = null;
+  st.bio = null; st.pairRequest = null; st.paste = null; st.address = null; st.showCommand = null;
+  st.keyboard = false; st.qflow = null; st.selected = null; st.message = null;
+}
+
+/** Jack into the demo loop and walk it to [target]; then hold, so the picture stays put. */
+function scnStep(target) {
+  scnReset();
+  setMode("paired"); // runs step 0 (cursor 0 -> 1) and starts the loop
+  let guard = 0;
+  while (st.step !== target && guard++ < 9) step();
+  st.playing = false;
+  schedule();
+  changed();
+}
+
+/* ---------- View 1: Screens ---------- */
+const SCN_STEPS = [
+  { step: 0, label: "Thinking", state: "thinking" },
+  { step: 1, label: "Working ×2", state: "working" },
+  { step: 2, label: "Approval", state: "approval" },
+  { step: 3, label: "Question", state: "question" },
+  { step: 4, label: "Finished + error", state: "finished" },
+  { step: 5, label: "Rate limit", state: "ratelimit" },
+  { step: 6, label: "Sleeping", state: "sleeping" },
+  { step: 7, label: "No agents", state: null },
+];
+function scnStepChip(s) {
+  const lead = dot(s.state ? stateColor(s.state) : "#6B7280");
+  return scnChip("step" + s.step, `${lead}<b>${s.step}</b> ${esc(s.label)}`, STEP_TEXT[s.step], "scene:step", s.step);
+}
+
+function scnGroups() {
+  return [
+    { title: "Start", items: [
+      scnChip("notpaired", dot(stateColor("sleeping")) + esc(S.pairing_headline), "setMode(\"none\")", "scene:none"),
+      scnChip("scan", dot("#8AB4F8") + esc(S.scan_button), "ScanScreen", "scene:scan"),
+    ] },
+    { title: "Home · the demo loop", wide: true, items: SCN_STEPS.map(scnStepChip) },
+    { title: "Agents", items: [
+      scnChip("session", esc(S.session_details), "step 4 · SessionScreen", "scene:session"),
+      scnChip("approval", `${esc(S.action_allow)} / ${esc(S.action_deny)}`, "step 2 · ApprovalSheet", "scene:approval"),
+      scnChip("question", esc(S.question_see), "step 3 · QuestionSheet", "scene:question"),
+      scnChip("diff", esc(S.files_heading), "step 4 · DiffSheet", "scene:diff"),
+    ] },
+    { title: "Chat", items: [scnChip("chat", esc(S.chat_title), "paired · step 1", "scene:chat")] },
+    { title: "Settings", wide: true, items: [
+      scnChip("go:SETTINGS", esc(S.tab_settings), "SettingsScreen", "scene:go", "SETTINGS"),
+      scnChip("go:HISTORY", esc(S.history_title), "HistoryScreen", "scene:go", "HISTORY"),
+      scnChip("go:GALLERY", esc(S.gallery), "GalleryScreen", "scene:go", "GALLERY"),
+      scnChip("go:DIAGNOSTICS", esc(S.diag_title), "DiagnosticsScreen", "scene:go", "DIAGNOSTICS"),
+      scnChip("go:LICENCES", esc(S.licences_title), "LicencesScreen", "scene:go", "LICENCES"),
+      scnChip("overlay", esc(S.overlay_title), "Android's own page", "scene:overlay"),
+    ] },
+    { title: "Link states", items: [
+      scnChip("lost", esc(S.status_not_connected), "paired · link lost", "scene:lost"),
+      scnChip("notfound", esc(S.discovery_title), "paired · not found", "scene:notfound"),
+    ] },
+  ];
+}
+
+function scnScreens() {
+  const stepNow = st.mode === "none" ? "The phone is not paired: it shows Pairing."
+    : `${st.mode === "demo" ? "Demo mode" : "Paired"} · demo step ${st.step} of 0-7 · ${STEP_TEXT[st.step] || ""}`;
+  const cards = scnGroups().map((g) => `<section class="scn-card${g.wide ? " wide" : ""}">
+    <h3>${esc(g.title)}</h3><div class="scn-chips">${g.items.join("")}</div></section>`).join("");
+  return `<div class="scn-head"><div><h2>Screens</h2><p class="scn-note">Every screen, sheet and state on the live phone at the left.
+      A chip puts the phone there and leaves it consistent: no sheet, no dialog and no keyboard of the chip before.</p></div>
+    <div class="scn-play"><span class="scn-k">Demo loop</span><div class="seg" role="group" aria-label="Demo loop">
+      <button type="button" id="scn-play-on" data-scn="play:on" aria-pressed="${String(st.playing)}">Play</button>
+      <button type="button" id="scn-play-off" data-scn="play:off" aria-pressed="${String(!st.playing)}">Hold</button></div></div></div>
+    <div class="scn-now"><b>Now:</b> ${esc(stepNow)} <span class="scn-dim">· screen ${esc(st.screen)}</span></div>
+    <div class="scn-grid">${cards}</div>`;
+}
+
+/* ---------- View 2: Over other apps ---------- */
+const SCN_DEMO = {
+  WORKING: { kind: "WORKING", pill: "integration_claude", agent: "Claude Code", state: "working", text: "Editing files" },
+  APPROVAL: { kind: "APPROVAL", pill: "integration_claude", agent: "Claude Code", state: "approval", text: toolAction("Bash"), fp: FINGERPRINT },
+  QUESTION: { kind: "QUESTION", pill: "agent_codex", agent: "Codex", state: "question", text: "Which branch?" },
+  FINISHED: { kind: "FINISHED", pill: "integration_claude", agent: "Claude Code", state: "finished", text: "Done" },
+  ERROR: { kind: "ERROR", pill: "agent_codex", agent: "Codex", state: "error", text: toolLabel("Bash · npm test") },
+  RATELIMIT: { kind: "RATELIMIT", pill: "agent_codex", agent: "Codex", state: "ratelimit", text: "" },
+};
+const SCN_FLASH = ["FINISHED", "ERROR", "RATELIMIT"];
+
+/** OverlayPolicy.blocker, in its own order and with its own words. */
+function scnBlocker() {
+  if (scn.switchOff) return "switch is off";
+  if (scn.noPermit) return "'display over other apps' is not allowed";
+  if (scn.onScreen) return "the app is on screen";
+  return null;
+}
+
+function scnDemoSpec(kind) {
+  const d = SCN_DEMO[kind] || SCN_DEMO.WORKING;
+  const spec = { ...d };
+  if (spec.kind === "APPROVAL") { spec.fp = spec.fp || FINGERPRINT; spec.canAllow = !scn.denyOnly; }
+  spec.key = [spec.kind, spec.agent, spec.text, spec.fp || "", spec.canAllow === false ? "deny" : ""].join("|");
+  return spec;
+}
+
+/** IslandPlan.active: a waiting request, then a question, then an agent at work. Nothing else, and nothing when blocked. */
+function scnIslandSpec() {
+  if (scnBlocker()) return null;
+  if (!scn.follow) return scnDemoSpec(scn.kind);
+  const a = approvals()[0];
+  let spec;
+  if (a) spec = { kind: "APPROVAL", pill: a.pill, agent: agentName(a.pill), state: "approval", text: toolAction(a.tool), fp: a.fp, canAllow: !a.truncated && !scn.denyOnly };
+  else {
+    const q = sessions().find((s) => s.state === "question");
+    const w = q ? null : sessions().find((s) => BUSY.includes(s.state));
+    const s = q || w;
+    if (s) {
+      const kind = q ? "QUESTION" : "WORKING";
+      spec = { kind, pill: s.pill, agent: s.agent || agentName(s.pill), state: s.state, text: toolLabel(s.text) };
+    }
+  }
+  if (!spec) return null;
+  spec.key = [spec.kind, spec.agent, spec.text, spec.fp || "", spec.canAllow === false ? "deny" : ""].join("|");
+  return spec;
+}
+
+/** The fake app underneath: a plain message list, invented, light so the black island reads. */
+const SCN_MESSAGES = [
+  ["Marta", "I left the keys under the plant.", "9:12"],
+  ["Building manager", "The lift is fixed. Sorry for the wait.", "8:40"],
+  ["Nextcloud", "3 files finished syncing.", "8:02"],
+  ["Iván", "See you at 19:00?", "Yesterday"],
+  ["Bank", "A purchase of 12,40 € was made with your card.", "Mon"],
+];
+function scnOtherApp(short) {
+  const rows = (short ? SCN_MESSAGES.slice(0, 2) : SCN_MESSAGES).map(([n, t, w]) => `<div class="oth-row">
+    <span class="oth-av">${esc(n[0])}</span><div class="oth-col"><b>${esc(n)}</b><span>${esc(t)}</span></div><span class="oth-when">${esc(w)}</span></div>`).join("");
+  return `<div class="oth"><div class="oth-bar"><span class="oth-back">‹</span><b>Messages</b><span class="oth-me">A</span></div>
+    <div class="oth-list">${rows}</div></div>`;
+}
+const scnClock = () => new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+const scnStatusBar = (lite) => `<div class="sbar${lite ? " lite" : ""}"><span>${esc(scnClock())}</span><span class="cam"></span><span class="r"><i></i><i class="w"></i></span></div>`;
+
+function scnIslandInner(s) {
+  if (s.kind === "WORKING") {
+    return `<div class="isl-work" data-isl="open" role="button" tabindex="0" id="scn-isl-body" aria-label="${esc(S.app_name)}">${kodaEl(s.state, 34)}<div class="isl-col"><b>${esc(s.agent)}</b>${s.text ? `<span>${esc(s.text)}</span>` : ""}</div></div>`;
+  }
+  if (s.kind === "APPROVAL") {
+    const allow = s.canAllow !== false;
+    const lock = icon("LOCK", 18, "var(--onpri)");
+    return `<div class="isl-req">
+      <div class="isl-head" data-isl="open" role="button" tabindex="0" id="scn-isl-body" aria-label="${esc(S.app_name)}">${kodaEl("approval", 40)}<div class="isl-col">
+        <span class="isl-agent">${esc(s.agent)}</span>
+        <p class="isl-ask">${esc(fmt("approval_wants", s.text))}</p></div></div>
+      <div class="isl-btns"><button type="button" class="isl-btn" id="scn-isl-deny" data-isl="deny">${esc(S.action_deny)}</button>
+        ${allow ? `<button type="button" class="isl-btn pri" id="scn-isl-allow" data-isl="allow">${lock}<span>${esc(S.action_allow)}</span></button>` : ""}</div>
+      <p class="isl-hint">${esc(allow ? S.approval_hint : S.approval_on_computer)}</p></div>`;
+  }
+  const line = s.kind === "QUESTION" ? S.island_answer_on_pc : s.text || "";
+  return `<div class="isl-res" data-isl="open" role="button" tabindex="0" id="scn-isl-body" aria-label="${esc(S.app_name)}">${kodaEl(s.state, 52)}<div class="isl-col">
+    <div class="isl-row"><b>${esc(s.agent)}</b><span>${esc(SCN_STATUS[s.kind.toLowerCase()] || "")}</span></div>
+    ${line ? `<p>${esc(line)}</p>` : ""}</div></div>`;
+}
+
+function scnIslandEl(spec, fresh) {
+  if (!spec) return "";
+  const working = spec.kind === "WORKING";
+  const w = working ? SCN_ISL.workingW : SCN_ISL.cardW;
+  const h = SCN_ISL.sbar + (working ? SCN_ISL.workingH : spec.kind === "APPROVAL" ? SCN_ISL.approvalH : SCN_ISL.cardH);
+  const corner = working ? SCN_ISL.cornerSmall : SCN_ISL.cornerLarge;
+  const style = `--iw:${w}px;--ih:${h}px;--ic:${corner}px`;
+  const cls = fresh ? "" : " in";
+  const about = spec.kind === "APPROVAL" ? fmt("approval_wants", spec.text)
+    : spec.kind === "WORKING" ? stateLabel(spec.state)
+      : `${SCN_STATUS[spec.kind.toLowerCase()] || ""}${spec.text ? " · " + spec.text : ""}`;
+  return `<div class="isl${cls}" id="scn-isl" data-kind="${spec.kind}" style="${style}" role="region" aria-label="${esc(spec.agent + ": " + about)}">
+    <span class="isl-ear l"></span><span class="isl-ear r"></span>
+    <div class="isl-in">${scnIslandInner(spec)}</div></div>`;
+}
+
+function scnToggle(key, on, label, hint) {
+  return `<div class="scn-tg"><button type="button" id="scn-sw-${esc(key)}" role="switch" class="sw ${on ? "on" : ""}" aria-checked="${on ? "true" : "false"}" aria-label="${esc(label)}" data-scn="switch:${esc(key)}"><i></i></button>
+    <div class="scn-tgt"><b>${esc(label)}</b>${hint ? `<span>${esc(hint)}</span>` : ""}</div></div>`;
+}
+
+function scnIsland() {
+  const spec = scn.retracted ? null : scnIslandSpec();
+  const fresh = !!spec && spec.key !== scn.islKey;
+  scn.islKey = spec ? spec.key : "";
+  if (fresh) { scn.islShownAt = performance.now(); scn.retracted = false; }
+  const blocker = scnBlocker();
+  const guardArmed = performance.now() - scn.islShownAt < SCN_ISL.tapGuardMs;
+  const kinds = SCN_KINDS.map(([k, l]) => `<button type="button" id="scn-kind-${k}" class="scn-chip sm" data-scn="kind:${k}" aria-pressed="${String(!scn.follow && scn.kind === k)}"><span class="scn-cl">${esc(l)}</span></button>`).join("");
+  return `<div class="scn-head tight"><h2>Over other apps</h2><p class="scn-note">The island of <code>IslandOverlay.kt</code> over a fake app: <code>IslandGeometry.kt</code>'s box, <code>IslandPlan.active</code>'s pick, <code>IslandTimeline</code>'s hold.</p></div>
+    <div class="scn-row">
+      <div class="scn-frame">
+        <div class="phone scn-phone" id="scn-isl-phone">${scnStatusBar(true)}${scnOtherApp(false)}
+          ${blocker ? `<div class="isl-blocked"><span class="scn-k">OverlayPolicy.blocker</span><code>${esc(blocker)}</code></div>` : scnIslandEl(spec, fresh)}
+          <div class="gbar"><button type="button" tabindex="-1" aria-hidden="true"></button></div></div>
+        <p class="scn-cap">Messages · invented · the island is black over the camera cutout</p>
+      </div>
+      <div class="scn-side">
+        <section class="scn-card"><h3>What the island shows</h3>
+          ${scnToggle("follow", scn.follow, "Follow the live phone", scn.follow ? "Now: " + scnPickText() : "Picks like IslandPlan.active: a request, then a question, then an agent at work")}
+          <p class="scn-note">Or pick a Kind by hand:</p>
+          <div class="scn-chips">${kinds}</div>
+          <p class="scn-note"><code>ToolLabels.label</code> keeps only a tool's name: the demo's prose is dropped from the working strip, as in the app.</p>
+          ${scnToggle("denyOnly", scn.denyOnly, "Deny only", "A request whose command cannot be shown in full: the card offers Deny only and says to answer on the computer")}
+        </section>
+        <section class="scn-card"><h3>May it show? (OverlayPolicy)</h3>
+          ${scnToggle("switchOff", scn.switchOff, "The switch is off", "Show Kenai over other apps")}
+          ${scnToggle("noPermit", scn.noPermit, "Permission missing", "“display over other apps” is not allowed")}
+          ${scnToggle("onScreen", scn.onScreen, "Kenai is on screen", "Inside Kenai the screen already shows it")}
+          <p class="scn-note">${blocker ? `Hidden. The log gets <code>${esc(blocker)}</code>.` : "Allowed: nothing blocks it, so the island may exist."}</p>
+        </section>
+        <section class="scn-card"><h3>Tap guard · 600 ms</h3>
+          <p class="scn-note">A tap in the first 600 ms is ignored: it is most likely meant for the app underneath, or it is an accident
+            (<code>OverlayPolicy.tapAccepted</code>).</p>
+          <div class="scn-badge${guardArmed || scn.guardHit ? " hit" : ""}" aria-live="polite">tap guard 600 ms${scn.guardHit ? " · tap ignored" : ""}</div>
+          <p class="scn-note">Then: <b>${esc(S.action_deny)}</b> calls <code>decide(fp,false)</code> on the live phone. <b>${esc(S.action_allow)}</b>
+            opens the live approval, because Allow always takes the fingerprint. A tap on the body opens Home.</p>
+        </section>
+        <section class="scn-card"><h3>Timing</h3>
+          <p class="scn-note">Working, a question and a request are persistent: they stay until something changes.
+            A finished, an error and a rate limit are held <b>10 s</b> and then retract in <b>340 ms</b> (the PC's curve).</p>
+          <p class="scn-note">While the pill shows an approval, the notification is quiet: it goes to the shade only, never on top of the pill.</p>
+          ${scn.retracted ? `<button type="button" class="cb" id="scn-again" data-scn="island:again">Show it again</button>` : ""}
+        </section>
+      </div>
+    </div>`;
+}
+
+/** The line under the Follow switch: what the pill is about right now. */
+function scnPickText() {
+  const s = scnIslandSpec();
+  if (!s) return "nothing to show";
+  return `${s.agent} · ${s.kind.toLowerCase()}`;
+}
+
+/* ---------- View 3: Notifications ---------- */
+function scnChronoText() {
+  if (scnReduce() || !scn.notifAt) return "· 2:00";
+  const left = Math.max(0, SCN_ISL.ttlS - Math.floor((Date.now() - scn.notifAt) / 1000));
+  return "· " + Math.floor(left / 60) + ":" + String(left % 60).padStart(2, "0");
+}
+const scnN = (inner, o = {}) => `<article class="shd-n${o.pub ? " pub" : ""}${o.ongoing ? " ongoing" : ""}">
+  <div class="shd-h"><span class="shd-ic">${launcherIcon(14)}</span><span class="shd-app">${esc(o.app || S.app_name)}</span>
+    ${o.chrono ? `<span class="shd-chrono" id="scn-chrono">${esc(scnChronoText())}</span>` : ""}
+    ${o.channel ? `<span class="shd-ch">${esc(o.channel)}</span>` : ""}</div>
+  ${inner}</article>`;
+
+function scnApprovalNotice() {
+  const r = approvals()[0];
+  const agent = r ? agentName(r.pill) : SCN_DEMO.APPROVAL.agent;
+  const tool = r ? r.tool : "Bash";
+  return { fp: r ? r.fp : null, agent, line: fmt("approval_wants", toolAction(tool)) };
+}
+function scnStatusList() {
+  if (scn.nkind === "auto") return sessions().filter((s) => SCN_STATUS[s.state]).slice(0, 3);
+  if (!SCN_STATUS[scn.nkind]) return [];
+  const live = sessions().find((s) => s.state === scn.nkind);
+  const d = SCN_DEMO[scn.nkind.toUpperCase()];
+  return [live || { pill: d.pill, agent: d.agent, state: scn.nkind, text: d.text }];
+}
+function scnNotifModel() {
+  const wantApproval = scn.nkind === "auto" || scn.nkind === "approval";
+  const approval = wantApproval ? scnApprovalNotice() : null;
+  const statuses = scn.nkind === "link" ? [] : scnStatusList();
+  return { approval, statuses };
+}
+
+function scnNotifChannel() {
+  return scn.alert === "quiet" ? "approvals_quiet · LOW" : "approvals_v3 · HIGH";
+}
+
+function scnShadeCard(m) {
+  if (!m) return "";
+  return scnN(`<p class="shd-t">${esc(`${m.agent} needs your approval`)}</p>
+    <p class="shd-x">${esc(m.line)}</p>
+    <div class="shd-a"><button type="button" id="scn-ndeny" data-scn="notif:deny">${esc(S.action_deny)}</button>
+      <button type="button" id="scn-nreview" data-scn="notif:review">${esc(S.action_review)}</button></div>`,
+  { chrono: true, channel: scnNotifChannel() });
+}
+function scnStatusCard(s) {
+  const what = SCN_STATUS[s.state] || S.notif_finished;
+  const sub = toolLabel(s.text || "");
+  return scnN(`<p class="shd-t">${esc(s.agent)}</p><p class="shd-x">${esc(what)}</p>${sub ? `<p class="shd-s">${esc(sub)}</p>` : ""}`,
+    { channel: "updates · LOW" });
+}
+function scnLinkCard(expanded) {
+  const headline = st.mode === "none" ? S.status_not_connected
+    : st.mode === "demo" ? S.status_connected
+      : st.link === "connected" ? `${S.status_connected} · ${DESKTOP.name}` : st.link === "connecting" ? S.status_connecting : S.status_not_connected;
+  const detail = st.mode === "none" ? "" : `${DESKTOP.name} · ${DESKTOP.host}`;
+  const lines = (expanded ? sessions() : []).map((s) => `${s.agent || agentName(s.pill)}: ${stateLabel(s.state)}`);
+  return scnN(`<p class="shd-t">${esc(headline)}</p>${detail ? `<p class="shd-x">${esc(detail)}</p>` : ""}
+    ${lines.length ? `<p class="shd-lines">${lines.map((l) => esc(l)).join("<br>")}</p>` : ""}`,
+  { channel: "link · LOW · ongoing" });
+}
+
+function scnNotif() {
+  const m = scnNotifModel();
+  if (m.approval && !scn.notifAt) scn.notifAt = Date.now();
+  if (!m.approval) scn.notifAt = 0;
+  const shade = [m.approval ? scnShadeCard(m.approval) : "", ...m.statuses.map(scnStatusCard),
+    scnLinkCard(!m.approval), // while a request waits the link notification says the link only
+  ].filter(Boolean).join("");
+  const headsUp = m.approval && scn.alert === "heads" ? `<div class="shd-hu" role="status">
+    <div class="shd-h"><span class="shd-ic">${launcherIcon(14)}</span><span class="shd-app">${esc(S.app_name)}</span><span class="shd-chrono" id="scn-chrono-hu">${esc(scnChronoText())}</span></div>
+    <p class="shd-t">${esc(`${m.approval.agent} needs your approval`)}</p><p class="shd-x">${esc(m.approval.line)}</p>
+    <div class="shd-a"><button type="button" data-scn="notif:deny">${esc(S.action_deny)}</button><button type="button" data-scn="notif:review">${esc(S.action_review)}</button></div></div>` : "";
+  const lockApproval = m.approval ? scnN(`<p class="shd-t">${esc(S.approval_title)}</p><p class="shd-x">${esc(S.notif_unlock)}</p>`, { pub: true }) : "";
+  const lockStatus = m.statuses.map((s) => scnN(`<p class="shd-t">${esc(S.app_name)}</p><p class="shd-x">${esc(SCN_STATUS[s.state] || S.notif_finished)}</p>`, { pub: true })).join("");
+  const lockLink = scnN(`<p class="shd-t">${esc(S.app_name)}</p><p class="shd-x">${esc(connected() ? S.status_connected : S.status_not_connected)}</p>`, { pub: true });
+  const kinds = SCN_NKINDS.map(([k, l]) => `<button type="button" id="scn-nkind-${k}" class="scn-chip sm" data-scn="nkind:${k}" aria-pressed="${String(scn.nkind === k)}"><span class="scn-cl">${esc(l)}</span></button>`).join("");
+  return `<div class="scn-head tight"><h2>Notifications</h2><p class="scn-note"><code>Notifications.kt</code>: one loud approval, quiet link and states, each kind in its own group. Android's shade and lock screen are stand-ins.</p></div>
+    <div class="scn-row">
+      <div class="scn-frame">
+        <div class="phone scn-phone" id="scn-shade-phone">${scnStatusBar(true)}
+          <div class="nt-app">${scnOtherApp(true)}</div>
+          <div class="shd"><div class="shd-grab"></div>
+            <div class="shd-q"><span>${esc(scnClock())}</span><span class="shd-qr">${icon("SCAN", 14, "#CBD0D8")}<i></i><i class="b"></i></span></div>
+            <div class="shd-list">${shade}</div></div>
+          ${headsUp}<div class="gbar"><button type="button" tabindex="-1" aria-hidden="true"></button></div></div>
+        <p class="scn-cap">${scn.alert === "heads" ? "Heads-up over the app, and the shade below · loud" : "Quiet: no heads-up, the shade only · the pill is the alert"}</p>
+      </div>
+      <div class="scn-frame">
+        <div class="phone scn-phone scn-lock" id="scn-lock-phone">${scnStatusBar(false)}
+          <div class="lk-clock">${esc(scnClock())}</div><div class="lk-date">Monday, 17 November</div>
+          <div class="lk-lock">${icon("LOCK", 18, "#CBD0D8")}</div>
+          <div class="shd-list lk">${lockApproval}${lockStatus}${lockLink}</div>
+          <div class="gbar"><button type="button" tabindex="-1" aria-hidden="true"></button></div></div>
+        <p class="scn-cap">Lock screen · the PUBLIC versions (VISIBILITY_PRIVATE)</p>
+      </div>
+      <div class="scn-side narrow">
+        <section class="scn-card"><h3>Approval alert</h3>
+          <div class="scn-chips">
+            <button type="button" id="scn-alert-heads" class="scn-chip sm" data-scn="alert:heads" aria-pressed="${String(scn.alert === "heads")}"><span class="scn-cl">Heads-up (no pill)</span></button>
+            <button type="button" id="scn-alert-quiet" class="scn-chip sm" data-scn="alert:quiet" aria-pressed="${String(scn.alert === "quiet")}"><span class="scn-cl">Quiet (pill is showing)</span></button></div>
+          <p class="scn-note"><code>approvals_v3</code> · HIGH · vibration <code>0,500,150,500</code>: heads-up and sound.</p>
+          <p class="scn-note"><code>approvals_quiet</code> · LOW · no heads-up, no sound: the pill is the alert, the shade keeps the record.</p>
+        </section>
+        <section class="scn-card"><h3>Notification kinds</h3><div class="scn-chips">${kinds}</div>
+          <p class="scn-note">${scn.nkind === "auto" ? "Following the live phone." : `Overridden: ${esc((SCN_NKINDS.find((k) => k[0] === scn.nkind) || [])[1] || "")}.`}</p>
+          <p class="scn-note">Each kind has its own group (<code>kenai.approvals</code>, <code>kenai.link</code>, <code>kenai.status</code>) and no summary, so no «2» bundle.</p>
+          <p class="scn-note">No Allow here: it always takes the app and the fingerprint. The link one is ongoing and not dismissible, and while a request waits it shows the link state only.</p>
+        </section>
+      </div>
+    </div>`;
+}
+
+/* ---------- render ---------- */
+function scnRender() {
+  const root = $("#scenes");
+  if (!root || root.hidden) { scnChronoStop(); scnFlashStop(); return; }
+  const a = document.activeElement;
+  const keep = a && a.id && root.contains(a) ? a.id : null;
+  setHTML(root, scn.view === "screens" ? scnScreens() : scn.view === "island" ? scnIsland() : scn.view === "notif" ? scnNotif() : "");
+  paintKoda(root);
+  if (keep) { const el = document.getElementById(keep); if (el) el.focus(); }
+  scnAfter();
+}
+
+function scnAfter() {
+  if (scn.view === "island") {
+    const el = $("#scn-isl");
+    if (el && !el.classList.contains("in")) {
+      requestAnimationFrame(() => { el.classList.add("in"); }); // slides down from the top edge
+      clearTimeout(scn.guardTimer);
+      scn.guardTimer = setTimeout(() => { scn.guardHit = false; changed(); }, SCN_ISL.tapGuardMs + 40);
+    }
+    scnFlashWatch(scn.retracted ? null : scnIslandSpec());
+    scnChronoStop();
+  } else if (scn.view === "notif") {
+    clearTimeout(scn.guardTimer); scn.guardTimer = null;
+    scnFlashStop();
+    if (scn.notifAt && !scnReduce()) {
+      if (!scn.chronoTimer) scn.chronoTimer = setInterval(scnChronoTick, 1000);
+    } else scnChronoStop();
+  } else { scnChronoStop(); scnFlashStop(); }
+}
+
+function scnChronoStop() {
+  clearInterval(scn.chronoTimer); scn.chronoTimer = null;
+}
+function scnFlashStop() {
+  clearTimeout(scn.flashTimer); scn.flashTimer = null;
+  scn.flashKey = "";
+}
+function scnChronoTick() {
+  const t = scnChronoText();
+  const a = $("#scn-chrono"), b = $("#scn-chrono-hu");
+  if (!a && !b) { scnChronoStop(); return; }
+  if (a) a.textContent = t;
+  if (b) b.textContent = t;
+}
+
+/** IslandTimeline: a finished, an error and a rate limit are held 10 s, then the island curves back up in 340 ms. */
+function scnFlashWatch(spec) {
+  if (!spec || !SCN_FLASH.includes(spec.kind) || spec.key === scn.flashKey) return;
+  scn.flashKey = spec.key;
+  scn.retracted = false;
+  clearTimeout(scn.flashTimer);
+  scn.flashTimer = setTimeout(() => {
+    const el = $("#scn-isl");
+    if (el) { el.classList.remove("in"); el.classList.add("out"); }
+    setTimeout(() => { scn.retracted = true; changed(); }, SCN_ISL.retractMs + 30);
+  }, SCN_ISL.holdMs);
+}
+
+/* ---------- chips, switches and taps ---------- */
+function scnChip(key, labelHtml, hint, act, arg) {
+  return `<button type="button" id="scn-chip-${esc(key)}" class="scn-chip" data-scn="${esc(act)}"${arg === undefined || arg === null ? "" : ` data-arg="${esc(arg)}"`} data-chip="${esc(key)}" aria-pressed="${String(scn.chip === key)}">
+    <span class="scn-cl">${labelHtml}</span>${hint ? `<span class="scn-h">${esc(hint)}</span>` : ""}</button>`;
+}
+/** A tap the guard lets through ("now" is what OverlayPolicy.tapAccepted would say). */
+function scnTapOk() {
+  if (performance.now() - scn.islShownAt >= SCN_ISL.tapGuardMs) return true;
+  scn.guardHit = true;
+  clearTimeout(scn.guardTimer);
+  scn.guardTimer = setTimeout(() => { scn.guardHit = false; changed(); }, 700);
+  changed();
+  return false;
+}
+/** The demo's Deny/Action needs a live request: make the demo's own when the phone has none. */
+function scnEnsureApproval() {
+  if (approvals().length) return approvals()[0].fp;
+  scnStep(2);
+  return (approvals()[0] || {}).fp || null;
+}
+
+const SCN_ACTIONS = {
+  "play:on": () => { if (st.mode === "none") setMode("paired"); else SC.play(true); },
+  "play:off": () => { if (st.mode === "none") setMode("paired"); st.playing = false; schedule(); changed(); },
+
+  "scene:none": () => setMode("none"),
+  "scene:scan": () => go("SCAN"),
+  "scene:step": (el) => scnStep(+el.dataset.arg),
+  "scene:session": () => { scnStep(4); st.detailPill = "integration_claude"; go("SESSION"); },
+  "scene:approval": () => { scnStep(2); SC.openApproval(); },
+  "scene:question": () => { scnStep(3); SC.openQuestion("agent_codex"); },
+  "scene:diff": () => { scnStep(4); ACT.openDiff("app/build.gradle.kts"); },
+  "scene:chat": () => { scnStep(1); go("CHAT"); },
+  "scene:go": (el) => go(el.dataset.arg),
+  "scene:overlay": () => { go("SETTINGS"); st.sys = "overlay"; changed(); },
+  "scene:lost": () => { scnReset(); setMode("paired"); st.link = "lost"; st.batterySnoozed = false; st.diag = { running: false, results: [] }; changed(); },
+  "scene:notfound": () => { scnReset(); setMode("paired"); st.link = "notfound"; st.batterySnoozed = false; st.diag = { running: false, results: [] }; changed(); },
+
+  "switch:follow": () => { scn.follow = !scn.follow; scn.islKey = ""; changed(); },
+  "switch:denyOnly": () => { scn.denyOnly = !scn.denyOnly; scn.islKey = ""; changed(); },
+  "switch:onScreen": () => { scn.onScreen = !scn.onScreen; changed(); },
+  "switch:switchOff": () => { scn.switchOff = !scn.switchOff; changed(); },
+  "switch:noPermit": () => { scn.noPermit = !scn.noPermit; changed(); },
+  "island:again": () => { scn.retracted = false; scn.flashKey = ""; scn.islKey = ""; changed(); },
+
+  "alert:heads": () => { scn.alert = "heads"; changed(); },
+  "alert:quiet": () => { scn.alert = "quiet"; changed(); },
+  "notif:deny": () => { const fp = scnEnsureApproval(); if (fp) decide(fp, false); },
+  "notif:review": () => { go("HOME"); SC.openApproval(); },
+};
+
+function scnBinder() {
+  const root = $("#scenes");
+  root.addEventListener("click", (e) => {
+    const tap = e.target.closest("[data-isl]");
+    if (tap && root.contains(tap)) {
+      if (!scnTapOk()) return;
+      const what = tap.dataset.isl;
+      if (what === "deny") { const fp = scnEnsureApproval(); if (fp) decide(fp, false); }
+      else if (what === "allow") { scnEnsureApproval(); SC.openApproval(); }
+      else go("HOME");
+      return;
+    }
+    const b = e.target.closest("[data-scn]");
+    if (!b || b.disabled || !root.contains(b)) return;
+    const key = b.dataset.scn;
+    if (key.startsWith("kind:")) { scn.follow = false; scn.kind = key.slice(5); scn.retracted = false; scn.flashKey = ""; scn.islKey = ""; changed(); return; }
+    if (key.startsWith("nkind:")) { scn.nkind = key.slice(6); scn.notifAt = 0; changed(); return; }
+    const fn = SCN_ACTIONS[key];
+    if (!fn) return;
+    if (b.dataset.chip) scn.chip = b.dataset.chip;
+    fn(b);
+  });
+  root.addEventListener("keydown", (e) => {
+    const tap = e.target.closest("[data-isl='open']");
+    if (tap && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); if (scnTapOk()) go("HOME"); }
+  });
+}
+
+/* ---------- init ---------- */
+scnToolbar();
+scnBinder();
+scnView("widgets");
+SC.subscribe(() => scnRender());
 
 </script>
 </body></html>

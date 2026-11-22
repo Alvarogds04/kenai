@@ -5,7 +5,7 @@ import fs from "node:fs";
 const here = new URL("./", import.meta.url);
 const repo = new URL("../../", here);
 const read = (u) => fs.readFileSync(u, "utf8");
-const JS = ["data.js", "ui.js", "model.js", "screens-home.js", "screens-settings.js", "screens-chat.js", "sheets.js", "main.js", "widgets-data.js", "widgets-render.js", "widgets.js"];
+const JS = ["data.js", "ui.js", "model.js", "screens-home.js", "screens-settings.js", "screens-chat.js", "sheets.js", "main.js", "widgets-data.js", "widgets-render.js", "widgets.js", "scenes.js"];
 
 const koda = read(new URL("design/_build/koda.json", repo)).trim();
 // The launcher foreground (Koda's face): the vector's group and paths as SVG (Android pathData is SVG path syntax).
@@ -19,7 +19,7 @@ const strings = {};
 for (const m of read(new URL("app/src/main/res/values/strings.xml", repo)).matchAll(/<string name="([^"]+)">([\s\S]*?)<\/string>/g)) {
   strings[m[1]] = m[2].replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
 }
-const css = ["app.css", "widgets.css"].map((f) => read(new URL("_src/" + f, here))).join("\n");
+const css = ["app.css", "widgets.css", "scenes.css"].map((f) => read(new URL("_src/" + f, here))).join("\n");
 const js = JS.filter((f) => fs.existsSync(new URL("_src/" + f, here)))
   .map((f) => `/* ---- ${f} ---- */\n` + read(new URL("_src/" + f, here)))
   .join("\n")
@@ -42,6 +42,7 @@ const html = `<!doctype html>
     <div class="hint" id="hint">The phone is live: tap it like the real app.</div>
   </div>
   <section id="widgets" class="col-home" aria-label="Home screen widgets"></section>
+  <section id="scenes" class="col-home" aria-label="Screens, over other apps, notifications" hidden></section>
 </main>
 <script>
 ${js}
