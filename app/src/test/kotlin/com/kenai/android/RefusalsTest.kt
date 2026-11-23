@@ -98,4 +98,43 @@ class RefusalsTest {
         assertEquals(true, unseen.cardGoes)
         assertEquals(false, unseen.showExpired)
     }
+
+    private val req = com.kenai.android.link.ApprovalRequest("p", "fpA", "Bash", "npm test", 0L)
+    private val other = req.copy(pillId = "q", fingerprint = "fpB")
+
+    @Test fun planOfAKeepingRefusalClearsSendingOfThatRequestOnly() {
+        val p = Refusals.plan(Refusal.OFF, "fpA", listOf(req, other), sendingFp = "fpA", wantAllowFp = "fpA")
+        assertNull(p.expire)
+        assertEquals("fpA", p.clearPending)
+        assertNull(p.cutFp)
+        assertNull(p.removeFp)
+        assertEquals(false, p.dropWantAllow)
+    }
+
+    @Test fun planOfATruncatedRefusalCutsOnlyThatCard() {
+        val p = Refusals.plan(Refusal.TRUNCATED, "fpA", listOf(req, other), sendingFp = "fpA", wantAllowFp = null)
+        assertEquals("fpA", p.cutFp)
+        val cut = Refusals.markCut(listOf(req, other), p.cutFp)
+        assertEquals(listOf(true, false), cut.map { it.truncated })
+        assertEquals(listOf(false, false), Refusals.markCut(listOf(req, other), null).map { it.truncated })
+    }
+
+    @Test fun planOfAGoneRefusalExpiresWhatWasSentAndRemovesTheCard() {
+        val p = Refusals.plan(Refusal.RESOLVED, "fpA", listOf(req, other), sendingFp = "fpA", wantAllowFp = "fpA")
+        assertEquals(req, p.expire)
+        assertNull(p.clearPending)
+        assertEquals("fpA", p.removeFp)
+        assertEquals(true, p.dropWantAllow)
+    }
+
+    @Test fun planWithoutAFingerprintOrWithAnUnheldOneTouchesNothingOfAnotherRequest() {
+        val none = Refusals.plan(Refusal.RESOLVED, null, listOf(req), sendingFp = "fpA", wantAllowFp = "fpA")
+        assertNull(none.expire); assertNull(none.clearPending); assertNull(none.removeFp); assertEquals(false, none.dropWantAllow)
+        // Gone, not on Home: nothing to expire, the pending note of that request is cleared, nothing else is.
+        val unseen = Refusals.plan(Refusal.EXPIRED, "fpZ", listOf(req), sendingFp = "fpA", wantAllowFp = "fpA")
+        assertNull(unseen.expire)
+        assertEquals("fpZ", unseen.clearPending)
+        assertEquals("fpZ", unseen.removeFp)
+        assertEquals(false, unseen.dropWantAllow)
+    }
 }

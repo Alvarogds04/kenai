@@ -1,5 +1,7 @@
 package com.kenai.android.core
 
+import com.kenai.android.link.ApprovalRequest
+
 /**
  * Why the computer refused an answer this phone sent (KN-04 T3, S4/S12). `decision` and `answer` are refused on the same path as
  * every other frame: a v1 `error` with one of these fixed codes, a fixed sentence, and — since abito-core AC-07c — an OPTIONAL,
@@ -60,6 +62,19 @@ data class RefusalEffect(
     val dropWantAllow: Boolean,
 )
 
+/** What `AppModel.answerRefused` does for one refusal, as data (KN-04 T1). Every field concerns only the request it names. */
+data class RefusalPlan(
+    /** Home's «Enviando…» of this request becomes «expiró». */
+    val expire: ApprovalRequest?,
+    /** «Enviando…» and the answer note of this request just go (the request stays open). */
+    val clearPending: String?,
+    /** This card arrived cut and only offers Deny from now on. */
+    val cutFp: String?,
+    /** This request's card goes. */
+    val removeFp: String?,
+    val dropWantAllow: Boolean,
+)
+
 /** What each of the engine's refusal codes means for the card (KN-04 S4/S12). Pure, so it is unit-tested. */
 object Refusals {
     /**
@@ -108,4 +123,23 @@ object Refusals {
             dropWantAllow = !keeps && wantsAllow,
         )
     }
+
+    /** [RefusalEffect] applied to the phone's cards: which request each step touches. A refusal with no fingerprint touches no card. */
+    fun plan(refusal: Refusal, fingerprint: String?, approvals: List<ApprovalRequest>, sendingFp: String?, wantAllowFp: String?): RefusalPlan {
+        if (fingerprint == null) return RefusalPlan(null, null, null, null, false)
+        val request = approvals.firstOrNull { it.fingerprint == fingerprint }
+        val e = effect(refusal, onHome = request != null, sending = sendingFp == fingerprint, wantsAllow = wantAllowFp == fingerprint)
+        val expire = if (e.showExpired) request else null
+        return RefusalPlan(
+            expire = expire,
+            clearPending = if (expire == null) fingerprint else null,
+            cutFp = if (e.cutCard && request != null) fingerprint else null,
+            removeFp = if (e.cardGoes) fingerprint else null,
+            dropWantAllow = e.dropWantAllow,
+        )
+    }
+
+    /** [approvals] with the card [fingerprint] marked as cut (null: unchanged). */
+    fun markCut(approvals: List<ApprovalRequest>, fingerprint: String?): List<ApprovalRequest> =
+        if (fingerprint == null) approvals else approvals.map { if (it.fingerprint == fingerprint) it.copy(truncated = true) else it }
 }

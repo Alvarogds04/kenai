@@ -38,13 +38,12 @@ class RefusalHandlingTest {
     }
 
     @Test fun aRefusedApprovalIsNotStuckInSending() {
+        // The decisions are behavioural now (RefusalsTest, Refusals.plan); AppModel only applies the plan.
         val refused = body("private fun answerRefused(")
-        // Still answerable: «Sending…» goes and the card stays; a cut command only offers «Denegar» from now on.
+        assertTrue(refused.contains("Refusals.plan("))
         assertTrue(refused.contains("outcomes.refusedButPending("))
-        assertTrue(refused.contains("copy(truncated = true)"))
-        // Gone: nothing can be answered here any more, and Home says so instead of «Enviando…».
-        assertTrue(refused.contains("removeApproval("))
         assertTrue(refused.contains("outcomes.refused("))
+        assertTrue(refused.contains("removeApproval("))
     }
 
     @Test fun everyRefusalHasKenaisOwnShortSentenceInBothLanguages() {
