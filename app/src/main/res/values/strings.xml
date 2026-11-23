@@ -123,6 +123,7 @@
     <string name="refused_unknown_request">Your computer no longer has this request.</string>
     <string name="refused_not_offered">Your computer is not taking answers from this phone right now.</string>
     <string name="refused_expired">This request expired on your computer.</string>
+    <string name="refused_failed">Your computer could not take that answer. The request is still waiting.</string>
     <string name="home_running">%1$d running</string>
     <string name="home_empty_title">Nothing is running</string>
     <string name="home_empty_hint">Start an agent on your computer and it shows up here.</string>

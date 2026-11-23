@@ -123,6 +123,7 @@
     "refused_unknown_request": "Tu computadora ya no tiene este pedido.",
     "refused_not_offered": "Tu computadora no está aceptando respuestas de este teléfono ahora.",
     "refused_expired": "Este pedido caducó en tu computadora.",
+    "refused_failed": "Tu computadora no pudo tomar esa respuesta. El pedido sigue esperando.",
     "home_running": "%1$d en curso",
     "home_empty_title": "No hay nada en curso",
     "home_empty_hint": "Iniciá un agente en tu computadora y va a aparecer acá.",

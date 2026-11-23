@@ -66,6 +66,26 @@ class NotificationsTest {
         assertTrue(ids.all { it % 4 == 0 && it >= 4 })
     }
 
+    // KN-04 T3b (review finding 5): the worst hashes used to make `(hash and 0x1fffffff) * 4 + 4` negative, and a negative
+    // request code is a PendingIntent Android cannot tell apart from another.
+    @Test fun aFingerprintWhoseHashIsAllOnesStillGetsUsableCodes() {
+        val extremes = listOf(-1, 0x1fffffff, 0x0fffffff, 0x20000000, Int.MIN_VALUE, Int.MAX_VALUE, Int.MIN_VALUE + 1, -4)
+        val ids = extremes.map { com.kenai.android.app.Notifications.idForHash(it) }
+        assertTrue("every code is at least 4, whatever the hash: $ids", ids.all { it >= 4 })
+        assertTrue("and every Allow/Review code stays inside Int: $ids", ids.all { it + 2 > it })
+        // Two hashes that share the low 28 bits are one code, as two colliding hashes always were; distinct ones never share a block.
+        val blocks = extremes.map { it to com.kenai.android.app.Notifications.idForHash(it) }.groupBy({ it.second }, { it.first }).keys
+        assertEquals(
+            "the three codes of one request never collide with another's",
+            3 * blocks.size,
+            blocks.flatMap { listOf(it, it + 1, it + 2) }.toSet().size,
+        )
+        assertTrue("a code is never the ongoing notice's own id", ids.none { it == com.kenai.android.app.Notifications.ONGOING_ID })
+        // The same code through the fingerprint: the hash is the only thing the two paths differ in.
+        val fp = "ab".repeat(32)
+        assertEquals(com.kenai.android.app.Notifications.idForHash(fp.hashCode()), com.kenai.android.app.Notifications.idFor(fp))
+    }
+
     @Test fun theActionsAreDenyReviewAndAnAllowThatOnlyOpensTheApp() {
         // Pure: what the shade offers for a whole request, in the order it is drawn. Deny first, Allow last and furthest from it.
         val whole = ApprovalRequest("agent_claude", "fp-1", "Bash", "ls", 0L)

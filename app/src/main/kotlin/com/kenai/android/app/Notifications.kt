@@ -318,7 +318,14 @@ class Notifications(private val context: Context) {
          * A multiple of four for the request, +1 for its Allow action and +2 for its «Review request»: the three codes of one request
          * never equal a code of another request (PendingIntents match by code, not extras), and never collide with ONGOING_ID.
          */
-        fun idFor(fp: String) = (fp.hashCode() and 0x1fffffff) * 4 + 4
+        fun idFor(fp: String) = idForHash(fp.hashCode())
+
+        /**
+         * The code of [hash]'s request. Only the low 28 bits of the fingerprint's hash are used so `* 4 + 4` always stays inside
+         * Int (2^28 × 4 + 4 = 1 073 741 828): the worst hashes used to go negative, and a negative code is one Android cannot tell
+         * apart from another (KN-04 T3b).
+         */
+        fun idForHash(hash: Int) = (hash and 0x0fffffff) * 4 + 4
     }
 }
 

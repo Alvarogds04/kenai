@@ -65,6 +65,18 @@ class LinkRefusalTest {
     private fun refusal(d: FakeDesktop, code: String) =
         """{"type":"error","code":"$code","message":"the engine's own sentence"}"""
 
+    /** The same frame naming its request: the engine's optional, additive `fingerprint` (PROTOCOL.md AC-07). */
+    private fun namedRefusal(code: String, fingerprint: String) =
+        """{"type":"error","code":"$code","message":"the engine's own sentence","fingerprint":"$fingerprint"}"""
+
+    private fun approval(fingerprint: String) =
+        """{"type":"approval","pillId":"agent_codex","fingerprint":"$fingerprint","tool":"Bash","command":"ls","createdAt":${System.currentTimeMillis()}}"""
+
+    /** Waits until [fingerprint] is NOT answerable any more (its claim was never given back). */
+    private fun assertStillClaimed(c: LinkClient, fingerprint: String) {
+        assertEquals(false, c.decide(fingerprint, allow = true))
+    }
+
     /** Waits until the book holds [fingerprint] again (the refusal gave the claim back). */
     private fun assertGivenBack(c: LinkClient, fingerprint: String) {
         val deadline = System.currentTimeMillis() + 3_000
@@ -154,6 +166,89 @@ class LinkRefusalTest {
         d.push(refusal(d, "bad_request"))
         assertEquals("bad_request", rec.errors.poll(5, TimeUnit.SECONDS))
         assertNull("no answer was in flight any more", rec.refusals.poll(300, TimeUnit.MILLISECONDS))
+    }
+
+    // ── Two answers in flight at once: the frame that names one is about that one (T3b review finding 1) ────────────
+
+    private val fpOne = "11".repeat(32)
+    private val fpTwo = "22".repeat(32)
+
+    /** Two approvals, both decided by this phone: two answers in flight, nothing settled. */
+    private fun twoAnswersInFlight(d: FakeDesktop, rec: Recorder): LinkClient {
+        val c = connected(d, rec)
+        d.push(approval(fpOne))
+        d.push(approval(fpTwo))
+        assertNotNull(rec.approvals.poll(5, TimeUnit.SECONDS))
+        assertNotNull(rec.approvals.poll(5, TimeUnit.SECONDS))
+        assertTrue(c.decide(fpOne, allow = true))
+        assertTrue(c.decide(fpTwo, allow = true))
+        return c
+    }
+
+    @Test fun aRefusalNamingOneOfTwoAnswersIsAboutThatAnswer() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        val c = twoAnswersInFlight(d, rec)
+        // The SECOND answer is the one refused; the first must keep its claim untouched.
+        d.push(namedRefusal("off", fpTwo))
+        assertEquals(fpTwo to Refusal.OFF, rec.refusals.poll(5, TimeUnit.SECONDS))
+        assertGivenBack(c, fpTwo)
+        assertStillClaimed(c, fpOne)
+        assertNull("a refusal is not a link error", rec.errors.poll(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun aRefusalWithNoFingerprintIsAboutTheOldestAnswerInFlight() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        val c = twoAnswersInFlight(d, rec)
+        // An older engine names nothing: the oldest answer in flight is the one it is about.
+        d.push(refusal(d, "off"))
+        assertEquals(fpOne to Refusal.OFF, rec.refusals.poll(5, TimeUnit.SECONDS))
+        assertGivenBack(c, fpOne)
+        assertStillClaimed(c, fpTwo)
+        assertNull("a refusal is not a link error", rec.errors.poll(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun aRefusalNamingARequestThatIsNotInFlightRestoresNoClaim() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        val c = connected(d, rec)
+        d.push(approval(fpOne))
+        assertNotNull(rec.approvals.poll(5, TimeUnit.SECONDS))
+        // Settled on the computer (or never this phone's): the book holds nothing, and a claim is never invented for it.
+        d.push("""{"type":"approvalResolved","fingerprint":"$fpOne"}""")
+        val deadline = System.currentTimeMillis() + 3_000
+        while (System.currentTimeMillis() < deadline && c.approvals.active().isNotEmpty()) Thread.sleep(20)
+        d.push(namedRefusal("off", fpOne))
+        assertEquals("the refusal is still reported with the request it names", fpOne to Refusal.OFF, rec.refusals.poll(5, TimeUnit.SECONDS))
+        assertTrue("nothing is answerable again behind the phone's back", c.approvals.active().isEmpty())
+        assertStillClaimed(c, fpOne)
+        assertNull("a refusal is not a link error", rec.errors.poll(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun aFailedRefusalKeepsTheCardEvenThoughNothingWasSettled() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        val c = connected(d, rec)
+        d.push(d.approvalJson(System.currentTimeMillis()))
+        val req = rec.approvals.poll(5, TimeUnit.SECONDS)!!
+        assertTrue(c.decide(req.fingerprint, allow = true))
+        // jesscore: an unmapped registry refusal — NOTHING settled, so the request stays pending until approvalResolved.
+        d.push(namedRefusal("failed", req.fingerprint))
+        assertEquals(req.fingerprint to Refusal.FAILED, rec.refusals.poll(5, TimeUnit.SECONDS))
+        assertGivenBack(c, req.fingerprint)
+        assertTrue("a failed answer can still be denied", c.decide(req.fingerprint, allow = false))
+        assertNull("a refusal is not a link error", rec.errors.poll(500, TimeUnit.MILLISECONDS))
+    }
+
+    @Test fun aFailedWithNothingInFlightIsStillAChatFramesLinkError() {
+        val d = FakeDesktop(tls = false).track()
+        val rec = Recorder()
+        connected(d, rec)
+        // The engine refuses a `chatNew` with the very same code and no fingerprint: that one is not about an answer.
+        d.push(refusal(d, "failed"))
+        assertEquals("failed", rec.errors.poll(5, TimeUnit.SECONDS))
+        assertNull("nothing was refused as an answer", rec.refusals.poll(300, TimeUnit.MILLISECONDS))
     }
 
     @Test fun aBadRequestWithNothingInFlightIsStillALinkError() {

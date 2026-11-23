@@ -199,7 +199,7 @@ class DecisionOutcomeTest {
 
     @Test fun aNewRequestClearsTheAnswerAsItClearsAResult() {
         val m = machine()
-        m.answered("Esa pregunta ya no está esperando.", nowMs = 0)
+        m.answered("Esa pregunta ya no está esperando.", nowMs = 0, fingerprint = "fpA")
         m.arrived("fpB")
         assertNull(m.current)
         assertNull("the new request takes Home, alone", m.answer)
@@ -228,7 +228,22 @@ class DecisionOutcomeTest {
         assertNull(m.visible(1_500))
         assertEquals("nothing is waiting for a confirmation any more", 0, m.remembered())
         // The same for the answer to a question, which the refusal proves never arrived.
-        m.answered("Respuesta enviada", nowMs = 2_000)
+        m.answered("Respuesta enviada", nowMs = 2_000, fingerprint = "fpA")
+        m.refusedButPending("fpA")
+        assertNull(m.answer)
+    }
+
+    /**
+     * KN-04 T3b (review finding 2): the note says «Respuesta enviada» about ONE answer, so a refusal of another request must not take
+     * it away — the phone would tell the person an answer failed that the computer has (or has not) ever seen.
+     */
+    @Test fun aRefusalDoesNotTakeAwayTheAnswerNoteOfAnotherRequest() {
+        val m = machine()
+        m.answered("Respuesta enviada", nowMs = 1_000, fingerprint = "fpA")
+        m.refusedButPending("fpB")
+        assertEquals("still the answer about fpA", "Respuesta enviada", m.answer?.text)
+        assertEquals("fpA", m.answer?.fingerprint)
+        // Its own refusal does take it away: that answer never arrived.
         m.refusedButPending("fpA")
         assertNull(m.answer)
     }

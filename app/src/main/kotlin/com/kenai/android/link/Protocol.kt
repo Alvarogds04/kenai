@@ -153,7 +153,12 @@ sealed interface ServerMsg {
     data class ChatDone(val id: String, val text: String?) : ServerMsg
     /** [reason] is a fixed code (off, busy, rate, auth...); [message] a fixed sentence written by the computer. */
     data class ChatError(val id: String, val reason: String, val message: String) : ServerMsg
-    data class Error(val code: String, val message: String) : ServerMsg
+    /**
+     * A v1 `error`. [fingerprint] is the engine's OPTIONAL, additive name of the request an answer refusal is about (abito-core
+     * PROTOCOL.md AC-07): 64 lowercase hex, echoed back only when the phone named a well-formed one, and null otherwise (an older
+     * engine, a chat frame's refusal, or a value that is not a fingerprint — a malformed one is never trusted, never echoed).
+     */
+    data class Error(val code: String, val message: String, val fingerprint: String? = null) : ServerMsg
 }
 
 sealed interface ClientMsg {
@@ -243,7 +248,12 @@ object Wire {
                 "chatDelta" -> ServerMsg.ChatDelta(chatId(o), o.getString("text"))
                 "chatDone" -> ServerMsg.ChatDone(chatId(o), if (o.has("text")) o.getString("text") else null)
                 "chatError" -> ServerMsg.ChatError(chatId(o), o.optString("reason", "internal"), o.optString("message", ""))
-                "error" -> ServerMsg.Error(o.optString("code", ""), o.optString("message", ""))
+                // The optional name of the request an answer refusal is about; a malformed one is dropped, not guessed.
+                "error" -> ServerMsg.Error(
+                    o.optString("code", ""),
+                    o.optString("message", ""),
+                    o.optString("fingerprint", "").takeIf { isFingerprint(it) },
+                )
                 else -> null
             }
         } catch (_: JSONException) {

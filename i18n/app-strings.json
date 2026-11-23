@@ -123,6 +123,7 @@
     "refused_unknown_request": "Your computer no longer has this request.",
     "refused_not_offered": "Your computer is not taking answers from this phone right now.",
     "refused_expired": "This request expired on your computer.",
+    "refused_failed": "Your computer could not take that answer. The request is still waiting.",
     "home_running": "%1$d running",
     "home_empty_title": "Nothing is running",
     "home_empty_hint": "Start an agent on your computer and it shows up here.",

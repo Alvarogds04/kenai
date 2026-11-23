@@ -47,7 +47,7 @@ class QuestionNoticeTest {
         // `approvalResolved` and a refusal that says the request is gone both end in removeQuestion, so one rule covers them.
         val model = File("src/main/kotlin/com/kenai/android/app/AppModel.kt").readText()
         assertTrue(model.substringAfter("override fun onApprovalResolved(").substringBefore("override fun onDecisionNotSent(").contains("removeQuestion(fingerprint)"))
-        assertTrue(model.substringAfter("private fun answerRefused(").substringBefore("private fun refusalSentence").contains("removeQuestion(fp)"))
+        assertTrue(model.substringAfter("private fun answerRefused(").substringBefore("private fun refusalSentence").contains("removeQuestion(fingerprint)"))
     }
 
     // Native review R3-001/R4 (19 Nov): the second question of an agent with no `sessions` row went unannounced, because the first one left

@@ -139,10 +139,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     /**
      * «Respuesta enviada» (or that it could not be sent, or that the question was answered elsewhere): Home's card for the answer to a
-     * question, replacing whatever the last decision left there (kenai-0.1 S9, T19; L29 a).
+     * question, replacing whatever the last decision left there (kenai-0.1 S9, T19; L29 a). It is about the answer [answerQuestion] just
+     * sent, so a refusal of another request can never take it away (KN-04 T3b).
      */
     fun answered(text: String) {
-        outcomes.answered(text, android.os.SystemClock.elapsedRealtime())
+        outcomes.answered(text, android.os.SystemClock.elapsedRealtime(), answeredFor)
+        answeredFor = null
         showOutcome()
     }
 
@@ -1047,7 +1049,15 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
      * The card stays until the computer settles the question — its own `approvalResolved`, or a refusal that says it is gone
      * (KN-04 S4) — because sending is not the answer: the engine may have answered it already, or may refuse the picks.
      */
-    fun answerQuestion(fingerprint: String, picks: List<List<String>>): Boolean = link?.answer(fingerprint, picks) ?: false
+    fun answerQuestion(fingerprint: String, picks: List<List<String>>): Boolean {
+        val sent = link?.answer(fingerprint, picks) ?: false
+        // Whose «Respuesta enviada» the next note is, so a refusal of a different request cannot take it away (KN-04 T3b).
+        answeredFor = if (sent) fingerprint else null
+        return sent
+    }
+
+    /** The request Home's next answer note belongs to (KN-04 T3b): set by [answerQuestion], taken by [answered]. */
+    private var answeredFor: String? = null
 
     // ── A file's change (cap `diffs`) ──────────────────────────────────────────────────
 
@@ -1112,29 +1122,34 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     /**
-     * What a refusal leaves behind. A code that keeps the request open takes «Enviando…» away and leaves the card answerable (a cut
-     * card only offers Deny from now on); a code that says the request is gone takes the card away too, and Home says the request is
-     * no longer pending, because this phone never answers it again (S4). Never the engine's sentence: [refusalSentence].
+     * What a refusal leaves behind (KN-04 T3, S4/S12; the decision itself is [Refusals.effect], pure and tested). A code that keeps the
+     * request open takes «Enviando…» away and leaves the card answerable (a cut card only offers Deny from now on); a code that says the
+     * request is gone takes the card away too, and Home says the request is no longer pending, because this phone never answers it again
+     * (S4). Never the engine's sentence: [refusalSentence].
      */
     private fun answerRefused(fingerprint: String?, refusal: Refusal) {
         val request = fingerprint?.let { fp -> approvals.firstOrNull { it.fingerprint == fp } }
         val now = android.os.SystemClock.elapsedRealtime()
         val wall = System.currentTimeMillis()
         val sending = outcome?.takeIf { it.fingerprint == fingerprint && it.kind == OutcomeKind.SENDING }
-        if (Refusals.keeps(refusal)) {
-            fingerprint?.let { outcomes.refusedButPending(it) }
-            if (refusal == Refusal.TRUNCATED && request != null) {
-                approvals = approvals.map { if (it.fingerprint == request.fingerprint) it.copy(truncated = true) else it }
-            }
-        } else {
-            fingerprint?.let { fp ->
-                if (request != null && sending != null) outcomes.refused(request, now, wall, expiresAtWall(fp))
-                else outcomes.refusedButPending(fp)
-                removeApproval(fp)
-                removeQuestion(fp)
-                if (wantAllow == fp) wantAllow = null
-            }
+        val effect = Refusals.effect(
+            refusal,
+            onHome = request != null,
+            sending = sending != null,
+            wantsAllow = fingerprint != null && wantAllow == fingerprint,
+        )
+        fingerprint?.let { fp ->
+            if (effect.showExpired && request != null) outcomes.refused(request, now, wall, expiresAtWall(fp))
+            else outcomes.refusedButPending(fp)
         }
+        if (effect.cutCard && request != null) {
+            approvals = approvals.map { if (it.fingerprint == request.fingerprint) it.copy(truncated = true) else it }
+        }
+        if (effect.cardGoes && fingerprint != null) {
+            removeApproval(fingerprint)
+            removeQuestion(fingerprint)
+        }
+        if (effect.dropWantAllow) wantAllow = null
         showOutcome()
         message = context.getString(refusalSentence(refusal))
     }
@@ -1149,6 +1164,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         Refusal.UNKNOWN_REQUEST -> R.string.refused_unknown_request
         Refusal.NOT_OFFERED -> R.string.refused_not_offered
         Refusal.EXPIRED -> R.string.refused_expired
+        Refusal.FAILED -> R.string.refused_failed
     }
 
     /** A link that had worked ended on its own: remembered with its reason, so Home can say what happened. */

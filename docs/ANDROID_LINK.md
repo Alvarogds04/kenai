@@ -948,6 +948,7 @@ Something the desktop refuses outside a request.
 | `type` | string | yes | `"error"` |
 | `code` | string | no | A short code. `"auth"` is **final**: the phone stops retrying and says the pairing is wrong. `"version"` is the phone's own code for a `welcome.v` it cannot speak (it compares the value itself), so a desktop never needs to send it; every other code is shown and the link keeps retrying. Missing is empty. |
 | `message` | string | no | A short sentence for the user (shown next to the code). |
+| `fingerprint` | string | no | Only on a refusal of a `decision` or an `answer`, and only when the phone named a well-formed one: **64 lowercase hex**, the phone's own request name echoed back (abito-core AC-07c). Never a label, a command or a question; a phone that ignores it behaves as it did before. |
 
 ```json
 {"type":"error","code":"auth","message":"bad token or version"}
@@ -971,9 +972,18 @@ descriptive and short.
 #### Refusing a `decision` or an `answer`
 
 A desktop may refuse an answer instead of staying silent: one `error` frame, a fixed `code`, a fixed sentence, and
-**nothing else** — no fingerprint, no label, no command, no question (abito-core PROTOCOL.md AC-07 U1). The frame
-names no request, so the phone pairs it with the answer it had in flight. Each code has the phone's own sentence:
-the engine's `message` is never shown for these, and none of them is a link error to the app.
+**nothing else** — no label, no command, no question (abito-core PROTOCOL.md AC-07 U1). The frame names its request only
+through the OPTIONAL, additive `fingerprint` of the table above (`chat.cjs` sends it; an older engine does not), so the
+phone pairs the refusal like this:
+
+1. **The frame's own `fingerprint`, when it has one, is authoritative**: that request is the one refused, and the
+   phone gives back (or keeps) THAT request's claim.
+2. **No fingerprint**: the refusal is about the **oldest answer this phone still holds in flight**, because two answers
+   can be waiting at once (two cards, a question and an approval).
+3. A fingerprint the phone has nothing in flight for is still reported to the app, with no claim invented for it.
+
+Each code has the phone's own sentence: the engine's `message` is never shown for these, and none of them is a link
+error to the app.
 
 | `code` | The request | What the phone does |
 | --- | --- | --- |
@@ -981,11 +991,14 @@ the engine's `message` is never shown for these, and none of them is a link erro
 | `truncated` | stays open, deny still taken (a cut card was asked to allow) | the card stays and only offers Deny from now on |
 | `invalid_answer` | stays open (not an answer the request offers) | the card stays, so a correct answer is still possible |
 | `bad_request` | stays open (not an answer the computer understands) | the card stays; on a `chatNew`/`chatOpen`/`chatDelete` the same code is still a link error |
+| `failed` | stays open: an unmapped registry refusal settles **nothing**, so the request stays pending until `approvalResolved` | the card stays answerable; on a `chatNew`/`chatOpen`/`chatDelete` the same code (which carries no fingerprint) is still a link error |
 | `resolved` | gone (already settled, here, there or on another phone) | the card goes and this phone never answers it again (§8) |
 | `unknown_request`, `expired`, `not_offered` | gone (not one of its cards, past its deadline, `answers` never offered) | the card goes |
 
 **`approvalResolved` remains the only confirmation the phone accepts**; a refusal always means “this answer did not
-land”. The phone's own 120 s is unchanged, and a card that stays is still offered again after a reconnection.
+land”. The phone's own 120 s is unchanged, and a card that stays is still offered again after a reconnection. An
+answer is forgotten as in flight when its `approvalResolved` arrives, when the link drops, or when its own write
+failed — never because another request's answer was settled.
 
 ---
 
