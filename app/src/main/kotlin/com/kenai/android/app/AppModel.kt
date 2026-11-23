@@ -1128,28 +1128,18 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
      * (S4). Never the engine's sentence: [refusalSentence].
      */
     private fun answerRefused(fingerprint: String?, refusal: Refusal) {
-        val request = fingerprint?.let { fp -> approvals.firstOrNull { it.fingerprint == fp } }
         val now = android.os.SystemClock.elapsedRealtime()
         val wall = System.currentTimeMillis()
-        val sending = outcome?.takeIf { it.fingerprint == fingerprint && it.kind == OutcomeKind.SENDING }
-        val effect = Refusals.effect(
-            refusal,
-            onHome = request != null,
-            sending = sending != null,
-            wantsAllow = fingerprint != null && wantAllow == fingerprint,
+        val plan = Refusals.plan(
+            refusal, fingerprint, approvals,
+            sendingFp = outcome?.takeIf { it.kind == OutcomeKind.SENDING }?.fingerprint,
+            wantAllowFp = wantAllow,
         )
-        fingerprint?.let { fp ->
-            if (effect.showExpired && request != null) outcomes.refused(request, now, wall, expiresAtWall(fp))
-            else outcomes.refusedButPending(fp)
-        }
-        if (effect.cutCard && request != null) {
-            approvals = approvals.map { if (it.fingerprint == request.fingerprint) it.copy(truncated = true) else it }
-        }
-        if (effect.cardGoes && fingerprint != null) {
-            removeApproval(fingerprint)
-            removeQuestion(fingerprint)
-        }
-        if (effect.dropWantAllow) wantAllow = null
+        plan.expire?.let { outcomes.refused(it, now, wall, expiresAtWall(it.fingerprint)) }
+        plan.clearPending?.let { outcomes.refusedButPending(it) }
+        approvals = Refusals.markCut(approvals, plan.cutFp)
+        plan.removeFp?.let { removeApproval(it); removeQuestion(it) }
+        if (plan.dropWantAllow) wantAllow = null
         showOutcome()
         message = context.getString(refusalSentence(refusal))
     }
