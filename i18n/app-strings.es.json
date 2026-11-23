@@ -158,6 +158,7 @@
     "msg_not_pending": "Ese pedido ya no está pendiente.",
     "msg_bad_link": "Ese no es un enlace de emparejamiento de Kenai.",
     "msg_rejected": "La computadora rechazó este teléfono. Volvé a emparejar.",
+    "msg_line_too_long": "La computadora mandó algo que este teléfono no puede leer (un mensaje demasiado largo). Actualizá el motor en la computadora.",
     "msg_link_error": "Error en el enlace",
     "msg_need_lock": "Configurá un bloqueo de pantalla para aprobar desde el teléfono.",
     "approval_hint": "Permitir en el teléfono pide tu huella o el bloqueo de pantalla. Denegar no.",
