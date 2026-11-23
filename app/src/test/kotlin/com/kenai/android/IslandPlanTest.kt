@@ -49,6 +49,23 @@ class IslandPlanTest {
         assertEquals("Alpha", withRequest.agent)
     }
 
+    @Test fun aQuestionThePhoneHoldsOpensHereAndOneItDoesNotOnlyOpensTheApp() {
+        // What lets the phone answer a question is its frame; a question only known by its state (the agent asks, the frame has not
+        // arrived) keeps «answer on the computer» (KN-04 live finding: the island's card opened a bare MainActivity).
+        val asking = listOf(s("b", BotState.QUESTION))
+        assertTrue(IslandPlan.active(asking, emptyList(), true, name, questions = setOf("b"))!!.canAnswerHere)
+        assertFalse(IslandPlan.active(asking, emptyList(), true, name, questions = emptySet())!!.canAnswerHere)
+        assertFalse("another agent's question is not this one", IslandPlan.active(asking, emptyList(), true, name, questions = setOf("a"))!!.canAnswerHere)
+    }
+
+    @Test fun onlyAQuestionIsAnsweredHereNeverARequestOrAnAgentAtWork() {
+        // A request's «yes» is Allow, and Allow always asks (S10): the island never offers to answer one.
+        val request1 = IslandPlan.active(listOf(s("a", BotState.WORKING)), listOf(request), true, name, questions = setOf("a"))!!
+        assertEquals(IslandSpec.Kind.APPROVAL, request1.kind)
+        assertFalse(request1.canAnswerHere)
+        assertFalse(IslandPlan.active(listOf(s("a", BotState.WORKING)), emptyList(), true, name, questions = setOf("a"))!!.canAnswerHere)
+    }
+
     @Test fun idleSleepingFinishedAreNotAnActiveState() {
         for (st in listOf(BotState.IDLE, BotState.SLEEPING, BotState.FINISHED, BotState.ERROR, BotState.DIZZY)) {
             assertNull("$st", IslandPlan.active(listOf(s("a", st)), emptyList(), true, name))

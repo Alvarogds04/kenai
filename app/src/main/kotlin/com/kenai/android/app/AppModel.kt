@@ -27,6 +27,8 @@ import com.kenai.android.core.DecisionOutcomes
 import com.kenai.android.core.Answer
 import com.kenai.android.core.Outcome
 import com.kenai.android.core.OutcomeKind
+import com.kenai.android.core.Refusal
+import com.kenai.android.core.Refusals
 import com.kenai.android.core.WishStore
 import com.kenai.android.core.Pills
 import com.kenai.android.ui.IslandOverlay
@@ -95,6 +97,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     var mode by mutableStateOf(Mode.NONE); private set
     var linkState by mutableStateOf(LinkState.DISCONNECTED); private set
     var desktopName by mutableStateOf<String?>(null); private set
+    /** What the computer sent in `sessions`, before the phone's own pending questions are added (see [sessions]). */
+    private var sentSessions: List<SessionInfo> = emptyList()
     var sessions by mutableStateOf<List<SessionInfo>>(emptyList()); private set
     var approvals by mutableStateOf<List<ApprovalRequest>>(emptyList()); private set
     /** When each pending request arrived, by this phone's elapsed-time clock, for Home's "Expires in m:ss" (kenai-0.1 S9). */
@@ -135,10 +139,12 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     /**
      * «Respuesta enviada» (or that it could not be sent, or that the question was answered elsewhere): Home's card for the answer to a
-     * question, replacing whatever the last decision left there (kenai-0.1 S9, T19; L29 a).
+     * question, replacing whatever the last decision left there (kenai-0.1 S9, T19; L29 a). It is about the answer [answerQuestion] just
+     * sent, so a refusal of another request can never take it away (KN-04 T3b).
      */
     fun answered(text: String) {
-        outcomes.answered(text, android.os.SystemClock.elapsedRealtime())
+        outcomes.answered(text, android.os.SystemClock.elapsedRealtime(), answeredFor)
+        answeredFor = null
         showOutcome()
     }
 
@@ -437,6 +443,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         onAllow = { notifier.openAllow(it) },
         onDeny = { decide(it, allow = false) },
         onOpen = { notifier.openApp() },
+        // A question the phone holds opens on itself, through the same non-exported door as «Responder» (KN-04 live finding).
+        onAnswer = { notifier.openQuestion(it) },
     )
 
     fun overlayPermitted() = overlay.permitted()
@@ -494,7 +502,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             overlay.hide()
             return
         }
-        overlay.setActive(IslandPlan.active(sessions, approvals, allowed = true, this::agentName))
+        overlay.setActive(IslandPlan.active(sessions, approvals, allowed = true, this::agentName, questions = questions.map { it.pillId }.toSet()))
     }
 
     /**
@@ -512,6 +520,15 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         sessions.firstOrNull { it.pillId == pillId }?.agent?.takeIf { it.isNotBlank() } ?: Pills.byId(pillId)?.name ?: Words.current().anAgent
 
     val isPaired get() = store.loadPairing() != null
+
+    /**
+     * The link lives in the app, but only a foreground service keeps the process (and its network) alive in the background. A start
+     * asked from a background receiver is refused by Android and the link would then be cut as soon as the app leaves the screen
+     * (KN-04 live test), so every time the app is shown it asks again; starting an already running service changes nothing.
+     */
+    fun ensureLinkService() {
+        if (isPaired) LinkService.start(context)
+    }
 
     /** Called at launch and by the service: reconnects to the stored desktop, if any. */
     fun resume() {
@@ -771,8 +788,14 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     /** Every card goes: the desktop offers a request again if it is still pending once we reconnect. */
     private fun dropApprovals() {
+        // Every question goes, and so does the notice that said «Tiene una pregunta»: its «Responder» would land on Home for nothing.
+        questions.map { it.pillId }.distinct().forEach {
+            notifier.cancelStatus(it)
+            if (sentSessions.none { s -> s.pillId == it }) lastState.remove(it)
+        }
         questions.forEach { expiry.remove(it.fingerprint)?.let { r -> main.removeCallbacks(r) } }
         questions = emptyList()
+        sessions = withQuestions()
         overlay.hide()
         expiry.values.forEach { main.removeCallbacks(it) }
         expiry.clear()
@@ -908,27 +931,37 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onSessions(sessions: List<SessionInfo>) {
         main.post {
-            this.sessions = sessions
-            val minute = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
-            for (s in sessions) {
-                val prev = lastState.put(s.pillId, s.state)
-                // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
-                if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
-                val name = agentName(s.pillId)
-                val sound = com.kenai.android.character.StateColors.STATE_SOUND[s.state]
-                if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
-                val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
-                if (a.sound && sound != null) sounds.play(sound)
-                if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
-                IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
-                // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
-                if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
-                // The agent moved on: the notice about the last state is stale.
-                if (prev != s.state && s.state !in NEWSWORTHY) notifier.cancelStatus(s.pillId)
-            }
-            lastState.keys.retainAll(sessions.map { it.pillId }.toSet())
-            refreshIsland()
+            sentSessions = sessions
+            announceSessions()
         }
+    }
+
+    /**
+     * Takes [withQuestions] as the session list and announces what changed (sound, notice, island, counter). Both the computer's
+     * `sessions` frame and a `question` frame come through here, so a question with no row of its own still reaches Home and the shade.
+     */
+    private fun announceSessions() {
+        val sessions = withQuestions()
+        this.sessions = sessions
+        val minute = java.time.LocalTime.now().let { it.hour * 60 + it.minute }
+        for (s in sessions) {
+            val prev = lastState.put(s.pillId, s.state)
+            // A task just finished (not one already finished when the link came back), on a real computer: the demo loops and never counts.
+            if (mode == Mode.PAIRED && prev != null && prev != BotState.FINISHED && s.state == BotState.FINISHED) todayCounter.increment()
+            val name = agentName(s.pillId)
+            val sound = com.kenai.android.character.StateColors.STATE_SOUND[s.state]
+            if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
+            val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
+            if (a.sound && sound != null) sounds.play(sound)
+            if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
+            IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
+            // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
+            if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
+            // The agent moved on: the notice about the last state is stale.
+            if (prev != s.state && s.state !in NEWSWORTHY) notifier.cancelStatus(s.pillId)
+        }
+        lastState.keys.retainAll(sessions.map { it.pillId }.toSet())
+        refreshIsland()
     }
 
     override fun onApproval(request: ApprovalRequest) {
@@ -956,6 +989,10 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     override fun onQuestion(request: QuestionRequest) {
         main.post {
             questions = questions.filter { it.fingerprint != request.fingerprint } + request
+            // A question is a request of its own: it shows (and is announced) even when no `sessions` row says the agent asks.
+            // An agent the phone has no state for is «already there» to the announcer (quiet); a question frame is news, so give it one.
+            lastState.putIfAbsent(request.pillId, BotState.IDLE)
+            announceSessions()
             // The alert widget lists the phone's questions: it follows their arrival and their going (T18).
             pushGlance()
             buzzOnArrival(Arrival.QUESTION, request.pillId, request.fingerprint)
@@ -976,8 +1013,18 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     private fun removeQuestion(fingerprint: String) {
+        val pillId = questions.firstOrNull { it.fingerprint == fingerprint }?.pillId
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         questions = questions.filter { it.fingerprint != fingerprint }
+        // The question is gone (answered, expired, resolved elsewhere, refused): its status notice goes with it, unless the same agent
+        // is still asking something else. Otherwise a stale «Responder» lands on Home with no question behind it.
+        if (pillId != null && questions.none { it.pillId == pillId }) {
+            notifier.cancelStatus(pillId)
+            // An agent the computer never listed has no state but this question: forget it, so its next question is news again.
+            if (sentSessions.none { it.pillId == pillId }) lastState.remove(pillId)
+        }
+        sessions = withQuestions()
+        refreshIsland()
         pushGlance()
     }
 
@@ -990,17 +1037,27 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     }
 
     /** The question of this agent, if one waits for the phone's answer. */
+    private fun withQuestions(): List<SessionInfo> =
+        com.kenai.android.core.SessionsWithQuestions.merge(sentSessions, questions.map { it.pillId }.toSet(), System.currentTimeMillis())
+
     fun questionFor(pillId: String): QuestionRequest? = questions.firstOrNull { it.pillId == pillId }
 
     /**
      * Sends the picks; the lock check has already happened in the UI (BiometricGate). True if it was sent. What was
      * picked is not logged, not stored and not put in the history.
+     *
+     * The card stays until the computer settles the question — its own `approvalResolved`, or a refusal that says it is gone
+     * (KN-04 S4) — because sending is not the answer: the engine may have answered it already, or may refuse the picks.
      */
     fun answerQuestion(fingerprint: String, picks: List<List<String>>): Boolean {
         val sent = link?.answer(fingerprint, picks) ?: false
-        if (sent) removeQuestion(fingerprint)
+        // Whose «Respuesta enviada» the next note is, so a refusal of a different request cannot take it away (KN-04 T3b).
+        answeredFor = if (sent) fingerprint else null
         return sent
     }
+
+    /** The request Home's next answer note belongs to (KN-04 T3b): set by [answerQuestion], taken by [answered]. */
+    private var answeredFor: String? = null
 
     // ── A file's change (cap `diffs`) ──────────────────────────────────────────────────
 
@@ -1057,6 +1114,57 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
 
     override fun onDecisionNotSent(fingerprint: String) {
         main.post { outcomes.sendFailed(fingerprint); showOutcome() }
+    }
+
+    /** The computer refused an answer this phone sent (KN-04 T3, S4/S12): no generic link error, but Kenai's own sentence. */
+    override fun onAnswerRefused(fingerprint: String?, refusal: Refusal) {
+        main.post { answerRefused(fingerprint, refusal) }
+    }
+
+    /**
+     * What a refusal leaves behind (KN-04 T3, S4/S12; the decision itself is [Refusals.effect], pure and tested). A code that keeps the
+     * request open takes «Enviando…» away and leaves the card answerable (a cut card only offers Deny from now on); a code that says the
+     * request is gone takes the card away too, and Home says the request is no longer pending, because this phone never answers it again
+     * (S4). Never the engine's sentence: [refusalSentence].
+     */
+    private fun answerRefused(fingerprint: String?, refusal: Refusal) {
+        val request = fingerprint?.let { fp -> approvals.firstOrNull { it.fingerprint == fp } }
+        val now = android.os.SystemClock.elapsedRealtime()
+        val wall = System.currentTimeMillis()
+        val sending = outcome?.takeIf { it.fingerprint == fingerprint && it.kind == OutcomeKind.SENDING }
+        val effect = Refusals.effect(
+            refusal,
+            onHome = request != null,
+            sending = sending != null,
+            wantsAllow = fingerprint != null && wantAllow == fingerprint,
+        )
+        fingerprint?.let { fp ->
+            if (effect.showExpired && request != null) outcomes.refused(request, now, wall, expiresAtWall(fp))
+            else outcomes.refusedButPending(fp)
+        }
+        if (effect.cutCard && request != null) {
+            approvals = approvals.map { if (it.fingerprint == request.fingerprint) it.copy(truncated = true) else it }
+        }
+        if (effect.cardGoes && fingerprint != null) {
+            removeApproval(fingerprint)
+            removeQuestion(fingerprint)
+        }
+        if (effect.dropWantAllow) wantAllow = null
+        showOutcome()
+        message = context.getString(refusalSentence(refusal))
+    }
+
+    /** Kenai's own words for a refused answer (KN-04 S12): one short sentence per code, never the engine's. */
+    private fun refusalSentence(r: Refusal): Int = when (r) {
+        Refusal.OFF -> R.string.refused_off
+        Refusal.RESOLVED -> R.string.refused_resolved
+        Refusal.TRUNCATED -> R.string.refused_truncated
+        Refusal.INVALID_ANSWER -> R.string.refused_invalid_answer
+        Refusal.BAD_REQUEST -> R.string.refused_bad_request
+        Refusal.UNKNOWN_REQUEST -> R.string.refused_unknown_request
+        Refusal.NOT_OFFERED -> R.string.refused_not_offered
+        Refusal.EXPIRED -> R.string.refused_expired
+        Refusal.FAILED -> R.string.refused_failed
     }
 
     /** A link that had worked ended on its own: remembered with its reason, so Home can say what happened. */

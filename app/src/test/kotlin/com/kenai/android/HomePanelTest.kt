@@ -69,7 +69,9 @@ class HomePanelTest {
         assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE)))
         assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(steps = listOf("x"))))
         assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(finalLine = "done")))
-        assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app")))
+        // KN-04 B-a: the project name alone (all the engine sends today) is not something to open.
+        assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app")))
+        assertTrue(HomePanel.hasDetails(s("a", BotState.IDLE).copy(project = "app", steps = listOf("x"))))
         assertTrue(!HomePanel.hasDetails(s("a", BotState.IDLE).copy(finalLine = "  ", color = "#112233")))
     }
 
@@ -248,5 +250,14 @@ class HomePanelTest {
         assertNull("the agent is gone", HomePanel.heroAsks(emptyList(), "a", setOf("a")))
         // It is still left out of the groups: its row is the question's, never a second request row.
         assertTrue(HomePanel.groups(asking, heroPillId = "a").waiting.isEmpty())
+    }
+
+    // KN-04 A-a: an `attention` notice alone is «esperando…»; «Responder» only once the question frame is on the phone.
+    @Test fun aQuestionSessionIsAnswerableOnlyWithItsQuestionFrame() {
+        val q = s("a", BotState.QUESTION)
+        assertFalse(HomePanel.canAnswer(q, emptySet()))
+        assertTrue(HomePanel.canAnswer(q, setOf("a")))
+        assertFalse(HomePanel.canAnswer(q, setOf("b")))
+        assertFalse(HomePanel.canAnswer(s("a", BotState.WORKING), setOf("a")))
     }
 }

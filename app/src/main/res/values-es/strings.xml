@@ -115,6 +115,15 @@
     <string name="question_ok">Aceptar</string>
     <string name="question_hint_answers">Responder acá está activado en Koda, en tu computadora. Si ya respondiste allá, esta pregunta se cierra sola.</string>
     <string name="question_gone">Esa pregunta ya no está esperando.</string>
+    <string name="refused_off">Las respuestas de este teléfono están desactivadas en tu computadora. Respondé este pedido allá.</string>
+    <string name="refused_resolved">Ya está resuelto: alguien lo respondió en tu computadora.</string>
+    <string name="refused_truncated">Tu computadora rechazó este permitir: ese comando llegó cortado al teléfono. Todavía podés denegarlo.</string>
+    <string name="refused_invalid_answer">Tu computadora no aceptó esa respuesta. Probá de nuevo.</string>
+    <string name="refused_bad_request">Tu computadora no entendió esa respuesta. Probá de nuevo.</string>
+    <string name="refused_unknown_request">Tu computadora ya no tiene este pedido.</string>
+    <string name="refused_not_offered">Tu computadora no está aceptando respuestas de este teléfono ahora.</string>
+    <string name="refused_expired">Este pedido caducó en tu computadora.</string>
+    <string name="refused_failed">Tu computadora no pudo tomar esa respuesta. El pedido sigue esperando.</string>
     <string name="home_running">%1$d en curso</string>
     <string name="home_empty_title">No hay nada en curso</string>
     <string name="home_empty_hint">Iniciá un agente en tu computadora y va a aparecer acá.</string>
@@ -178,6 +187,7 @@
     <string name="notif_question">Tiene una pregunta</string>
     <string name="notif_ratelimit">Llegó a un límite de uso</string>
     <string name="island_answer_on_pc">Tocá para abrir Kenai, o respondé en tu computadora</string>
+    <string name="island_answer_here">Tocá para responder</string>
     <string name="state_ready">Listo</string>
     <string name="state_working">Trabajando</string>
     <string name="state_thinking">Pensando</string>
@@ -309,6 +319,7 @@
     <string name="home_running_title">En curso · %1$d</string>
     <string name="home_others_title">Otros agentes</string>
     <string name="home_answer">Responder</string>
+    <string name="home_waiting_request">esperando el pedido…</string>
     <string name="home_review">Revisar</string>
     <string name="home_unconfirmed">Sin confirmar</string>
     <string name="home_offline_body">¿El teléfono está en el mismo Wi-Fi? ¿La computadora está despierta, con Koda abierto? Los pedidos te llegan apenas vuelva la conexión.</string>

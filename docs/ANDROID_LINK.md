@@ -621,9 +621,9 @@ An approval request: the agent is about to run a command and the user must allow
 | `pillId` | string | yes | The agent's pill id, as in `sessions`, so the phone can name it. |
 | `fingerprint` | string | yes | **64 lowercase hex characters** (§8.1). The phone refuses the whole message if it is not. Uppercase is refused too: send it lowercase. |
 | `tool` | string | yes | The tool the agent wants to use, as the agent names it (`"Bash"`, `"Write"`, `"Edit"`, `"WebFetch"…`). Shown as the eyebrow of the sheet. |
-| `command` | string | yes | What will run: the exact command line for Bash, or a one-line summary of the action. **The desktop cuts it to at most 500 characters** and flags it with `truncated`. |
+| `command` | string | yes | What will run: the exact command line for Bash, or a one-line summary of the action. **Jesscore sends the producer's own text verbatim, newlines kept, up to that producer's bound (500 characters, 2000 for structured requests)**; an older desktop may cut it at 500 and flag it with `truncated`. |
 | `createdAt` | long | yes | Epoch milliseconds when the request was made. The phone shows it in Diagnostics; it never uses it to expire the request (§8.2). |
-| `truncated` | bool | no | `true` when the desktop cut `command` at 500 characters, so the phone can say “the command was shortened”. Absent means `false` — which is also what an older desktop that never cuts sends. |
+| `truncated` | bool | no | `true` when the sender cut `command` (an older desktop at 500 characters), so the phone can say “the command was shortened”. Absent means `false`; jesscore never cuts and never sets it. |
 
 ```json
 {"type":"approval","pillId":"integration_claude","fingerprint":"6f1c0e13a9b6d0c58b7c1a94e2d3f4a5b6c7d8e9f0a1b2c3d4e5f60718293a4b","tool":"Bash","command":"npm run build","createdAt":1710000000000,"truncated":false}
@@ -948,6 +948,7 @@ Something the desktop refuses outside a request.
 | `type` | string | yes | `"error"` |
 | `code` | string | no | A short code. `"auth"` is **final**: the phone stops retrying and says the pairing is wrong. `"version"` is the phone's own code for a `welcome.v` it cannot speak (it compares the value itself), so a desktop never needs to send it; every other code is shown and the link keeps retrying. Missing is empty. |
 | `message` | string | no | A short sentence for the user (shown next to the code). |
+| `fingerprint` | string | no | Only on a refusal of a `decision` or an `answer`, and only when the phone named a well-formed one: **64 lowercase hex**, the phone's own request name echoed back (abito-core AC-07c). Never a label, a command or a question; a phone that ignores it behaves as it did before. |
 
 ```json
 {"type":"error","code":"auth","message":"bad token or version"}
@@ -967,6 +968,37 @@ Codes the desktop sends today (`server.rs`, reproduced by the reference desktop)
 The phone also reports its own failures through this code space as `send` (its `onError("send", …)` when a write
 fails), which is why the desktop should not invent codes that collide with nothing: any new code must be
 descriptive and short.
+
+#### Refusing a `decision` or an `answer`
+
+A desktop may refuse an answer instead of staying silent: one `error` frame, a fixed `code`, a fixed sentence, and
+**nothing else** — no label, no command, no question (abito-core PROTOCOL.md AC-07 U1). The frame names its request only
+through the OPTIONAL, additive `fingerprint` of the table above (`chat.cjs` sends it; an older engine does not), so the
+phone pairs the refusal like this:
+
+1. **The frame's own `fingerprint`, when it has one, is authoritative**: that request is the one refused, and the
+   phone gives back (or keeps) THAT request's claim.
+2. **No fingerprint**: the refusal is about the **oldest answer this phone still holds in flight**, because two answers
+   can be waiting at once (two cards, a question and an approval).
+3. A fingerprint the phone has nothing in flight for is still reported to the app, with no claim invented for it.
+
+Each code has the phone's own sentence: the engine's `message` is never shown for these, and none of them is a link
+error to the app.
+
+| `code` | The request | What the phone does |
+| --- | --- | --- |
+| `off` | stays open (the answers switch is off for this phone on that computer) | the card stays answerable and says answers are off there |
+| `truncated` | stays open, deny still taken (a cut card was asked to allow) | the card stays and only offers Deny from now on |
+| `invalid_answer` | stays open (not an answer the request offers) | the card stays, so a correct answer is still possible |
+| `bad_request` | stays open (not an answer the computer understands) | the card stays; on a `chatNew`/`chatOpen`/`chatDelete` the same code is still a link error |
+| `failed` | stays open: an unmapped registry refusal settles **nothing**, so the request stays pending until `approvalResolved` | the card stays answerable; on a `chatNew`/`chatOpen`/`chatDelete` the same code (which carries no fingerprint) is still a link error |
+| `resolved` | gone (already settled, here, there or on another phone) | the card goes and this phone never answers it again (§8) |
+| `unknown_request`, `expired`, `not_offered` | gone (not one of its cards, past its deadline, `answers` never offered) | the card goes |
+
+**`approvalResolved` remains the only confirmation the phone accepts**; a refusal always means “this answer did not
+land”. The phone's own 120 s is unchanged, and a card that stays is still offered again after a reconnection. An
+answer is forgotten as in flight when its `approvalResolved` arrives, when the link drops, or when its own write
+failed — never because another request's answer was settled.
 
 ---
 
@@ -1054,7 +1086,10 @@ Details the desktop must respect:
 - The phone's clock is **its own** arrival time, never the request's `createdAt`: a computer whose clock is a few
   minutes off would otherwise make every request look expired (or immortal). `createdAt` is informational only.
 - A request is decidable **once**: the phone removes it when it sends the decision (`ApprovalBook.claim`), and
-  restores it (with the time it already used, not a fresh 120 s) only if it could not be written.
+  restores it (with the time it already used, not a fresh 120 s) only if it could not be written, or if the desktop
+  refused the decision with a code that leaves the request open — `off`, `truncated`, `invalid_answer`,
+  `bad_request` (§6, “Refusing a `decision` or an `answer`”). `resolved` never gives it back: it says someone else
+  answered, so the phone does not offer it again.
 - A request that arrives twice on one connection (the desktop re-sent it) keeps its first arrival time.
 - A link drop clears the phone's book: after the reconnect the desktop re-offers what is still pending.
 - The same 120 s rule applies to questions (§9.4).
@@ -1065,11 +1100,13 @@ Details the desktop must respect:
 The user taps Allow or Deny → the phone sends `decision` → the desktop applies it and sends `approvalResolved`
 with that fingerprint. Until `approvalResolved` arrives the phone shows its “Enviando / Permitido / Denegado”
 state; if the write failed it shows “no se pudo enviar” and puts the request back so it can be decided again
-while it is still valid. Silence is never a confirmation.
+while it is still valid. A refusal (§6) ends “Enviando” too: the codes that keep the request open leave the card
+answerable and say why in the phone's own words, and `resolved` takes the card away for good. Silence is never a
+confirmation and is never a refusal either: it leaves the card waiting out its 120 s.
 
 ### 8.4 Truncated commands
 
-`command` is cut by the desktop at **500 characters** and flagged `truncated`. The phone then shows the cut text
+A sender that cuts `command` (an older desktop at **500 characters**; jesscore does not cut) flags it `truncated`. The phone then shows the cut text
 with a notice, and never treats the shown text as the whole command: it decides about a request whose fingerprint
 was computed over the full one. A desktop may send `truncated:false` or omit the field; sending a cut command
 **without** the flag is a bug the user cannot see through the phone.
@@ -1099,8 +1136,10 @@ with the phone's screen lock (“Confirm it's you”); then `answer` is sent and
 | Empty question, no options | Never legal: the desktop must not send such a question (§“question” limits). |
 
 The reference desktop's `validPicks` is that table verbatim, and it answers an invalid `answer` with **silence**
-(it logs `ANSWER refused` and sends nothing), because a refusal is not a state the phone shows: the question
-simply stays until it is answered or expires. Therefore:
+(it logs `ANSWER refused` and sends nothing), because a silent refusal is not a state the phone shows: the question
+simply stays until it is answered or expires. A desktop that refuses with an `error` frame instead must use the
+codes of §6 (“Refusing a `decision` or an `answer`”): `invalid_answer`, `bad_request` and `off` keep the question
+answerable, `resolved` and `expired` take it away. Either way:
 
 - **On a valid answer the desktop MUST send `approvalResolved` with the question's fingerprint.** That is the only
   signal the phone accepts as “it is answered”.
@@ -1250,6 +1289,9 @@ approval.
    the whole thing there (cut at 500 characters, `truncated` when cut) and must not hide another sensitive string
    somewhere else. A user's paths appear only inside `command`/`lines`/`steps` as text; `project` and file
    `name`s are **always last segments**, and the phone strips any path a desktop sends anyway.
+   The notification's own buttons decide nothing that needs consent: Deny refuses at once, Allow only opens the
+   app on that request's fingerprint / screen-lock prompt, and «Responder» only opens the question — so no `decision`
+   and no `answer` can be sent from the shade (the one decision it sends is Deny), and a `truncated` request never offers Allow at all.
 7. **Length limits are a defence, not decoration.** 64 KiB per line, plus every cap in this document (16
    sessions, 20 files, 20 steps of 200 characters, 200 diff lines of 400 characters, 4 questions with 8 options,
    7 service cards of 3 lines of 80 characters, 4000 characters of chat). The phone drops what breaks the shape

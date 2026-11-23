@@ -27,13 +27,14 @@ class SheetsTest {
         // Allow is drawn only under the check, and the notice is not behind a tap.
         assertTrue(sheets.substringAfter("val canAllow").substringBefore("PillKind.PRIMARY").contains("if (canAllow)"))
         assertFalse(sheets.substringAfter("approval_too_long").substringBefore("canAllow").contains("showCommand"))
-        // The same rule at every door: the sheet's callback, the model and the island. The notification has no Allow at all
-        // (kenai-0.1 S9, screen 5: «Revisar el pedido» opens the app instead), so it cannot offer one for a cut command either.
+        // The same rule at every door: the sheet's callback, the model, the island and the shade (KN-04 T4). The notification's
+        // «Permitir» opens the app's own prompt and decides nothing in the shade, so a cut request is never allowed from there either.
         assertTrue(main.contains("ApprovalSheetPlan.canAllowHere(r)"))
         assertTrue(src("app/AppModel.kt").substringAfter("fun decide(fingerprint").substringBefore("link?.decide").contains("canAllowHere(request)"))
         val notifications = src("app/Notifications.kt")
-        assertFalse("no Allow action in the notification", notifications.contains("R.string.action_allow"))
-        assertFalse("no action opens the app on Allow", notifications.substringAfter("fun showApproval(").substringBefore("private fun wakeScreen").contains("open(r.fingerprint, true"))
+        assertTrue("Allow is the app's prompt, never a decision in the shade", notifications.contains("open(r.fingerprint, true, id + 1)"))
+        assertTrue("and the shade asks the same question as the sheet", notifications.contains("NotificationPlan.approvalActions(r)"))
+        assertTrue("the only decision in the notifications is Deny", notifications.contains("model.decide(fp, allow = false)") && !notifications.contains("allow = true"))
         assertTrue(src("ui/IslandOverlay.kt").contains("if (s.canAllow)"))
     }
 

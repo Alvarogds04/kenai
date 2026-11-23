@@ -235,4 +235,33 @@ class PendingLaunchTest {
         assertTrue("the hero's own request: its result gives way to it", review.contains("ApprovalSheetPlan.hero(model.approvals)?.fingerprint == fp") && review.contains("model.dismissOutcome()"))
         assertTrue("another request: its sheet over Home", review.contains("reviewApproval = fp"))
     }
+
+    // ── Allow tapped after its request is gone (KN-04 T4, S10) ──────────────────────────────────────
+
+    @Test fun anAllowTappedAfterItsRequestIsGoneOpensHomeAndSendsNothing() {
+        // The tap reaches the app with a request the phone no longer holds (decided here, decided on the computer, expired): the app
+        // opens on Home and says so. Nothing is sent for it, and the allow is not kept for the next request either.
+        val src = File(main + "MainActivity.kt").readText()
+        val branch = src.substringAfter("val launch = model.launch.take() ?: return").substringBefore("private fun openQuestion(")
+        assertTrue("only a request still here reaches the prompt", branch.contains("request != null -> approve(request)"))
+        val gone = branch.substringAfter("else ->")
+        assertTrue("Home, from whatever screen was open", gone.contains("screen = Screen.HOME"))
+        assertFalse("nothing is decided for it", gone.contains("decide(") || gone.contains("approve("))
+        assertTrue("in its own words", gone.contains("R.string.msg_not_pending"))
+    }
+
+    @Test fun theResponderOfAQuestionNotificationOnlyAsksForThatQuestion() {
+        // «Responder» on a question's notice is the tile's own route: the pill id, once, through the non-exported entry point.
+        val n = File(main + "app/Notifications.kt").readText()
+        val pi = n.substringAfter("private fun openQuestion(").substringBefore("fun openAllow(")
+        assertTrue("into the app through our own activity", pi.contains("LaunchActivity::class.java"))
+        assertTrue("with the pill id and nothing else", pi.contains("putExtra(LaunchActivity.EXTRA_QUESTION, pillId)"))
+        assertEquals("one extra, and it is the pill id", 1, Regex("""putExtra\(""").findAll(pi).count())
+        val entry = File(main + "app/LaunchActivity.kt").readText()
+        assertTrue(entry.contains("model.launch.requestQuestion(intent.getStringExtra(EXTRA_QUESTION))"))
+        val activity = File(main + "MainActivity.kt").readText()
+        assertTrue("and the app opens that question", activity.contains("model.launch.takeQuestion()"))
+        assertEquals("the one way a question reaches the app", listOf("LaunchActivity.kt"), File(main).walkTopDown().filter { it.extension == "kt" }
+            .filter { it.readText().contains("launch.requestQuestion(") }.map { it.name }.toList())
+    }
 }

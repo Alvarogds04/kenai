@@ -139,7 +139,9 @@ fun NextUp(model: AppModel, next: HomePanel.Next, onQuestion: (String) -> Unit, 
                     if (line.isNotBlank()) Text(line, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
                 when (next.kind) {
-                    HomePanel.NextKind.QUESTION -> PillButton(stringResource(R.string.home_answer), { onQuestion(next.pillId) }, kind = PillKind.PRIMARY)
+                    HomePanel.NextKind.QUESTION ->
+                        if (s != null && HomePanel.canAnswer(s, model.questions.map { it.pillId }.toSet())) PillButton(stringResource(R.string.home_answer), { onQuestion(next.pillId) }, kind = PillKind.PRIMARY)
+                        else Text(stringResource(R.string.home_waiting_request), style = TypeScale.SECONDARY.style(t.textDim.c()))
                     HomePanel.NextKind.APPROVAL -> next.fingerprint?.let { fp ->
                         PillButton(stringResource(R.string.home_review), { onReview(fp) }, kind = PillKind.PRIMARY)
                     }

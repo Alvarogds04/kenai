@@ -302,6 +302,7 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         model.inForeground = true
+        model.ensureLinkService() // Android allows starting the foreground service from here, not from a background receiver
         model.refreshOverlayPermission() // maybe granted meanwhile, from this app's switch or Android's settings
         model.refreshBattery() // the battery setting may have been changed in Android's screen
     }
@@ -349,9 +350,10 @@ class MainActivity : ComponentActivity() {
         }
         // A tap on a widget button: a screen of the closed list ([LaunchScreen]), even when the app is locked, not connected or not paired.
         model.launch.takeScreen()?.let { screen = it.screen }
-        // A tap on the quick-settings tile while a question waits: its screen, where the answer still goes behind the screen lock.
+        // A tap on the quick-settings tile or «Responder» on a question's notification: its screen, where the answer still goes behind
+        // the screen lock. The question may be gone meanwhile (answered on the computer, expired): Home then, not a card of nothing.
         model.launch.takeQuestion()?.let { pill ->
-            if (model.questionFor(pill) != null) openQuestion(pill)
+            if (model.questionFor(pill) != null) openQuestion(pill) else { questionPill = null; screen = Screen.HOME }
         }
         val launch = model.launch.take() ?: return
         val fp = launch.fingerprint
@@ -378,7 +380,13 @@ class MainActivity : ComponentActivity() {
             request != null -> approve(request)
             // The app was closed: the desktop offers the request again once the link is back.
             model.linkState != LinkState.CONNECTED -> model.wantAllow = fp
-            else -> model.message = getString(R.string.msg_not_pending)
+            // Already decided here or on the computer, or expired: Home, in its own words. Nothing is sent for a request that is
+            // not here, and the allow is not kept for whatever arrives next (KN-04 T4: no stale allow).
+            else -> {
+                questionPill = null
+                screen = Screen.HOME
+                model.message = getString(R.string.msg_not_pending)
+            }
         }
     }
 
@@ -526,6 +534,7 @@ private fun Home(
     if (engine.state != state && !touch.dizzy) engine.setState(state)
     engine.bodyColor = focus?.let { HomePanel.colorHex(it) }?.let { HomePanel.rgb(it) }
 
+    val questionPills = model.questions.map { it.pillId }.toSet()
     val groups = HomePanel.groups(
         model.sessions, heroPillId = if (scene == HomePanel.Scene.RESULT) next?.pillId else focus?.pillId ?: hero?.pillId,
         requestPills = model.approvals.map { it.pillId }.toSet(),
@@ -539,7 +548,7 @@ private fun Home(
             HomePanel.Scene.RESULT -> next?.takeIf { it.kind == HomePanel.NextKind.APPROVAL }?.pillId
             else -> null
         },
-        questionPills = model.questions.map { it.pillId }.toSet(),
+        questionPills = questionPills,
     )
     LazyColumn(
         state = listState,
@@ -568,8 +577,8 @@ private fun Home(
                     focus, engine, touch.modifier, pair, HomeText.running(model.sessions),
                     linkDot = linkDotColor(model), linkText = linkStatusText(model),
                     onDetails = if (focus != null && HomePanel.hasDetails(focus)) ({ onSession(focus.pillId) }) else null,
-                    onQuestion = if (focus != null && focus.state == BotState.QUESTION) ({ onQuestion(focus.pillId) }) else null,
-                    canAnswer = focus != null && model.questionFor(focus.pillId) != null,
+                    onQuestion = if (focus != null && HomePanel.canAnswer(focus, questionPills)) ({ onQuestion(focus.pillId) }) else null,
+                    waitingForRequest = focus != null && focus.state == BotState.QUESTION && !HomePanel.canAnswer(focus, questionPills),
                     onLink = {
                         when (pair) {
                             HomePanel.Link.PAIR -> onScan() // not reachable on Home (no computer shows the pairing screen), harmless
@@ -615,7 +624,7 @@ private fun Home(
                         groups.waiting,
                         reviewFor = { s -> model.approvals.drop(1).firstOrNull { it.pillId == s.pillId }?.fingerprint },
                         onQuestion = onQuestion, onReview = { onReview(it) },
-                        asks = asks,
+                        asks = asks, canAnswer = { HomePanel.canAnswer(it, questionPills) },
                         asksLine = asks?.let { HomeText.nextLine(model.questionFor(it.pillId)?.questions?.firstOrNull()?.question, it) }.orEmpty(),
                     )
                 }

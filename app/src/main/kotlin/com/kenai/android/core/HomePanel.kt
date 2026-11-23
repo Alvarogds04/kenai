@@ -38,8 +38,8 @@ object HomePanel {
         else -> Link.NONE
     }
 
-    /** There is something to open: steps, a last message or a project name (only with the "details" capability). */
-    fun hasDetails(s: SessionInfo): Boolean = s.steps.isNotEmpty() || !s.finalLine.isNullOrBlank() || s.project != null || s.files.isNotEmpty()
+    /** There is something to open: steps, a last message or changed files. A project name alone is not enough (KN-04 B-a). */
+    fun hasDetails(s: SessionInfo): Boolean = s.steps.isNotEmpty() || !s.finalLine.isNullOrBlank() || s.files.isNotEmpty()
 
     /** The colour of an agent: the one the user gave its pill on the computer, else the catalog's. */
     fun colorHex(s: SessionInfo): String? = s.color ?: Pills.byId(s.pillId)?.colorHex
@@ -106,6 +106,12 @@ object HomePanel {
         requestPillId ?: return null
         return sessions.firstOrNull { it.pillId == requestPillId && (it.state == BotState.QUESTION || it.pillId in questionPills) }
     }
+
+    /**
+     * KN-04 A-a: a session asking for something (QUESTION) can be answered only once its `question` frame is on the phone
+     * ([questionPills]); an `attention` notice alone has nothing to answer yet and Home says it is waiting.
+     */
+    fun canAnswer(s: SessionInfo, questionPills: Set<String>): Boolean = s.state == BotState.QUESTION && s.pillId in questionPills
 
     /** The bar's badge on Inicio: the requests plus the questions that wait. */
     fun waitingCount(approvals: Int, sessions: List<SessionInfo>): Int = approvals + sessions.count { it.state == BotState.QUESTION }

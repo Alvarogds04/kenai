@@ -15,9 +15,11 @@ enum class OutcomeKind { SENDING, ALLOWED, DENIED, EXPIRED, FAILED }
  * The sentence Home says about an answer to a question (kenai-0.1 S9, T19): «Respuesta enviada», that it could not be sent, or that
  * the question is no longer waiting. It shares Home's one «what just happened» card with [Outcome], so a newer one replaces it, a
  * decision replaces it, a new request clears it, and it never shows after [DecisionOutcomes.SHOW_MS] either. [text] is the word Home
- * already has (a string resource); [sinceMs] is when it appeared, by the phone's elapsed clock.
+ * already has (a string resource); [sinceMs] is when it appeared, by the phone's elapsed clock; [fingerprint] is the request the note is
+ * about (null when the phone does not know, as when a question is gone before it answers), so a refusal of ANOTHER request can never
+ * take it away.
  */
-data class Answer(val text: String, val sinceMs: Long)
+data class Answer(val text: String, val sinceMs: Long, val fingerprint: String? = null)
 
 /**
  * The one result Inicio shows. Names and the tool only: never the command.
@@ -98,6 +100,19 @@ class DecisionOutcomes {
         return set(Outcome(fingerprint, OutcomeKind.EXPIRED, null, shown.pillId, shown.tool, nowMs, wallMs, expiresAtWallMs))
     }
 
+    /**
+     * The computer refused the answer to [fingerprint] and left the request open (KN-04 S12: a cut card asked to allow, an answer the
+     * request does not offer, the answers switch off, a `failed` answer that settled nothing…). «Sending…» cannot stay — nobody said it
+     * arrived — so the result goes and the request is back on Home, answerable. The sentence saying why is Home's other message, and the
+     * «Respuesta enviada» card of THIS request goes with it: only of this one, because a note about another answer says that other one
+     * arrived.
+     */
+    fun refusedButPending(fingerprint: String) {
+        decided.remove(fingerprint)
+        if (answer?.fingerprint == fingerprint) answer = null
+        if (current?.fingerprint == fingerprint && current?.kind == OutcomeKind.SENDING) current = null
+    }
+
     /** The phone's 120 s for [fingerprint] ran out. */
     fun expired(fingerprint: String, shown: ApprovalRequest?, nowMs: Long, wallMs: Long, expiresAtWallMs: Long?): Outcome? {
         decided.remove(fingerprint)
@@ -127,9 +142,9 @@ class DecisionOutcomes {
     }
 
     /** The sentence Home says about the answer the phone just sent (T19): it takes the card from any result. */
-    fun answered(text: String, nowMs: Long): Answer {
+    fun answered(text: String, nowMs: Long, fingerprint: String? = null): Answer {
         current = null
-        return Answer(text, nowMs).also { answer = it }
+        return Answer(text, nowMs, fingerprint).also { answer = it }
     }
 
     /** The answer to show at [nowMs], or null once it is older than [SHOW_MS]. */

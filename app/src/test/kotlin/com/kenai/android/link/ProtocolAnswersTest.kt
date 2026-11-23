@@ -48,6 +48,25 @@ class ProtocolAnswersTest {
         assertEquals(setOf("type", "fingerprint", "picks"), o.keys().asSequence().toSet())
     }
 
+    @Test fun anAnswerRefusalCarriesItsRequestFingerprintOnlyWhenWellFormed() {
+        // The engine's optional, additive field (PROTOCOL.md AC-07): 64 lowercase hex, or nothing at all.
+        val named = Wire.decodeServer(
+            """{"type":"error","code":"off","message":"the engine's own sentence","fingerprint":"$fp"}""",
+        ) as ServerMsg.Error
+        assertEquals("off", named.code)
+        assertEquals("the engine's own sentence", named.message)
+        assertEquals(fp, named.fingerprint)
+        // An older engine sends no fingerprint at all: the phone behaves as it did.
+        val unnamed = Wire.decodeServer("""{"type":"error","code":"off","message":"x"}""") as ServerMsg.Error
+        assertNull(unnamed.fingerprint)
+        // A malformed one is ignored, never echoed: the frame is still a refusal, just one that names nothing.
+        for (bad in listOf("nope", "AB".repeat(32), fp.dropLast(1), fp + "0", "")) {
+            val m = Wire.decodeServer("""{"type":"error","code":"off","message":"x","fingerprint":"$bad"}""") as ServerMsg.Error
+            assertNull("a malformed fingerprint ($bad) names nothing", m.fingerprint)
+            assertEquals("off", m.code)
+        }
+    }
+
     @Test fun theHelloAsksForAnswersAmongTheOtherCapabilities() {
         assertTrue(Protocol.CAP_ANSWERS in Protocol.CAPABILITIES)
         val hello = JSONObject(Wire.encode(ClientMsg.Hello(1, "T".repeat(20), "Phone", Protocol.CAPABILITIES)))
@@ -59,5 +78,14 @@ class ProtocolAnswersTest {
     @Test fun anOldComputerThatSendsNoQuestionChangesNothing() {
         // unknown to an old phone, ignored by a new one when it was not offered (see LinkAnswersTest)
         assertEquals(setOf("chat", "details", "answers", "diffs", "usage", "services"), Protocol.CAPABILITIES.toSet())
+    }
+
+    // KN-04 live probe (19 Nov): the exact frame jesscore's engine sent for a Pi ask_user_choice (no multiSelect, no description).
+    @Test fun theFrameTheEngineSentForAPiQuestionIsDecoded() {
+        val engineFp = "0d2d9131" + "ab".repeat(28)
+        val json = """{"type":"question","pillId":"agent_pi","fingerprint":"$engineFp","createdAt":1795127809141,"questions":[{"question":"PROBE: toca A o B en Kenai","options":[{"label":"A"},{"label":"B"}]}]}"""
+        val m = Wire.decodeServer(json) as ServerMsg.Question
+        assertEquals("agent_pi", m.request.pillId)
+        assertEquals(listOf("A", "B"), m.request.questions.single().options.map { it.label })
     }
 }

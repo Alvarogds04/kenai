@@ -82,10 +82,10 @@ internal fun stateColor(state: BotState): Color =
 fun HeroCard(
     focus: SessionInfo?, engine: CharacterEngine, touch: Modifier, link: HomePanel.Link, running: Int,
     linkDot: Color, linkText: String, onLink: () -> Unit, onDetails: (() -> Unit)?,
-    /** Opens the question sheet; non-null only while the agent has a question. */
+    /** Opens the question sheet; non-null only while the agent's question frame is on the phone (KN-04 A-a). */
     onQuestion: (() -> Unit)? = null,
-    /** The phone can answer this question here (the `answers` capability): the button says so. */
-    canAnswer: Boolean = false,
+    /** The agent asks but its question frame has not arrived: say «esperando…» instead of offering «Responder». */
+    waitingForRequest: Boolean = false,
     /** Inicio's status strip (kenai-0.1 S9): when given, it replaces the link row at the top. */
     strip: (@Composable () -> Unit)? = null,
 ) {
@@ -128,7 +128,7 @@ fun HeroCard(
                     }
                 }
             }
-            if (link != HomePanel.Link.NONE || onDetails != null || onQuestion != null) {
+            if (link != HomePanel.Link.NONE || onDetails != null || onQuestion != null || waitingForRequest) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (link != HomePanel.Link.NONE) {
                         PillButton(
@@ -136,7 +136,8 @@ fun HeroCard(
                             kind = PillKind.PRIMARY, onDark = true,
                         )
                     }
-                    if (onQuestion != null) PillButton(stringResource(if (canAnswer) R.string.question_see_answer else R.string.question_see), onQuestion, kind = PillKind.PRIMARY, onDark = true)
+                    if (onQuestion != null) PillButton(stringResource(R.string.question_see_answer), onQuestion, kind = PillKind.PRIMARY, onDark = true)
+                    if (waitingForRequest) Text(stringResource(R.string.home_waiting_request), style = TypeScale.SECONDARY.style(dim))
                     if (onDetails != null) {
                         PillButton(
                             stringResource(R.string.session_details), onDetails, onDark = true,
@@ -262,7 +263,7 @@ private fun nameOf(s: SessionInfo) = s.agent.ifBlank { Pills.byId(s.pillId)?.nam
 @Composable
 fun AlsoWaiting(
     waiting: List<SessionInfo>, reviewFor: (SessionInfo) -> String?, onQuestion: (String) -> Unit, onReview: (String) -> Unit,
-    asks: SessionInfo? = null, asksLine: String = "",
+    asks: SessionInfo? = null, asksLine: String = "", canAnswer: (SessionInfo) -> Boolean,
 ) {
     if (waiting.isEmpty() && asks == null) return
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -277,7 +278,10 @@ fun AlsoWaiting(
                 if (i > 0 || asks != null) RowDivider()
                 val line = HomeText.line(s) ?: stringResource(stateLabel(s.state))
                 SectionRow(s, nameOf(s), line, null) {
-                    if (s.state == BotState.QUESTION) PillButton(stringResource(R.string.home_answer), { onQuestion(s.pillId) })
+                    if (s.state == BotState.QUESTION) {
+                        if (canAnswer(s)) PillButton(stringResource(R.string.home_answer), { onQuestion(s.pillId) })
+                        else Text(stringResource(R.string.home_waiting_request), style = TypeScale.SECONDARY.style(tokens().textDim.c()))
+                    }
                     else reviewFor(s)?.let { fp -> PillButton(stringResource(R.string.home_review), { onReview(fp) }) }
                 }
             }

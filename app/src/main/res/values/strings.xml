@@ -115,6 +115,15 @@
     <string name="question_ok">OK</string>
     <string name="question_hint_answers">Answering here is turned on in Koda, on your computer. If you already answered there, this question closes by itself.</string>
     <string name="question_gone">That question is no longer waiting.</string>
+    <string name="refused_off">Answers are switched off for this phone on your computer. Answer this one there.</string>
+    <string name="refused_resolved">Already resolved: someone answered it on your computer.</string>
+    <string name="refused_truncated">Your computer refused this allow: that command arrived cut on the phone. You can still deny it.</string>
+    <string name="refused_invalid_answer">Your computer did not take that answer. Try again.</string>
+    <string name="refused_bad_request">Your computer did not understand that answer. Try again.</string>
+    <string name="refused_unknown_request">Your computer no longer has this request.</string>
+    <string name="refused_not_offered">Your computer is not taking answers from this phone right now.</string>
+    <string name="refused_expired">This request expired on your computer.</string>
+    <string name="refused_failed">Your computer could not take that answer. The request is still waiting.</string>
     <string name="home_running">%1$d running</string>
     <string name="home_empty_title">Nothing is running</string>
     <string name="home_empty_hint">Start an agent on your computer and it shows up here.</string>
@@ -178,6 +187,7 @@
     <string name="notif_question">Has a question</string>
     <string name="notif_ratelimit">Hit a usage limit</string>
     <string name="island_answer_on_pc">Tap to open Kenai, or answer on your computer</string>
+    <string name="island_answer_here">Tap to answer</string>
     <string name="state_ready">Ready</string>
     <string name="state_working">Working</string>
     <string name="state_thinking">Thinking</string>
@@ -309,6 +319,7 @@
     <string name="home_running_title">Running · %1$d</string>
     <string name="home_others_title">Other agents</string>
     <string name="home_answer">Answer</string>
+    <string name="home_waiting_request">waiting for the request…</string>
     <string name="home_review">Review</string>
     <string name="home_unconfirmed">Unconfirmed</string>
     <string name="home_offline_body">Is the phone on the same Wi-Fi? Is the computer awake, with Koda open? Requests reach you as soon as the connection is back.</string>

@@ -97,7 +97,7 @@ val verifyReleaseNoLogs by tasks.registering {
     doLast {
         val apks = apkDir.get().asFile.walkTopDown().filter { it.extension == "apk" }.toList()
         check(apks.size == 1) { "expected one release APK, found ${apks.size}" }
-        val leftovers = listOf("KenaiOverlay", "KenaiLaunch", "KenaiDiscovery", "KenaiIsland", "island failed", "cannot browse", "ignored an early tap")
+        val leftovers = listOf("KenaiLink", "KenaiOverlay", "KenaiLaunch", "KenaiDiscovery", "KenaiIsland", "island failed", "cannot browse", "ignored an early tap")
         ZipFile(apks.single()).use { zip ->
             for (entry in zip.entries().asSequence().filter { it.name.endsWith(".dex") }) {
                 val text = String(zip.getInputStream(entry).readBytes(), Charsets.ISO_8859_1)
