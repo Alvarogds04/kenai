@@ -31,4 +31,11 @@ object NotificationPlan {
      * It opens that question; it never carries a pick and it never answers from the shade.
      */
     fun statusActions(state: BotState): List<Action> = if (state == BotState.QUESTION) listOf(Action.RESPOND) else emptyList()
+
+    /**
+     * Whether any notification (approval, status, or a question, which is posted as a status notice in the «question» state) may be
+     * posted at all (KN-04 S5): only with a computer linked ([paired]) or in the demo. With the phone unlinked nothing reaches it, so a
+     * late callback after the link stopped posts nothing.
+     */
+    fun mayPost(paired: Boolean, demo: Boolean): Boolean = paired || demo
 }

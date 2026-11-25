@@ -27,6 +27,7 @@ import com.kenai.android.core.DecisionOutcomes
 import com.kenai.android.core.Answer
 import com.kenai.android.core.Outcome
 import com.kenai.android.core.OutcomeKind
+import com.kenai.android.core.NotificationPlan
 import com.kenai.android.core.Refusal
 import com.kenai.android.core.Refusals
 import com.kenai.android.core.WishStore
@@ -805,6 +806,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         refreshIsland()
     }
 
+    private fun mayPost() = NotificationPlan.mayPost(paired = mode == Mode.PAIRED, demo = mode == Mode.DEMO)
+
     private fun removeApproval(fingerprint: String) {
         expiry.remove(fingerprint)?.let { main.removeCallbacks(it) }
         approvals = approvals.filter { it.fingerprint != fingerprint }
@@ -953,7 +956,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             if (sound != null && StatusPolicy.stateSoundWanted(prev, s.state, settings)) sounds.play(sound)
             val a = StatusPolicy.announce(prev, s.state, settings, minute, inForeground)
             if (a.sound && sound != null) sounds.play(sound)
-            if (a.notify) notifier.showStatus(s.pillId, name, s.state, s.statusText)
+            // A question's notice is this status notice (state «question»), so this one gate covers it too.
+            if (a.notify && mayPost()) notifier.showStatus(s.pillId, name, s.state, s.statusText)
             IslandPlan.flash(prev, s, settings, minute, islandAllowed(), this::agentName)?.let { overlay.flash(it) }
             // A question also arrives as this change (always, even without the `answers` capability): one buzz with onQuestion.
             if (VibratePolicy.questionArrived(prev, s.state)) buzzOnArrival(Arrival.QUESTION, s.pillId, null)
@@ -975,7 +979,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             // One announcement only: the island if it can show, else the heads-up notification.
             refreshIsland()
             val alert = OverlayPolicy.approvalAlert(overlay.isShowingRequest())
-            notifier.showApproval(request, agentName(request.pillId), alert)
+            if (mayPost()) notifier.showApproval(request, agentName(request.pillId), alert)
             // The heads-up already vibrates; the island (quiet channel) does not, so the phone buzzes then.
             buzzOnArrival(Arrival.APPROVAL, request.pillId, request.fingerprint, alert)
             // Offered for 120 s from now, by this phone's clock (the notification times out then too).
