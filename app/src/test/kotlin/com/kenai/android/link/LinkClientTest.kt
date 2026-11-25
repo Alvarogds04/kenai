@@ -314,6 +314,19 @@ class LinkClientTest {
         assertEquals(1, d.received.count { it.contains("\"type\":\"hello\"") })
     }
 
+    @Test fun anOverLongLineIsReportedAndNotRetried() {
+        val d = FakeDesktop(tls = true).track()
+        val rec = Recorder()
+        client(d, rec).start()
+        assertTrue(rec.connected.await(5, TimeUnit.SECONDS))
+        d.push("""{"type":"chatModels","pad":"${"x".repeat(Protocol.MAX_LINE_BYTES + 10)}"}""")
+        assertEquals("line_too_long", rec.errors.poll(5, TimeUnit.SECONDS))
+        Thread.sleep(600) // the backoff is 50 ms here: a retrying client would have said hello again by now
+        assertEquals(1, d.received.count { it.contains("\"type\":\"hello\"") })
+        assertEquals(LinkState.DISCONNECTED, rec.states.last())
+        assertNull(rec.lost.poll(100, TimeUnit.MILLISECONDS))
+    }
+
     @Test fun sendsKeepAlivePings() {
         val d = FakeDesktop(tls = true).track()
         val rec = Recorder()

@@ -14,6 +14,9 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import javax.net.ssl.SSLContext
 
+/** The computer sent a line past [Protocol.MAX_LINE_BYTES]: nothing the phone can do by reconnecting. */
+private class LineTooLongException : IOException("line too long")
+
 enum class LinkState { DISCONNECTED, CONNECTING, CONNECTED }
 
 /** Why a link that had been working ended, as far as the phone can tell. */
@@ -153,7 +156,7 @@ class LinkClient(
     override val approvals = ApprovalBook(clockMs)
 
     @Volatile private var running = false
-    /** Set by an auth or version error: retrying with the same pairing can never work. */
+    /** Set by an auth, version or line-too-long error: retrying with the same pairing can never work. */
     @Volatile private var fatal = false
     /** The computer's welcome offered `answers` on this connection. */
     @Volatile private var answersOffered = false
@@ -370,6 +373,10 @@ class LinkClient(
                 }
             } catch (e: java.net.SocketTimeoutException) {
                 lost = LostReason.SILENT
+            } catch (_: LineTooLongException) {
+                // Retrying reads the same engine line again, every second, forever: say it once and stop (KN-05 S2).
+                listener.onError("line_too_long", "a line from the desktop is longer than ${Protocol.MAX_LINE_BYTES / 1024} KiB")
+                fatal = true
             } catch (_: IOException) {
                 lost = LostReason.NETWORK
             } catch (_: InterruptedException) {
@@ -495,7 +502,7 @@ class LinkClient(
             val b = input.read()
             if (b < 0) return null
             if (b == '\n'.code) return String(buf.toByteArray(), Charsets.UTF_8)
-            if (buf.size() >= Protocol.MAX_LINE_BYTES) throw IOException("line too long")
+            if (buf.size() >= Protocol.MAX_LINE_BYTES) throw LineTooLongException()
             buf.write(b)
         }
     }

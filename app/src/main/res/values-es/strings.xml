@@ -158,6 +158,7 @@
     <string name="msg_not_pending">Ese pedido ya no está pendiente.</string>
     <string name="msg_bad_link">Ese no es un enlace de emparejamiento de Kenai.</string>
     <string name="msg_rejected">La computadora rechazó este teléfono. Volvé a emparejar.</string>
+    <string name="msg_line_too_long">La computadora mandó algo que este teléfono no puede leer (un mensaje demasiado largo). Actualizá el motor en la computadora.</string>
     <string name="msg_link_error">Error en el enlace</string>
     <string name="msg_need_lock">Configurá un bloqueo de pantalla para aprobar desde el teléfono.</string>
     <string name="approval_hint">Permitir en el teléfono pide tu huella o el bloqueo de pantalla. Denegar no.</string>

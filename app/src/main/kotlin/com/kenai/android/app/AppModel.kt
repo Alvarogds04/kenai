@@ -1180,6 +1180,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
             // A decision that could not be sent is already Home's result («No se pudo enviar»): no second message.
             if (code == "send" && outcome?.kind == OutcomeKind.FAILED) return@post
             this.message = if (code == "auth") context.getString(R.string.msg_rejected)
+            else if (code == "line_too_long") context.getString(R.string.msg_line_too_long)
             else "${context.getString(R.string.msg_link_error)}: $message"
         }
     }
