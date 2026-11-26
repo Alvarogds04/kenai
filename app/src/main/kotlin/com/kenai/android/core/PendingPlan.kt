@@ -20,9 +20,6 @@ object PendingPlan {
             .filter { it.leftMs > 0 }
             .sortedBy { it.createdAtMs }
 
-    /** `approvalResolved{fingerprint}`: the item goes, nothing is sent. */
-    fun resolved(items: List<Item>, fingerprint: String): List<Item> = items.filter { it.fingerprint != fingerprint }
-
     /** What a row's tap does. Never a decision: it only reaches the sheet or screen that already decides behind its own gates. */
     sealed interface Opens {
         data class Question(val pillId: String) : Opens
