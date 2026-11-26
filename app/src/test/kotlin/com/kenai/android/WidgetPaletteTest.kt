@@ -181,7 +181,7 @@ class WidgetPaletteTest {
     @Test fun eachPreviewKeepsItsSampleStateColour() {
         val sample = mapOf(
             "solo" to "attention", "list" to "attention", "big" to "working", "pill" to "working", "alert" to "attention",
-            "today" to "done", "mood" to "done", "glance" to "working", "ring" to "usage_calm",
+            "today" to "muted", "mood" to "muted", "glance" to "working", "ring" to "usage_calm",
         )
         for ((n, tone) in sample) {
             val xml = read("${res}layout/widget_preview_$n.xml")

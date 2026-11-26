@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The card a retired Widget shows for one release (KN-13 L6, S3): one plain line saying it was retired and where its function lives now,
+     and Kenai's face. Nothing is lost silently and nothing is drawn that the engine did not send. A tap opens the app. Plain RemoteViews. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/retired_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card">
+
+    <FrameLayout
+        android:id="@+id/retired_tint"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="1dp"
+        android:background="@drawable/widget_tint_muted" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+        <ImageView
+            android:id="@+id/retired_face"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:contentDescription="@string/widget_activity_label"
+            android:scaleType="fitCenter"
+            android:src="@drawable/preview_char_idle" />
+
+        <TextView
+            android:id="@+id/retired_line"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:maxLines="3"
+            android:text="@string/widget_retired_text"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary" />
+    </LinearLayout>
+</FrameLayout>

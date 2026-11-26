@@ -16,7 +16,7 @@ class WidgetPreviewTest {
     private val res = "src/main/res/"
     private fun read(path: String) = File(path).readText()
     private val strings: Map<String, String> =
-        Regex("""<string name="(\w+)">(.*?)</string>""").findAll(read(res + "values/strings.xml")).associate { it.groupValues[1] to it.groupValues[2].replace("\\'", "'") }
+        Regex("""<string name="(\w+)">(.*?)</string>""").findAll(read(res + "values/strings.xml")).associate { it.groupValues[1] to it.groupValues[2].replace("\\'", "'").replace("&amp;", "&") }
 
     /** Provider XML name to the name of its preview. */
     private val providers = listOf("solo", "list", "big", "pill", "alert", "ring", "today", "mood", "glance")
@@ -67,7 +67,7 @@ class WidgetPreviewTest {
             val d = strings.getValue(desc)
             assertTrue("$n label is empty", l.isNotBlank())
             assertTrue("$n description is empty", d.isNotBlank())
-            assertTrue("$n label '$l' is long", l.length <= 24)
+            assertTrue("$n label '$l' is long", l.length <= 28)
             assertTrue("$n description '$d' is long", d.length <= 60)
             assertFalse("$n description spans lines", d.contains("\n") || d.contains("\\n"))
             assertTrue("$n description should end with a full stop", d.endsWith("."))
@@ -80,9 +80,10 @@ class WidgetPreviewTest {
 
     @Test fun theNamesAreTheOnesInTheBrief() {
         val expected = mapOf(
-            "widget_solo_label" to "At a glance", "widget_list_label" to "All your agents", "widget_big_label" to "Big status",
-            "widget_pill_label" to "One-line status", "widget_alert_label" to "Approvals waiting", "widget_ring_label" to "Plan usage",
-            "widget_today_label" to "Finished today", "widget_mood_label" to "Agents' mood", "widget_glance_label" to "Agents summary",
+            "widget_solo_label" to "At a glance", "widget_list_label" to "All your agents (retired)", "widget_big_label" to "Big status",
+            "widget_pill_label" to "One-line status", "widget_alert_label" to "Approvals waiting (retired)", "widget_ring_label" to "Plan usage",
+            "widget_today_label" to "Finished today (retired)", "widget_mood_label" to "Agents' mood (retired)",
+            "widget_glance_label" to "Agents summary", "widget_activity_label" to "Sessions & activity",
         )
         for ((k, v) in expected) assertEquals(k, v, strings[k])
     }
@@ -145,8 +146,8 @@ class WidgetPreviewTest {
         assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
         assertEquals(listOf("2 wait for you", "Your PC", "Claude Code", "Waiting for your OK", "Gemini CLI", "Has a question", "Review request"), text("alert"))
         assertEquals(listOf("68%", "Claude · 5 h"), text("ring"))
-        assertTrue(text("today").containsAll(listOf("5", "done today")))
-        assertTrue("the Mood preview shows only a face", text("mood").isEmpty())
+        assertEquals(listOf("Retired widget · now in «Sessions & activity»"), text("today"))
+        assertEquals("the two retired cards are the same card", preview("today").replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "").trim(), preview("mood").replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "").trim())
         // The tones of the samples: waiting orange, working blue, finished green.
         assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_char_waiting"))
         assertTrue(preview("pill").contains("widget_tone_working"))
@@ -156,7 +157,7 @@ class WidgetPreviewTest {
         assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_calm"""").findAll(preview("big")).count())
         assertFalse("no speech bubble", preview("big").contains("bubble", ignoreCase = true))
         assertTrue(preview("glance").contains("preview_char_working") && preview("glance").contains("widget_tint_working"))
-        assertTrue(preview("mood").contains("preview_char_done") && preview("today").contains("preview_char_done"))
+        assertTrue(preview("today").contains("preview_char_idle") && preview("today").contains("widget_tint_muted"))
         assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
         assertTrue(preview("ring").contains("preview_ring_68"))
     }

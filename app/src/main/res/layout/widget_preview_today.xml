@@ -1,17 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of Today: 5 tasks finished today, with a happy Kenai.
-     A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
-     It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
+<!-- Preview of a RETIRED Widget (KN-13 L6): the small card a placed instance shows for one release, saying where its function lives now.
+     A still picture for the Widget picker (android:previewLayout): sample text, no ids, nothing from the app, no runtime bitmap. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card_done">
+    android:background="@drawable/widget_card_muted">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="1dp"
-        android:background="@drawable/widget_tint_done" />
+        android:background="@drawable/widget_tint_muted" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,25 +25,16 @@
             android:layout_weight="1"
             android:importantForAccessibility="no"
             android:scaleType="fitCenter"
-            android:src="@drawable/preview_char_done" />
+            android:src="@drawable/preview_char_idle" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
             android:gravity="center"
-            android:maxLines="1"
-            android:text="@string/widget_sample_today"
-            android:textColor="@color/widget_text"
-            android:textSize="34sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:maxLines="1"
-            android:text="@string/widget_today_unit"
-            android:textColor="@color/widget_text_secondary"
-            android:textSize="@dimen/widget_text_state" />
+            android:maxLines="3"
+            android:text="@string/widget_retired_text"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary" />
     </LinearLayout>
 </FrameLayout>
