@@ -59,7 +59,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.rememberLazyListState
-import kotlinx.coroutines.launch
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -110,6 +109,8 @@ import com.kenai.android.ui.DiagnosticsScreen
 import com.kenai.android.ui.LicencesScreen
 import com.kenai.android.ui.AgentSection
 import com.kenai.android.ui.AlsoWaiting
+import com.kenai.android.ui.PendingList
+import kotlinx.coroutines.launch
 import com.kenai.android.ui.CalmHero
 import com.kenai.android.ui.OfflineHero
 import com.kenai.android.ui.NextUp
@@ -550,6 +551,8 @@ private fun Home(
         },
         questionPills = questionPills,
     )
+    val pendingItems = com.kenai.android.core.PendingPlan.build(model.approvals, model.questions, now, model::agentName)
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -588,6 +591,19 @@ private fun Home(
                     },
                     strip = stripView,
                 )
+            }
+        }
+        // «Pendientes» (KN-11): all that waits, in one list. A row only opens the existing sheet or screen.
+        if (scene != HomePanel.Scene.OFFLINE && pendingItems.isNotEmpty()) item {
+            Box(Modifier.padding(horizontal = Gutter)) {
+                PendingList(pendingItems) { row ->
+                    when (val o = com.kenai.android.core.PendingPlan.opens(row, model.approvals, HomePanel.canAnswer(model.sessions.firstOrNull { it.pillId == row.pillId } ?: return@PendingList, questionPills))) {
+                        is com.kenai.android.core.PendingPlan.Opens.Question -> onQuestion(o.pillId)
+                        is com.kenai.android.core.PendingPlan.Opens.Sheet -> onReview(o.fingerprint)
+                        com.kenai.android.core.PendingPlan.Opens.Hero -> { model.dismissOutcome(); scope.launch { listState.animateScrollToItem(0) } }
+                        com.kenai.android.core.PendingPlan.Opens.Nothing -> {}
+                    }
+                }
             }
         }
         if (next != null) item {

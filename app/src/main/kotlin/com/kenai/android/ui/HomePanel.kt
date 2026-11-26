@@ -355,3 +355,36 @@ fun RecentPanel(decisions: List<Decision>, onAll: () -> Unit) {
         }
     }
 }
+
+/**
+ * «Pendientes · n» (KN-11): every request and question that waits, oldest first, one row each. A tap only opens what already
+ * decides behind its own gates (the approval sheet, the question screen); nothing here allows, denies or answers.
+ */
+@Composable
+fun PendingList(items: List<com.kenai.android.core.PendingPlan.Item>, onOpen: (com.kenai.android.core.PendingPlan.Item) -> Unit) {
+    if (items.isEmpty()) return
+    val t = tokens()
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SectionHeading(stringResource(R.string.pending_title, items.size))
+        Panel {
+            items.forEachIndexed { i, it ->
+                if (i > 0) RowDivider()
+                val question = it.kind == com.kenai.android.core.PendingPlan.Kind.QUESTION
+                val state = if (question) BotState.QUESTION else BotState.APPROVAL
+                val kind = stringResource(if (question) R.string.pending_question else R.string.pending_approval)
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 64.dp).clickable(role = Role.Button) { onOpen(it) }
+                        .padding(horizontal = Spacing.INSIDE.dp, vertical = 10.dp).semantics(mergeDescendants = true) {},
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.GAP.dp), verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    KodaView(state, Modifier.size(40.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(it.agent, style = TypeScale.BODY.style(t.text.c()).copy(fontWeight = FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(kind, style = TypeScale.SECONDARY.style(t.textDim.c()), maxLines = 1)
+                    }
+                    Text(stringResource(R.string.pending_left, (it.leftMs / 1000).toInt().coerceAtLeast(1)), style = TypeScale.LABEL.style(t.textDim.c()), maxLines = 1)
+                }
+            }
+        }
+    }
+}
