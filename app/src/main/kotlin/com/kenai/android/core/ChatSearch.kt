@@ -16,11 +16,20 @@ object ChatSearch {
      * original order. A blank query is no search: the list comes back as it is.
      */
     fun filter(items: List<ChatConversationOption>, held: Map<String, List<ChatMessage>>, query: String): List<ChatConversationOption> {
-        val words = fold(query).split(Regex("\\s+")).filter { it.isNotEmpty() }
-        if (words.isEmpty()) return items
-        return items.filter { c ->
-            val haystack = fold(c.title + "\n" + held[c.id].orEmpty().joinToString("\n") { it.text })
-            words.all { haystack.contains(it) }
+        return index(items, held).filter(query)
+    }
+
+    /** The folded text of every conversation, built once: typing then only looks words up in it. */
+    class Index internal constructor(private val items: List<ChatConversationOption>, private val haystacks: List<String>) {
+        fun filter(query: String): List<ChatConversationOption> {
+            val words = words(query)
+            if (words.isEmpty()) return items
+            return items.filterIndexed { i, _ -> words.all { haystacks[i].contains(it) } }
         }
     }
+
+    fun index(items: List<ChatConversationOption>, held: Map<String, List<ChatMessage>>): Index =
+        Index(items, items.map { c -> fold(c.title + "\n" + held[c.id].orEmpty().joinToString("\n") { it.text }) })
+
+    private fun words(query: String) = fold(query).split(Regex("\\s+")).filter { it.isNotEmpty() }
 }

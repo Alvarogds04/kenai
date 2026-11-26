@@ -95,4 +95,24 @@ class ChatComposerStateTest {
         assertTrue(names.isNotEmpty())
         assertTrue(names.none { "regenerate" in it || "edit" in it || "rewrite" in it || "retry" in it })
     }
+
+    private val d = ChatMessage("a", ChatRole.ASSISTANT, "ok", ChatStatus.DONE)
+
+    @Test fun rowActionsAreDecidedOnlyForTheLastTurnAndOnlyWhenSendingIsPossible() {
+        val done = listOf(u("q"), d)
+        val failed = listOf(u("q"), a("bad", ChatStatus.FAILED))
+        com.kenai.android.core.ChatRowPlan.of(d, done, canSend = true).let { assertEquals("q", it.askAgain); assertNull(it.retry); assertTrue(!it.edit) }
+        com.kenai.android.core.ChatRowPlan.of(failed[1], failed, canSend = true).let { assertEquals("q", it.retry); assertNull(it.askAgain) }
+        com.kenai.android.core.ChatRowPlan.of(done[0], done, canSend = true).let { assertTrue(it.edit); assertNull(it.askAgain) }
+        // An older answer offers nothing; nothing at all while sending is not possible.
+        val longer = listOf(u("q1"), d, u("q2"), ChatMessage("b", ChatRole.ASSISTANT, "ok2"))
+        com.kenai.android.core.ChatRowPlan.of(longer[1], longer, canSend = true).let { assertNull(it.askAgain); assertNull(it.retry) }
+        for (m in done) com.kenai.android.core.ChatRowPlan.of(m, done, canSend = false).let { assertTrue(!it.edit && it.askAgain == null && it.retry == null) }
+    }
+
+    @Test fun theNamedLimitsAreTheOnesTheScreenUses() {
+        assertEquals(50, ChatDrafts.DEFAULT_MAX)
+        assertEquals(200, ChatDrafts.OVERFLOW)
+        assertEquals("", ChatDrafts().get("x"))
+    }
 }
