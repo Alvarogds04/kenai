@@ -70,6 +70,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
+import com.kenai.android.core.ChatActions
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
@@ -340,7 +341,8 @@ private val MessageGap = 6.dp
 @Composable
 private fun Bubble(m: ChatMessage) {
     if (m.role == ChatRole.USER) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             SelectionContainer {
                 Text(
                     m.text,
@@ -353,6 +355,8 @@ private fun Bubble(m: ChatMessage) {
                     style = TypeScale.BODY.style(tokens().text.c()),
                 )
             }
+          }
+          MessageActions(m)
         }
         return
     }
@@ -361,6 +365,32 @@ private fun Bubble(m: ChatMessage) {
         else if (m.text.isNotEmpty()) SelectionContainer { MarkdownText(m.text) }
         if (m.status == ChatStatus.FAILED) {
             Text(reasonText(m.reason), style = TypeScale.SECONDARY.style(tokens().danger.c()))
+        }
+        MessageActions(m)
+    }
+}
+
+/** Copy, copy code and share for one finished message. Text selection is the [SelectionContainer] around the text. */
+@Composable
+private fun MessageActions(m: ChatMessage) {
+    if (!ChatActions.available(m)) return
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val t = tokens()
+    val code = remember(m.text) { ChatActions.codeBlocks(m.text) }
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        val style = TypeScale.SECONDARY.style(t.textDim.c())
+        @Composable fun action(label: Int, onClick: () -> Unit) = Text(
+            stringResource(label),
+            Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 8.dp, vertical = 6.dp),
+            style = style,
+        )
+        action(R.string.chat_copy) { clipboard.setText(AnnotatedString(ChatActions.copyText(m))) }
+        if (code.isNotEmpty()) action(R.string.chat_copy_code) { clipboard.setText(AnnotatedString(code.first())) }
+        action(R.string.chat_share) {
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, ChatActions.copyText(m))
+            runCatching { context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }
     }
 }

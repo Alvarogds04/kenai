@@ -239,6 +239,9 @@
     <string name="chat_link_title">¿Abrir este enlace?</string>
     <string name="chat_link_open">Abrir</string>
     <string name="chat_link_cancel">Cancelar</string>
+    <string name="chat_copy">Copiar</string>
+    <string name="chat_copy_code">Copiar código</string>
+    <string name="chat_share">Compartir</string>
     <string name="chat_count">%1$d / %2$d</string>
     <string name="chat_ref_too_long">Ese mensaje es demasiado largo.</string>
     <string name="chat_ref_no_model">Primero elegí un modelo.</string>
