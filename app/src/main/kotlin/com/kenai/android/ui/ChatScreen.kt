@@ -71,7 +71,9 @@ import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
 import com.kenai.android.core.ChatActions
+import com.kenai.android.core.ChatDrafts
 import com.kenai.android.core.ChatMessage
+import com.kenai.android.core.ChatRetry
 import com.kenai.android.core.ChatSearch
 import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
@@ -161,7 +163,11 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
  */
 @Composable
 fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
+    // One unsent draft per conversation: switching conversations (or leaving the tab) does not lose what was typed.
+    val drafts = rememberSaveable(saver = androidx.compose.runtime.saveable.Saver<ChatDrafts, String>(
+        save = { it.get(null) }, restore = { ChatDrafts().also { d -> d.set(null, it) } },
+    )) { ChatDrafts() }
+    var text by remember(model.chatOpenId) { mutableStateOf(drafts.get(model.chatOpenId)) }
     var refusal by remember { mutableStateOf<ChatSession.Refusal?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
     var listOpen by remember { mutableStateOf(false) }
@@ -233,16 +239,28 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                 )
             } else {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(MessageGap)) {
-                    items(messages, key = { it.id }) { m -> Bubble(m) }
+                    items(messages, key = { it.id }) { m ->
+                        Bubble(m)
+                        // Retry only on the last turn, only when it failed or was stopped, and only when it could be sent now.
+                        val retry = if (m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatRetry.textFor(messages) else null
+                        if (retry != null) {
+                            Text(
+                                stringResource(R.string.chat_retry),
+                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(retry) }
+                                    .padding(horizontal = 8.dp, vertical = 14.dp),
+                                style = TypeScale.LABEL.style(tokens().send.c()),
+                            )
+                        }
+                    }
                 }
             }
         }
         Composer(
             model, text, refusal,
-            onText = { text = it; refusal = null },
+            onText = { text = it; refusal = null; drafts.set(model.chatOpenId, it) },
             onSend = {
                 val r = model.chatSend(text)
-                if (r == null) { text = ""; refusal = null } else refusal = r
+                if (r == null) { text = ""; refusal = null; drafts.set(model.chatOpenId, "") } else refusal = r
             },
         )
     }

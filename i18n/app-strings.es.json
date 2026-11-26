@@ -244,6 +244,7 @@
     "chat_share": "Compartir",
     "chat_search_hint": "Buscar conversaciones",
     "chat_search_none": "Ninguna conversación coincide.",
+    "chat_retry": "Reintentar",
     "chat_count": "%1$d / %2$d",
     "chat_ref_too_long": "Ese mensaje es demasiado largo.",
     "chat_ref_no_model": "Primero elegí un modelo.",
