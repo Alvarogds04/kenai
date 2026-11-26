@@ -35,6 +35,7 @@ import com.kenai.android.core.HomePanel
 import com.kenai.android.core.HomeText
 import com.kenai.android.core.IconKind
 import com.kenai.android.core.IslandSurface
+import com.kenai.android.core.PendingPlan
 import com.kenai.android.core.Pills
 import com.kenai.android.core.Spacing
 import com.kenai.android.core.TypeScale
@@ -361,7 +362,7 @@ fun RecentPanel(decisions: List<Decision>, onAll: () -> Unit) {
  * decides behind its own gates (the approval sheet, the question screen); nothing here allows, denies or answers.
  */
 @Composable
-fun PendingList(items: List<com.kenai.android.core.PendingPlan.Item>, onOpen: (com.kenai.android.core.PendingPlan.Item) -> Unit) {
+fun PendingList(items: List<PendingPlan.Item>, onOpen: (PendingPlan.Item) -> Unit) {
     if (items.isEmpty()) return
     val t = tokens()
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -369,7 +370,7 @@ fun PendingList(items: List<com.kenai.android.core.PendingPlan.Item>, onOpen: (c
         Panel {
             items.forEachIndexed { i, it ->
                 if (i > 0) RowDivider()
-                val question = it.kind == com.kenai.android.core.PendingPlan.Kind.QUESTION
+                val question = it.kind == PendingPlan.Kind.QUESTION
                 val state = if (question) BotState.QUESTION else BotState.APPROVAL
                 val kind = stringResource(if (question) R.string.pending_question else R.string.pending_approval)
                 Row(

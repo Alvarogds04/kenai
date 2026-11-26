@@ -335,6 +335,12 @@
     <string name="pending_title">Pending · %1$d</string>
     <string name="pending_approval">Permission</string>
     <string name="pending_question">Question</string>
+    <string name="circle_cd">Koda, %1$d pending</string>
+    <string name="circle_title">Pending · %1$d</string>
+    <string name="circle_allow">Allow in Kenai</string>
+    <string name="circle_answer">Answer in Kenai</string>
+    <string name="circle_open">Open Kenai</string>
+    <string name="circle_close">Close</string>
     <string name="pending_left">%1$d s left</string>
     <string name="home_review">Review</string>
     <string name="home_unconfirmed">Unconfirmed</string>

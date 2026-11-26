@@ -81,6 +81,7 @@ import com.kenai.android.app.Notifications
 import com.kenai.android.core.ApprovalSheetPlan
 import com.kenai.android.core.HomeText
 import com.kenai.android.core.Nav
+import com.kenai.android.core.PendingPlan
 import com.kenai.android.core.Pills
 import com.kenai.android.core.Screen
 import com.kenai.android.core.SecureScreens
@@ -97,6 +98,7 @@ import com.kenai.android.ui.c
 import com.kenai.android.ui.style
 import com.kenai.android.ui.tokens
 import com.kenai.android.core.TypeScale
+import com.kenai.android.core.Words
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.Role
@@ -551,7 +553,7 @@ private fun Home(
         },
         questionPills = questionPills,
     )
-    val pendingItems = com.kenai.android.core.PendingPlan.build(model.approvals, model.questions, now, model::agentName)
+    val pendingItems = PendingPlan.build(model.approvals, model.questions, now, model::agentName)
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     LazyColumn(
         state = listState,
@@ -597,11 +599,11 @@ private fun Home(
         if (scene != HomePanel.Scene.OFFLINE && pendingItems.isNotEmpty()) item {
             Box(Modifier.padding(horizontal = Gutter)) {
                 PendingList(pendingItems) { row ->
-                    when (val o = com.kenai.android.core.PendingPlan.opens(row, model.approvals, HomePanel.canAnswer(model.sessions.firstOrNull { it.pillId == row.pillId } ?: return@PendingList, questionPills))) {
-                        is com.kenai.android.core.PendingPlan.Opens.Question -> onQuestion(o.pillId)
-                        is com.kenai.android.core.PendingPlan.Opens.Sheet -> onReview(o.fingerprint)
-                        com.kenai.android.core.PendingPlan.Opens.Hero -> { model.dismissOutcome(); scope.launch { listState.animateScrollToItem(0) } }
-                        com.kenai.android.core.PendingPlan.Opens.Nothing -> {}
+                    when (val o = PendingPlan.opens(row, model.approvals, model.sessions.firstOrNull { it.pillId == row.pillId }?.let { HomePanel.canAnswer(it, questionPills) } ?: false)) {
+                        is PendingPlan.Opens.Question -> onQuestion(o.pillId)
+                        is PendingPlan.Opens.Sheet -> onReview(o.fingerprint)
+                        PendingPlan.Opens.Hero -> { model.dismissOutcome(); scope.launch { listState.animateScrollToItem(0) } }
+                        PendingPlan.Opens.Nothing -> {}
                     }
                 }
             }
@@ -629,7 +631,7 @@ private fun Home(
         if (scene == HomePanel.Scene.OFFLINE) {
             // What the phone last heard, marked as not confirmed: nothing on it is current.
             if (model.sessions.isNotEmpty()) item {
-                val heading = model.health.lostAtMs?.let { com.kenai.android.core.Words.current().lastKnown(LinkHealthText.ago(now - it)) }
+                val heading = model.health.lostAtMs?.let { Words.current().lastKnown(LinkHealthText.ago(now - it)) }
                     ?: stringResource(R.string.home_others_title)
                 Box(Modifier.padding(horizontal = Gutter)) { AgentSection(heading, model.sessions, unconfirmed = true, onOpen = open) }
             }
