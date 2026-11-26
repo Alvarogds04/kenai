@@ -12,7 +12,6 @@
     <string name="action_deny">Denegar</string>
     <string name="action_review">Revisar el pedido</string>
     <string name="action_close">Cerrar</string>
-    <string name="widget_glance_label">Resumen de agentes</string>
     <string name="widget_description">Tus agentes, su actividad y lo que te espera.</string>
     <string name="widget_solo_label">De un vistazo</string>
     <string name="widget_list_label">Todos tus agentes (retirado)</string>
@@ -363,4 +362,6 @@
     <string name="widget_sample_progress">3/8</string>
     <string name="widget_sample_waiting_ok">Espera tu sí</string>
     <string name="widget_sample_question">Tiene una pregunta</string>
+    <string name="settings_section_widgets">Widgets</string>
+    <string name="settings_widgets_intro">En esta versión se retiraron cuatro widgets. Acá está dónde vive ahora cada uno:</string>
 </resources>

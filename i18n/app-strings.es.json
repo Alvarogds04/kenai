@@ -12,7 +12,6 @@
     "action_deny": "Denegar",
     "action_review": "Revisar el pedido",
     "action_close": "Cerrar",
-    "widget_glance_label": "Resumen de agentes",
     "widget_description": "Tus agentes, su actividad y lo que te espera.",
     "widget_solo_label": "De un vistazo",
     "widget_list_label": "Todos tus agentes (retirado)",
@@ -362,6 +361,8 @@
     "widget_sample_two": "2",
     "widget_sample_progress": "3/8",
     "widget_sample_waiting_ok": "Espera tu sí",
-    "widget_sample_question": "Tiene una pregunta"
+    "widget_sample_question": "Tiene una pregunta",
+    "settings_section_widgets": "Widgets",
+    "settings_widgets_intro": "En esta versión se retiraron cuatro widgets. Acá está dónde vive ahora cada uno:"
   }
 }

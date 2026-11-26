@@ -12,7 +12,6 @@
     "action_deny": "Deny",
     "action_review": "Review request",
     "action_close": "Close",
-    "widget_glance_label": "Agents summary",
     "widget_description": "Your agents, their activity and what waits for you.",
     "widget_solo_label": "At a glance",
     "widget_list_label": "All your agents (retired)",
@@ -362,6 +361,8 @@
     "widget_sample_two": "2",
     "widget_sample_progress": "3/8",
     "widget_sample_waiting_ok": "Waiting for your OK",
-    "widget_sample_question": "Has a question"
+    "widget_sample_question": "Has a question",
+    "settings_section_widgets": "Widgets",
+    "settings_widgets_intro": "Four widgets retired in this version. Here is where each one lives now:"
   }
 }

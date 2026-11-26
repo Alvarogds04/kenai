@@ -12,7 +12,6 @@
     <string name="action_deny">Deny</string>
     <string name="action_review">Review request</string>
     <string name="action_close">Close</string>
-    <string name="widget_glance_label">Agents summary</string>
     <string name="widget_description">Your agents, their activity and what waits for you.</string>
     <string name="widget_solo_label">At a glance</string>
     <string name="widget_list_label">All your agents (retired)</string>
@@ -363,4 +362,6 @@
     <string name="widget_sample_progress">3/8</string>
     <string name="widget_sample_waiting_ok">Waiting for your OK</string>
     <string name="widget_sample_question">Has a question</string>
+    <string name="settings_section_widgets">Widgets</string>
+    <string name="settings_widgets_intro">Four widgets retired in this version. Here is where each one lives now:</string>
 </resources>
