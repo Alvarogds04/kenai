@@ -8,6 +8,7 @@ data class MdSpan(val text: String, val bold: Boolean = false, val code: Boolean
 
 sealed interface MdBlock {
     data class Para(val spans: List<MdSpan>) : MdBlock
+    /** [level] (1 to 6) is kept for a renderer that wants it; the chat window is small, so the screen draws every level as one bold line. */
     data class Heading(val level: Int, val spans: List<MdSpan>) : MdBlock
     data class Bullet(val spans: List<MdSpan>, val depth: Int = 0) : MdBlock
     data class Numbered(val number: Int, val spans: List<MdSpan>, val depth: Int = 0) : MdBlock
@@ -64,7 +65,7 @@ object MarkdownLite {
                 NUMBERED.matches(trimmed) -> {
                     flush()
                     val m = NUMBERED.find(trimmed)!!
-                    val n = m.groupValues[1].toIntOrNull() ?: 0
+                    val n = m.groupValues[1].toInt() // 1 to 9 digits: always fits
                     blocks.add(MdBlock.Numbered(n, inline(m.groupValues[2].trim()), depth))
                 }
                 trimmed.startsWith("#") && trimmed.dropWhile { it == '#' }.startsWith(" ") -> {

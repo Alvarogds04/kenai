@@ -4,10 +4,19 @@ package com.kenai.android.core
  * What the composer remembers while the user moves around (KN-15 T4): one unsent draft per conversation, and the text a
  * failed turn would resend. Pure; nothing is sent from here: a retry goes through the same `chatSend` as any message.
  */
-class ChatDrafts(private val max: Int = 50) {
+class ChatDrafts(private val max: Int = DEFAULT_MAX) {
     companion object {
+        /** How many conversations keep a draft; the oldest go first. */
+        const val DEFAULT_MAX = 50
+
+        /**
+         * How far past the backend's limit the composer lets the text grow. Cutting at the limit would drop the user's words
+         * silently; a little more lets them see the "too long" note and trim it themselves.
+         */
+        const val OVERFLOW = 200
+
         /** Rebuilds the drafts from [save]'s list; a list that does not make pairs keeps only the whole pairs. */
-        fun restore(saved: List<String>, max: Int = 50): ChatDrafts = ChatDrafts(max).also { d ->
+        fun restore(saved: List<String>, max: Int = DEFAULT_MAX): ChatDrafts = ChatDrafts(max).also { d ->
             for (i in 0 until saved.size / 2) d.set(saved[2 * i], saved[2 * i + 1])
         }
     }
@@ -62,5 +71,22 @@ object ChatAgain {
         current.isBlank() -> m.text
         current.trim() == m.text.trim() -> current
         else -> current.trimEnd() + "\n" + m.text
+    }
+}
+
+/** What one row of the message list offers besides its text (KN-15): decided here, drawn by the screen. */
+data class ChatRowPlan(val askAgain: String?, val retry: String?, val edit: Boolean) {
+    companion object {
+        /** Retry and ask again exist only on the last message of the list, and nothing is offered when sending is not possible. */
+        fun of(m: ChatMessage, messages: List<ChatMessage>, canSend: Boolean): ChatRowPlan {
+            if (!canSend) return ChatRowPlan(null, null, false)
+            val last = m.id == messages.lastOrNull()?.id
+            // A failed answer retries and a finished one asks again: the two never hold at once.
+            return ChatRowPlan(
+                askAgain = if (last) ChatAgain.textFor(messages) else null,
+                retry = if (last) ChatRetry.textFor(messages) else null,
+                edit = ChatAgain.editable(m),
+            )
+        }
     }
 }

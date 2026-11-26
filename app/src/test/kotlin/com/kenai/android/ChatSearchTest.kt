@@ -45,4 +45,11 @@ class ChatSearchTest {
         assertEquals(emptyList<ChatConversationOption>(), ChatSearch.filter(emptyList(), emptyMap(), "a"))
     }
 
+
+    @Test fun anIndexBuiltOnceAnswersLikeTheDirectFilter() {
+        val index = ChatSearch.index(items, held)
+        for (q in listOf("", "recetas", "spaghetti", "pasta boil", "pasta coroutines", "zzz", "SUPERVISOR", "cancion")) {
+            assertEquals(q, ChatSearch.filter(items, held, q), index.filter(q))
+        }
+    }
 }
