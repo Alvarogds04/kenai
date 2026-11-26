@@ -64,12 +64,18 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
+import com.kenai.android.core.ChatActions
+import com.kenai.android.core.ChatAgain
+import com.kenai.android.core.ChatDrafts
 import com.kenai.android.core.ChatMessage
+import com.kenai.android.core.ChatRetry
+import com.kenai.android.core.ChatSearch
 import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
 import com.kenai.android.core.ChatTab
@@ -152,13 +158,19 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
 }
 
 /**
- * Chat with the computer's AI providers, like the PC's chat panel: your messages on the right, the
- * answers as plain light Markdown, three dots while waiting, the model above the box. The computer's
- * API key is used on the computer; this screen only ever has text.
+ * Chat with the computer's AI providers: your messages on the right, the answers as Markdown (headings, lists, tables,
+ * code, http(s) links that ask before opening), three dots while waiting, copy / share / ask again / edit per message,
+ * a draft kept per conversation, a search over the conversations the phone holds, the model above the box. The
+ * computer's API key is used on the computer; this screen only ever has text.
  */
 @Composable
 fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
-    var text by rememberSaveable { mutableStateOf("") }
+    // One unsent draft per conversation: switching conversations (or leaving the tab) does not lose what was typed.
+    // All of them survive a rotation or the process dying, not only the one of the single chat.
+    val drafts = rememberSaveable(saver = androidx.compose.runtime.saveable.Saver<ChatDrafts, List<String>>(
+        save = { it.save() }, restore = { ChatDrafts.restore(it) },
+    )) { ChatDrafts() }
+    var text by remember(model.chatOpenId) { mutableStateOf(drafts.get(model.chatOpenId)) }
     var refusal by remember { mutableStateOf<ChatSession.Refusal?>(null) }
     var confirmClear by remember { mutableStateOf(false) }
     var listOpen by remember { mutableStateOf(false) }
@@ -230,16 +242,53 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                 )
             } else {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(MessageGap)) {
-                    items(messages, key = { it.id }) { m -> Bubble(m) }
+                    items(messages, key = { it.id }) { m ->
+                        Bubble(m)
+                        // Retry only on the last turn, only when it failed or was stopped, and only when it could be sent now.
+                        val retry = if (m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatRetry.textFor(messages) else null
+                        val again = if (retry == null && m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatAgain.textFor(messages) else null
+                        if (again != null) {
+                            // Not a rewrite: the protocol has no frame for that, so this asks the same question as a new turn.
+                            Text(
+                                stringResource(R.string.chat_ask_again),
+                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(again) }
+                                    .padding(horizontal = 8.dp, vertical = 14.dp),
+                                style = TypeScale.LABEL.style(tokens().textDim.c()),
+                            )
+                        }
+                        if (ChatAgain.editable(m) && model.chatAvailable && !model.chatBusy) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Text(
+                                    stringResource(R.string.chat_edit),
+                                    Modifier.heightIn(min = Spacing.MIN_TOUCH.dp)
+                                        .clickable(role = Role.Button) {
+                                            // Never throws away what is being typed: the message is added below it.
+                                            text = ChatAgain.editDraft(text, m).take(Protocol.CHAT_MAX_TEXT + 200)
+                                            drafts.set(model.chatOpenId, text); refusal = null
+                                        }
+                                        .padding(horizontal = 8.dp, vertical = 14.dp),
+                                    style = TypeScale.LABEL.style(tokens().textDim.c()),
+                                )
+                            }
+                        }
+                        if (retry != null) {
+                            Text(
+                                stringResource(R.string.chat_retry),
+                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(retry) }
+                                    .padding(horizontal = 8.dp, vertical = 14.dp),
+                                style = TypeScale.LABEL.style(tokens().send.c()),
+                            )
+                        }
+                    }
                 }
             }
         }
         Composer(
             model, text, refusal,
-            onText = { text = it; refusal = null },
+            onText = { text = it; refusal = null; drafts.set(model.chatOpenId, it) },
             onSend = {
                 val r = model.chatSend(text)
-                if (r == null) { text = ""; refusal = null } else refusal = r
+                if (r == null) { text = ""; refusal = null; drafts.set(model.chatOpenId, "") } else refusal = r
             },
         )
     }
@@ -288,7 +337,27 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
     val dim = Color(IslandSurface.TEXT_DIM)
     BottomSheetHost(onDismiss = onDismiss) {
         Text(stringResource(R.string.chat_conversations), style = TypeScale.TITLE.style(white))
-        val rows = model.chatConversationList
+        var query by rememberSaveable { mutableStateOf("") }
+        val all = model.chatConversationList
+        // Works from what the phone holds (titles and cached message text), so it also works with the engine off.
+        // The cached messages are part of the key: a conversation that gains a message while the sheet is open is searched anew.
+        val cached = if (query.isBlank()) emptyMap() else model.chatCachedMessages()
+        val rows = remember(all, query, cached) { ChatSearch.filter(all, cached, query) }
+        if (all.size > 3 || query.isNotEmpty()) {
+            OutlinedTextField(
+                value = query, onValueChange = { query = it.take(100) }, singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                placeholder = { Text(stringResource(R.string.chat_search_hint), color = Color(IslandSurface.TEXT_DIM)) },
+                shape = RoundedCornerShape(26.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = white, unfocusedTextColor = white, cursorColor = white,
+                    focusedBorderColor = dim, unfocusedBorderColor = dim.copy(alpha = 0.4f),
+                ),
+            )
+        }
+        if (rows.isEmpty() && query.isNotEmpty()) {
+            Text(stringResource(R.string.chat_search_none), Modifier.padding(top = 12.dp), style = TypeScale.SECONDARY.style(dim))
+        }
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp).padding(top = 6.dp)) {
             items(rows, key = { it.id }) { c ->
                 ConversationRow(
@@ -339,7 +408,8 @@ private val MessageGap = 6.dp
 @Composable
 private fun Bubble(m: ChatMessage) {
     if (m.role == ChatRole.USER) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+          Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             SelectionContainer {
                 Text(
                     m.text,
@@ -352,6 +422,8 @@ private fun Bubble(m: ChatMessage) {
                     style = TypeScale.BODY.style(tokens().text.c()),
                 )
             }
+          }
+          MessageActions(m)
         }
         return
     }
@@ -360,6 +432,32 @@ private fun Bubble(m: ChatMessage) {
         else if (m.text.isNotEmpty()) SelectionContainer { MarkdownText(m.text) }
         if (m.status == ChatStatus.FAILED) {
             Text(reasonText(m.reason), style = TypeScale.SECONDARY.style(tokens().danger.c()))
+        }
+        MessageActions(m)
+    }
+}
+
+/** Copy, copy code and share for one finished message. Text selection is the [SelectionContainer] around the text. */
+@Composable
+private fun MessageActions(m: ChatMessage) {
+    if (!ChatActions.available(m)) return
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val t = tokens()
+    val code = remember(m.text) { ChatActions.codeBlocks(m.text) }
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        val style = TypeScale.SECONDARY.style(t.textDim.c())
+        @Composable fun action(label: Int, onClick: () -> Unit) = Text(
+            stringResource(label),
+            Modifier.clip(RoundedCornerShape(8.dp)).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 8.dp, vertical = 6.dp),
+            style = style,
+        )
+        action(R.string.chat_copy) { clipboard.setText(AnnotatedString(ChatActions.copyText(m))) }
+        if (code.isNotEmpty()) action(R.string.chat_copy_code) { clipboard.setText(AnnotatedString(ChatActions.allCode(m.text))) }
+        action(R.string.chat_share) {
+            val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                .setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, ChatActions.copyText(m))
+            runCatching { context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
         }
     }
 }
@@ -389,13 +487,29 @@ private fun MarkdownText(text: String) {
     val t = tokens()
     val code = t.panel2.c()
     val body = TypeScale.BODY.style(t.text.c())
+    val linkColor = t.send.c()
+    // A link is never opened by itself: a tap shows the address first and opens it only on a second, explicit tap.
+    var pending by remember { mutableStateOf<String?>(null) }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    val onLink: (String) -> Unit = { if (MarkdownLite.isWebAddress(it)) pending = it }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (b in blocks) {
             when (b) {
-                is MdBlock.Para -> Text(styled(b.spans, code), style = body)
-                is MdBlock.Bullet -> Row {
-                    Text("•  ", style = body)
-                    Text(styled(b.spans, code), Modifier.weight(1f), style = body)
+                is MdBlock.Para -> Text(styled(b.spans, code, linkColor, onLink), style = body)
+                is MdBlock.Heading -> Text(styled(b.spans, code, linkColor, onLink), style = body.copy(fontWeight = FontWeight.Bold))
+                is MdBlock.Bullet -> Row(Modifier.padding(start = (16 * b.depth).dp)) {
+                    Text(if (b.depth == 0) "•  " else "◦  ", style = body)
+                    Text(styled(b.spans, code, linkColor, onLink), Modifier.weight(1f), style = body)
+                }
+                is MdBlock.Numbered -> Row(Modifier.padding(start = (16 * b.depth).dp)) {
+                    Text("${b.number}.  ", style = body)
+                    Text(styled(b.spans, code, linkColor, onLink), Modifier.weight(1f), style = body)
+                }
+                is MdBlock.Table -> Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, t.line.c(), RoundedCornerShape(12.dp)),
+                ) {
+                    TableRow(b.header, code, linkColor, onLink, body.copy(fontWeight = FontWeight.Bold), Modifier.background(code))
+                    for (r in b.rows) TableRow(r, code, linkColor, onLink, body, Modifier)
                 }
                 is MdBlock.Code -> Text(
                     b.text,
@@ -406,16 +520,45 @@ private fun MarkdownText(text: String) {
             }
         }
     }
+    pending?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(stringResource(R.string.chat_link_title)) },
+            text = { Text(target) },
+            confirmButton = { TextButton(onClick = { pending = null; runCatching { uri.openUri(MarkdownLite.normalizedAddress(target)) } }) { Text(stringResource(R.string.chat_link_open)) } },
+            dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.chat_link_cancel)) } },
+        )
+    }
 }
 
-private fun styled(spans: List<MdSpan>, codeBackground: androidx.compose.ui.graphics.Color): AnnotatedString = buildAnnotatedString {
+@Composable
+private fun TableRow(
+    cells: List<List<MdSpan>>, codeBackground: Color, linkColor: Color, onLink: (String) -> Unit,
+    style: androidx.compose.ui.text.TextStyle, modifier: Modifier,
+) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (c in cells) Text(styled(c, codeBackground, linkColor, onLink), Modifier.weight(1f), style = style)
+    }
+}
+
+private fun styled(spans: List<MdSpan>, codeBackground: Color, linkColor: Color, onLink: (String) -> Unit): AnnotatedString = buildAnnotatedString {
     for (s in spans) {
         val style = SpanStyle(
             fontWeight = if (s.bold) FontWeight.Bold else null,
             fontFamily = if (s.code) FontFamily.Monospace else null,
-            background = if (s.code) codeBackground else androidx.compose.ui.graphics.Color.Unspecified,
+            background = if (s.code) codeBackground else Color.Unspecified,
         )
-        withStyle(style) { append(s.text) }
+        val target = s.link
+        if (target != null) {
+            val link = androidx.compose.ui.text.LinkAnnotation.Clickable(
+                tag = target,
+                styles = androidx.compose.ui.text.TextLinkStyles(
+                    SpanStyle(color = linkColor, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
+                ),
+                linkInteractionListener = { onLink(target) },
+            )
+            withLink(link) { withStyle(style) { append(s.text) } }
+        } else withStyle(style) { append(s.text) }
     }
 }
 

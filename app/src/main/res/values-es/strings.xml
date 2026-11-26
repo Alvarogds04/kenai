@@ -236,6 +236,17 @@
     <string name="chat_conversations_delete_title">¿Borrar esta conversación?</string>
     <string name="chat_conversations_delete_body">Se borra de tu motor para siempre, con todo su historial. No se puede deshacer: es irreversible.</string>
     <string name="chat_conversations_close">Cerrar</string>
+    <string name="chat_link_title">¿Abrir este enlace?</string>
+    <string name="chat_link_open">Abrir</string>
+    <string name="chat_link_cancel">Cancelar</string>
+    <string name="chat_copy">Copiar</string>
+    <string name="chat_copy_code">Copiar código</string>
+    <string name="chat_share">Compartir</string>
+    <string name="chat_search_hint">Buscar conversaciones</string>
+    <string name="chat_search_none">Ninguna conversación coincide.</string>
+    <string name="chat_retry">Reintentar</string>
+    <string name="chat_ask_again">Preguntar de nuevo</string>
+    <string name="chat_edit">Editar como mensaje nuevo</string>
     <string name="chat_count">%1$d / %2$d</string>
     <string name="chat_ref_too_long">Ese mensaje es demasiado largo.</string>
     <string name="chat_ref_no_model">Primero elegí un modelo.</string>
