@@ -324,6 +324,12 @@
     <string name="pending_title">Pendientes · %1$d</string>
     <string name="pending_approval">Permiso</string>
     <string name="pending_question">Pregunta</string>
+    <string name="circle_cd">Koda, %1$d pendientes</string>
+    <string name="circle_title">Pendientes · %1$d</string>
+    <string name="circle_allow">Permitir en Kenai</string>
+    <string name="circle_answer">Responder en Kenai</string>
+    <string name="circle_open">Abrir Kenai</string>
+    <string name="circle_close">Cerrar</string>
     <string name="pending_left">%1$d s</string>
     <string name="home_review">Revisar</string>
     <string name="home_unconfirmed">Sin confirmar</string>

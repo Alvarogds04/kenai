@@ -448,6 +448,15 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         onAnswer = { notifier.openQuestion(it) },
     )
 
+    // Koda's circle (KN-12): Deny is the app's own path; Allow and answers only open Kenai, where the screen lock waits.
+    private val circle = com.kenai.android.ui.CircleOverlay(
+        context, { android.os.SystemClock.elapsedRealtimeNanos() / 1e6 },
+        onDeny = { decide(it, allow = false) },
+        onAllow = { notifier.openAllow(it) },
+        onAnswer = { notifier.openQuestion(it) },
+        onOpen = { notifier.openApp() },
+    )
+
     fun overlayPermitted() = overlay.permitted()
 
     /** What the switch shows: wished and allowed by the system. */
@@ -501,8 +510,10 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         pushGlance()
         if (!islandAllowed()) {
             overlay.hide()
+            circle.hide()
             return
         }
+        circle.setPending(com.kenai.android.core.PendingPlan.build(approvals, questions, android.os.SystemClock.elapsedRealtime(), this::agentName), approvals)
         overlay.setActive(IslandPlan.active(sessions, approvals, allowed = true, this::agentName, questions = questions.map { it.pillId }.toSet()))
     }
 
@@ -798,6 +809,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
         questions = emptyList()
         sessions = withQuestions()
         overlay.hide()
+        circle.hide()
         expiry.values.forEach { main.removeCallbacks(it) }
         expiry.clear()
         approvals.forEach { notifier.cancelApproval(it.fingerprint) }

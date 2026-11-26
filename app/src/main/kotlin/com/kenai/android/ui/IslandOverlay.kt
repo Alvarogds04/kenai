@@ -75,6 +75,11 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.kenai.android.R
+import com.kenai.android.core.CirclePlan
+import com.kenai.android.core.PendingPlan
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.kenai.android.core.IslandBox
 import com.kenai.android.core.IslandGeometry
 import com.kenai.android.core.IslandSpec
@@ -453,4 +458,182 @@ class IslandOverlay(
     }
 
     private companion object { const val TAG = "KenaiIsland" }
+}
+
+/**
+ * Koda's floating circle (KN-12): a small circle at the edge of the screen while requests or questions wait, pulsing discreetly with
+ * their number. A tap opens a panel with one row per pending item. Deny resolves from the row ([onDeny], the app's existing path);
+ * everything else hands off to Kenai through its existing doors, because Allow and answers need the app's own screen lock (KN-04 S10).
+ * Same window plumbing and rules as [IslandOverlay]: needs the "display over other apps" permission, early taps are ignored,
+ * and nothing that goes wrong with the window reaches the caller. Nothing exists while nothing is pending.
+ */
+class CircleOverlay(
+    private val context: Context,
+    private val clock: () -> Double,
+    private val onDeny: (fingerprint: String) -> Unit,
+    private val onAllow: (fingerprint: String) -> Unit,
+    private val onAnswer: (pillId: String) -> Unit,
+    private val onOpen: () -> Unit,
+) {
+    private val wm = context.getSystemService(WindowManager::class.java)
+    private var view: ComposeView? = null
+    private var owner: LifecycleHolder? = null
+    private var shownAt = 0.0
+
+    private var rows by mutableStateOf<List<CirclePlan.Row>>(emptyList())
+    private var expanded by mutableStateOf(false)
+    private var reduced by mutableStateOf(false)
+
+    /** Every change of what waits comes here; nothing pending removes the window. */
+    fun setPending(items: List<PendingPlan.Item>, approvals: List<com.kenai.android.link.ApprovalRequest>) = safely {
+        val next = CirclePlan.panel(items, approvals)
+        if (next.isEmpty()) { hide(); return@safely }
+        reduced = MotionSpec.isReduced(Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f))
+        if (view == null) { if (!add()) return@safely; shownAt = clock() }
+        rows = next
+    }
+
+    fun hide() = safely { removeView() }
+
+    private inline fun safely(block: () -> Unit) {
+        try { block() } catch (e: Exception) {
+            Log.w(TAG, "island failed: ${e.javaClass.simpleName}")
+            runCatching { removeView() }
+        }
+    }
+
+    private fun removeView() {
+        view?.let { runCatching { wm.removeView(it) } }
+        view = null
+        owner?.destroy()
+        owner = null
+        expanded = false
+        rows = emptyList()
+    }
+
+    private fun add(): Boolean {
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+            x = (8 * context.resources.displayMetrics.density).toInt()
+        }
+        val holder = LifecycleHolder()
+        val v = ComposeView(context).apply {
+            setViewTreeLifecycleOwner(holder)
+            setViewTreeSavedStateRegistryOwner(holder)
+            setViewTreeViewModelStoreOwner(holder)
+            setContent { Circle() }
+        }
+        return try {
+            wm.addView(v, params)
+            owner = holder
+            view = v
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "cannot add the window: ${e.javaClass.simpleName}")
+            holder.destroy()
+            false
+        }
+    }
+
+    private fun tap(what: String, action: () -> Unit) {
+        if (!OverlayPolicy.tapAccepted(shownAt, clock())) { Log.d(TAG, "ignored an early tap on $what"); return }
+        action()
+    }
+
+    private fun handoff(h: CirclePlan.Handoff) {
+        expanded = false
+        when (h) {
+            is CirclePlan.Handoff.Allow -> onAllow(h.fingerprint)
+            is CirclePlan.Handoff.Question -> onAnswer(h.pillId)
+            CirclePlan.Handoff.App -> onOpen()
+        }
+    }
+
+    private val ink = Color(IslandSurface.BLACK)
+    private val dim = Color(IslandSurface.TEXT_DIM)
+
+    @Composable
+    private fun Circle() {
+        val plan = CirclePlan.circle(rows.map { PendingPlan.Item(it.kind, it.fingerprint, it.pillId, it.agent, 0L, it.leftMs) }, reduced)
+        var scale by remember { mutableStateOf(1f) }
+        // The pulse frame loop runs only while it pulses and the panel is closed.
+        LaunchedEffect(plan.pulses, expanded) {
+            if (!plan.pulses || expanded) { scale = 1f; return@LaunchedEffect }
+            val start = clock()
+            while (true) {
+                androidx.compose.runtime.withFrameNanos { scale = CirclePlan.pulseScale((clock() - start).toLong()).toFloat() }
+            }
+        }
+        CompositionLocalProvider(LocalTokens provides Tokens.DARK) {
+            if (expanded) Panel() else {
+                val cd = stringResource(R.string.circle_cd, plan.count)
+                Box(
+                    Modifier.size(52.dp).graphicsLayer { scaleX = scale; scaleY = scale }
+                        .semantics { contentDescription = cd }
+                        .clip(CircleShape).background(ink).clickable { tap("the circle") { expanded = true } },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val engine = remember { CharacterEngine(clock).apply { setState(BotState.APPROVAL, force = true) } }
+                    CharacterView(engine, Modifier.size(40.dp))
+                    Text(
+                        CirclePlan.badge(plan.count), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.align(Alignment.TopEnd).padding(2.dp).clip(CircleShape).background(Color(IslandSurface.BUTTON)).padding(horizontal = 5.dp),
+                    )
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun Panel() {
+        Column(
+            Modifier.width(300.dp).clip(RoundedCornerShape(20.dp)).background(ink).padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.circle_title, rows.size), style = TypeScale.HEADLINE.style(Color.White), modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.circle_close), style = TypeScale.SECONDARY.style(dim), modifier = Modifier.clickable { tap("close") { expanded = false } }.padding(6.dp))
+            }
+            rows.take(MAX_ROWS).forEach { r -> PanelRow(r) }
+            Text(stringResource(R.string.circle_open), style = TypeScale.SECONDARY.style(dim), modifier = Modifier.clickable { tap("open the app") { expanded = false; onOpen() } }.padding(vertical = 4.dp))
+        }
+    }
+
+    @Composable
+    private fun PanelRow(r: CirclePlan.Row) {
+        val question = r.kind == PendingPlan.Kind.QUESTION
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(r.agent, style = TypeScale.SECONDARY.style(Color.White), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(if (question) R.string.pending_question else R.string.pending_approval), style = TypeScale.LABEL.style(dim), maxLines = 1)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (r.canDeny) PillButton(stringResource(R.string.action_deny), { tap("Deny") { onDeny(r.fingerprint) } }, Modifier.weight(1f), onDark = true)
+                val label = when (r.handoff) {
+                    is CirclePlan.Handoff.Allow -> R.string.circle_allow
+                    is CirclePlan.Handoff.Question -> R.string.circle_answer
+                    CirclePlan.Handoff.App -> R.string.circle_open
+                }
+                PillButton(stringResource(label), { tap("hand off") { handoff(r.handoff) } }, Modifier.weight(1f), PillKind.PRIMARY, onDark = true)
+            }
+        }
+    }
+
+    private class LifecycleHolder : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
+        override val viewModelStore = ViewModelStore()
+        private val registry = LifecycleRegistry(this)
+        private val controller = SavedStateRegistryController.create(this)
+        override val lifecycle: Lifecycle get() = registry
+        override val savedStateRegistry: SavedStateRegistry get() = controller.savedStateRegistry
+        init { controller.performAttach(); controller.performRestore(null); registry.currentState = Lifecycle.State.RESUMED }
+        fun destroy() { registry.currentState = Lifecycle.State.DESTROYED; viewModelStore.clear() }
+    }
+
+    private companion object { const val TAG = "KenaiIsland"; const val MAX_ROWS = 4 }
 }
