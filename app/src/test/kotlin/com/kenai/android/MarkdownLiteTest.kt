@@ -95,6 +95,21 @@ class MarkdownLiteTest {
         assertTrue(!MarkdownLite.isWebAddress("ftp://a.b"))
     }
 
+    @Test fun parenthesisedAddressesKeepTheirParenthesesAndOpenWithALowerCaseScheme() {
+        assertEquals(
+            listOf(MdSpan("w", link = "https://en.wikipedia.org/wiki/Foo_(bar)"), MdSpan(".")),
+            MarkdownLite.inline("[w](https://en.wikipedia.org/wiki/Foo_(bar))."),
+        )
+        assertEquals("http://B.example/X", MarkdownLite.normalizedAddress("HTTP://B.example/X"))
+        assertEquals("https://a", MarkdownLite.normalizedAddress("https://a"))
+    }
+
+    @Test fun manyUnclosedBracketsStayFast() {
+        val t0 = System.nanoTime()
+        MarkdownLite.inline("[".repeat(100_000)); MarkdownLite.inline("![".repeat(50_000)); MarkdownLite.inline("[a](".repeat(25_000))
+        assertTrue("took too long", (System.nanoTime() - t0) / 1_000_000 < 5_000)
+    }
+
     @Test fun imagesAndHtmlStayPlainText() {
         val text = "![i](http://a/b.png) <script>alert(1)</script> <a href=\"http://x\">y</a>"
         assertEquals(listOf(MdBlock.Para(plain(text))), MarkdownLite.parse(text))

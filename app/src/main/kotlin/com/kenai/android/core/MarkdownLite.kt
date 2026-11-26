@@ -26,8 +26,8 @@ object MarkdownLite {
     const val MAX_DEPTH = 5
     private val NUMBERED = Regex("^(\\d{1,9})[.)] (.+)$")
     private val SEPARATOR_CELL = Regex("^:?-{1,}:?$")
-    private val IMAGE = Regex("^!\\[[^\\]]*]\\([^)\\s]*\\)")
-    private val LINK = Regex("^\\[([^\\]]+)]\\(([^)\\s]+)\\)")
+    private val IMAGE = Regex("!\\[[^\\]\\n]{0,200}]\\((?:[^()\\s]|\\([^()\\s]*\\)){0,2000}\\)")
+    private val LINK = Regex("\\[([^\\]\\n]{1,200})]\\(((?:[^()\\s]|\\([^()\\s]*\\)){1,2000})\\)")
 
     fun parse(text: String): List<MdBlock> {
         val blocks = mutableListOf<MdBlock>()
@@ -122,11 +122,11 @@ object MarkdownLite {
             }
             if (text[i] == '!') {
                 // An image is never loaded: it stays as written.
-                val img = IMAGE.find(text.substring(i))
+                val img = IMAGE.matchAt(text, i)
                 if (img != null) { plain.append(img.value); i += img.value.length; continue }
             }
             if (text[i] == '[') {
-                val m = LINK.find(text.substring(i))
+                val m = LINK.matchAt(text, i)
                 if (m != null && isWebAddress(m.groupValues[2])) {
                     emitPlain(); out.add(MdSpan(m.groupValues[1], link = m.groupValues[2])); i += m.value.length; continue
                 }
@@ -135,6 +135,12 @@ object MarkdownLite {
         }
         emitPlain()
         return out
+    }
+
+    /** The address with its scheme in lower case: Android matches schemes case-sensitively, so `HTTP://` would find no app. */
+    fun normalizedAddress(target: String): String {
+        val i = target.indexOf("://")
+        return if (i > 0) target.substring(0, i).lowercase() + target.substring(i) else target
     }
 
     /** The only addresses a tap may open. */

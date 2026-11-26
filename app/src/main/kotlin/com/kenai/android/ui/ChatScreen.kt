@@ -428,7 +428,7 @@ private fun MarkdownText(text: String) {
             onDismissRequest = { pending = null },
             title = { Text(stringResource(R.string.chat_link_title)) },
             text = { Text(target) },
-            confirmButton = { TextButton(onClick = { pending = null; uri.openUri(target) }) { Text(stringResource(R.string.chat_link_open)) } },
+            confirmButton = { TextButton(onClick = { pending = null; runCatching { uri.openUri(MarkdownLite.normalizedAddress(target)) } }) { Text(stringResource(R.string.chat_link_open)) } },
             dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.chat_link_cancel)) } },
         )
     }
