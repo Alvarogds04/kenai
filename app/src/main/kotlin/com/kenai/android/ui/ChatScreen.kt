@@ -75,6 +75,7 @@ import com.kenai.android.core.ChatAgain
 import com.kenai.android.core.ChatDrafts
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatRetry
+import com.kenai.android.core.ChatRowPlan
 import com.kenai.android.core.ChatSearch
 import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
@@ -243,41 +244,42 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
             } else {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(MessageGap)) {
                     items(messages, key = { it.id }) { m ->
-                        Bubble(m)
-                        // Retry only on the last turn, only when it failed or was stopped, and only when it could be sent now.
-                        val retry = if (m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatRetry.textFor(messages) else null
-                        val again = if (retry == null && m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatAgain.textFor(messages) else null
-                        if (again != null) {
-                            // Not a rewrite: the protocol has no frame for that, so this asks the same question as a new turn.
-                            Text(
-                                stringResource(R.string.chat_ask_again),
-                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(again) }
-                                    .padding(horizontal = 8.dp, vertical = 14.dp),
-                                style = TypeScale.LABEL.style(tokens().textDim.c()),
-                            )
-                        }
-                        if (ChatAgain.editable(m) && model.chatAvailable && !model.chatBusy) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        // One root: a lazy item with several roots stacks them like a Box, so they would overlap.
+                        Column(Modifier.fillMaxWidth()) {
+                            Bubble(m)
+                            val plan = ChatRowPlan.of(m, messages, canSend = model.chatAvailable && !model.chatBusy)
+                            plan.askAgain?.let { again ->
+                                // Not a rewrite: the protocol has no frame for that, so this asks the same question as a new turn.
                                 Text(
-                                    stringResource(R.string.chat_edit),
-                                    Modifier.heightIn(min = Spacing.MIN_TOUCH.dp)
-                                        .clickable(role = Role.Button) {
-                                            // Never throws away what is being typed: the message is added below it.
-                                            text = ChatAgain.editDraft(text, m).take(Protocol.CHAT_MAX_TEXT + 200)
-                                            drafts.set(model.chatOpenId, text); refusal = null
-                                        }
+                                    stringResource(R.string.chat_ask_again),
+                                    Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(again) }
                                         .padding(horizontal = 8.dp, vertical = 14.dp),
                                     style = TypeScale.LABEL.style(tokens().textDim.c()),
                                 )
                             }
-                        }
-                        if (retry != null) {
-                            Text(
-                                stringResource(R.string.chat_retry),
-                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(retry) }
-                                    .padding(horizontal = 8.dp, vertical = 14.dp),
-                                style = TypeScale.LABEL.style(tokens().send.c()),
-                            )
+                            if (plan.edit) {
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                    Text(
+                                        stringResource(R.string.chat_edit),
+                                        Modifier.heightIn(min = Spacing.MIN_TOUCH.dp)
+                                            .clickable(role = Role.Button) {
+                                                // Never throws away what is being typed: the message is added below it.
+                                                text = ChatAgain.editDraft(text, m).take(Protocol.CHAT_MAX_TEXT + ChatDrafts.OVERFLOW)
+                                                drafts.set(model.chatOpenId, text); refusal = null
+                                            }
+                                            .padding(horizontal = 8.dp, vertical = 14.dp),
+                                        style = TypeScale.LABEL.style(tokens().textDim.c()),
+                                    )
+                                }
+                            }
+                            plan.retry?.let { retry ->
+                                Text(
+                                    stringResource(R.string.chat_retry),
+                                    Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(retry) }
+                                        .padding(horizontal = 8.dp, vertical = 14.dp),
+                                    style = TypeScale.LABEL.style(tokens().send.c()),
+                                )
+                            }
                         }
                     }
                 }
@@ -341,8 +343,11 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
         val all = model.chatConversationList
         // Works from what the phone holds (titles and cached message text), so it also works with the engine off.
         // The cached messages are part of the key: a conversation that gains a message while the sheet is open is searched anew.
-        val cached = if (query.isBlank()) emptyMap() else model.chatCachedMessages()
-        val rows = remember(all, query, cached) { ChatSearch.filter(all, cached, query) }
+        // The index is rebuilt only when the list or what the open conversation shows changes (stable keys), not on every
+        // recomposition and not on a keystroke: typing only looks words up in it.
+        val shown = model.chatMessages
+        val index = remember(all, shown) { ChatSearch.index(all, model.chatCachedMessages()) }
+        val rows = remember(index, query) { index.filter(query) }
         if (all.size > 3 || query.isNotEmpty()) {
             OutlinedTextField(
                 value = query, onValueChange = { query = it.take(100) }, singleLine = true,
@@ -457,7 +462,12 @@ private fun MessageActions(m: ChatMessage) {
         action(R.string.chat_share) {
             val send = android.content.Intent(android.content.Intent.ACTION_SEND)
                 .setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, ChatActions.copyText(m))
-            runCatching { context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            // No app to share with is possible on a stripped-down device: say so instead of failing silently.
+            try {
+                context.startActivity(android.content.Intent.createChooser(send, null).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (_: android.content.ActivityNotFoundException) {
+                android.widget.Toast.makeText(context, R.string.chat_no_app, android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
@@ -491,6 +501,7 @@ private fun MarkdownText(text: String) {
     // A link is never opened by itself: a tap shows the address first and opens it only on a second, explicit tap.
     var pending by remember { mutableStateOf<String?>(null) }
     val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val onLink: (String) -> Unit = { if (MarkdownLite.isWebAddress(it)) pending = it }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (b in blocks) {
@@ -525,7 +536,11 @@ private fun MarkdownText(text: String) {
             onDismissRequest = { pending = null },
             title = { Text(stringResource(R.string.chat_link_title)) },
             text = { Text(target) },
-            confirmButton = { TextButton(onClick = { pending = null; runCatching { uri.openUri(MarkdownLite.normalizedAddress(target)) } }) { Text(stringResource(R.string.chat_link_open)) } },
+            confirmButton = { TextButton(onClick = {
+                pending = null
+                try { uri.openUri(MarkdownLite.normalizedAddress(target)) }
+                catch (_: IllegalArgumentException) { android.widget.Toast.makeText(context, R.string.chat_no_app, android.widget.Toast.LENGTH_SHORT).show() }
+            }) { Text(stringResource(R.string.chat_link_open)) } },
             dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.chat_link_cancel)) } },
         )
     }
@@ -571,7 +586,7 @@ private fun Composer(model: AppModel, text: String, refusal: ChatSession.Refusal
         ModelChip(model)
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
-                value = text, onValueChange = { onText(it.take(limit + 200)) }, modifier = Modifier.weight(1f),
+                value = text, onValueChange = { onText(it.take(limit + ChatDrafts.OVERFLOW)) }, modifier = Modifier.weight(1f),
                 placeholder = { Text(stringResource(R.string.chat_placeholder), color = t.textFaint.c()) },
                 maxLines = 4, shape = RoundedCornerShape(26.dp), enabled = model.chatAvailable,
                 colors = OutlinedTextFieldDefaults.colors(

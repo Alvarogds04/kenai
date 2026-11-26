@@ -247,6 +247,7 @@
     <string name="chat_retry">Reintentar</string>
     <string name="chat_ask_again">Preguntar de nuevo</string>
     <string name="chat_edit">Editar como mensaje nuevo</string>
+    <string name="chat_no_app">Ninguna app puede abrir esto.</string>
     <string name="chat_count">%1$d / %2$d</string>
     <string name="chat_ref_too_long">Ese mensaje es demasiado largo.</string>
     <string name="chat_ref_no_model">Primero elegí un modelo.</string>
