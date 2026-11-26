@@ -53,6 +53,8 @@ class GlanceSurfacesTest {
     @Test fun everyChangeOfThePictureReachesTheSurfaces() {
         assertTrue(model.substringAfter("private fun refreshIsland()").take(200).contains("pushGlance()"))
         val push = model.substringAfter("private fun pushGlance()").substringBefore("private fun refreshIsland()")
-        for (call in listOf("notifier.updateOngoing", "GlanceWidget.update", "GlanceTile.requestUpdate")) assertTrue(call, push.contains(call))
+        for (call in listOf("notifier.updateOngoing", "WidgetHub.update", "GlanceTile.requestUpdate")) assertTrue(call, push.contains(call))
+        // KN-13 L5: the widget goes through the hub with the rest, one push for every Widget; the extra summary push is gone.
+        assertFalse(push.contains("GlanceWidget.update"))
     }
 }

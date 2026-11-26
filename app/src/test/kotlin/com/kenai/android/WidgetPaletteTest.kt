@@ -10,6 +10,7 @@ import com.kenai.android.character.BotState
 import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,10 +77,13 @@ class WidgetPaletteTest {
         assertEquals("the tiles come most urgent first", tiles.map { GlanceBuilder.rank(it.state) }, tiles.map { GlanceBuilder.rank(it.state) }.sorted())
     }
 
-    @Test fun theTodayWidgetIsGreenOnceSomethingFinishedAndSoftGreyBefore() {
+    @Test fun theFinishedTodayCountRidesAlongAsAnApproximateLine() {
+        // The Today widget is retired (KN-13 L6): its count is now one line of «Sesiones y actividad», and it says it is approximate
+        // and counted on this phone. Nothing is lost and nothing passes for an engine metric (S2, S4).
         val g = GlanceBuilder.build(true, LinkState.CONNECTED, "PC", emptyList(), 0) { "x" }
-        assertEquals(WidgetTone.IDLE, WidgetData.build(g, emptyList(), { "x" }, today = 0).todayLook)
-        assertEquals(WidgetTone.DONE, WidgetData.build(g, emptyList(), { "x" }, today = 1).todayLook)
+        assertNull(WidgetData.build(g, emptyList(), { "x" }, today = 0).todayApprox)
+        assertEquals(WidgetTone.IDLE, WidgetData.build(g, emptyList(), { "x" }, today = 0).look)
+        assertEquals("1 finished today · approx., this phone", WidgetData.build(g, emptyList(), { "x" }, today = 1).todayApprox)
     }
 
     // ── The palette in the resources ────────────────────────────────────────────────────────────────
@@ -124,7 +128,11 @@ class WidgetPaletteTest {
 
     private val widgetSources = listOf(
         "SoloWidget", "ListWidget", "CharacterBigWidget", "StatusPillWidget", "WaitingAlertWidget", "UsageRingWidget", "TodayWidget", "MoodWidget", "GlanceWidget",
+        "RetiredWidgetCard",
     ).associateWith { read("${main}app/$it.kt") }
+
+    /** The four Widgets retired in KN-13 (L6): they draw another Widget's card, so they paint through it, not themselves. */
+    private val retiredShells = setOf("ListWidget", "WaitingAlertWidget", "TodayWidget", "MoodWidget")
 
     @Test fun noWidgetSourceHardCodesAColour() {
         for ((name, src) in widgetSources + mapOf("WidgetHub" to read(main + "app/WidgetHub.kt"))) {
@@ -139,9 +147,17 @@ class WidgetPaletteTest {
 
     @Test fun everyWidgetPaintsThroughTheHubAndNeverSetsItsOwnCard() {
         for ((name, src) in widgetSources) {
+            if (name in retiredShells) {
+                // A retired shell owns no card: it shows «Sesiones y actividad»'s or the small retired card's, which paint through the hub.
+                assertTrue("$name draws no card of its own", listOf("GlanceWidget.views(context, c)", "RetiredWidgetCard.views(").any { src.contains(it) })
+                assertFalse("$name paints a card of its own", src.contains("WidgetHub.paint(") || src.contains("setBackgroundResource"))
+                continue
+            }
             assertTrue("$name does not paint through the hub", src.contains("WidgetHub.paint(") || src.contains("WidgetHub.paintUsage("))
             if (name != "CharacterBigWidget") assertFalse("$name sets a background itself", src.contains("setBackgroundResource"))
         }
+        // The two cards that do paint: the new one and the retired one, both through the hub.
+        for (painter in listOf("GlanceWidget", "RetiredWidgetCard")) assertTrue(painter, widgetSources.getValue(painter).contains("WidgetHub.paint("))
         // The plan-usage card uses the usage palette, and a Widget with no usage never borrows the orange.
         assertTrue(widgetSources.getValue("UsageRingWidget").contains("WidgetHub.paintUsage(v, R.id.ring_root, R.id.ring_tint, ring.tone)"))
         assertTrue(widgetSources.getValue("UsageRingWidget").contains("if (c.connected) WidgetTone.IDLE else WidgetTone.MUTED"))
@@ -157,15 +173,18 @@ class WidgetPaletteTest {
     }
 
     @Test fun theNotConnectedIconIsOnEveryWidgetThatShowsAStatus() {
-        for ((name, layout) in listOf("SoloWidget" to "widget_solo", "ListWidget" to "widget_list", "CharacterBigWidget" to "widget_big", "WaitingAlertWidget" to "widget_alert", "MoodWidget" to "widget_mood", "GlanceWidget" to "widget_glance")) {
-            // In the layout, or set from code when the computer is not there (the List swaps its dot for it).
+        for ((name, layout) in listOf("SoloWidget" to "widget_solo", "CharacterBigWidget" to "widget_big", "GlanceWidget" to "widget_glance")) {
+            // In the layout, or set from code when the computer is not there (the activity card swaps its dot for it).
             assertTrue("$layout has no not-connected icon", read("${res}layout/$layout.xml").contains("@drawable/ic_widget_offline") || widgetSources.getValue(name).contains("R.drawable.ic_widget_offline"))
             assertTrue("$name never shows it", widgetSources.getValue(name).contains("connected"))
         }
         assertTrue(widgetSources.getValue("StatusPillWidget").contains("R.drawable.ic_widget_offline"))
-        for (id in listOf("big_offline" to "CharacterBigWidget", "alert_offline" to "WaitingAlertWidget", "mood_offline" to "MoodWidget", "glance_offline" to "GlanceWidget")) {
+        for (id in listOf("big_offline" to "CharacterBigWidget", "glance_offline" to "GlanceWidget")) {
             assertTrue(id.first, widgetSources.getValue(id.second).contains("R.id.${id.first}"))
         }
+        // The two merged shells draw the activity card, so they keep it; the retired card shows no status at all, which is the point.
+        for (shell in listOf("ListWidget", "WaitingAlertWidget")) assertTrue(shell, widgetSources.getValue(shell).contains("GlanceWidget.views(context, c)"))
+        assertFalse("the retired card claims a connection state", widgetSources.getValue("RetiredWidgetCard").contains("connected"))
     }
 
     @Test fun theButtonTilesAreOrangeOnlyWhileSomethingWaits() {
@@ -179,9 +198,11 @@ class WidgetPaletteTest {
     // ── The picker previews keep their sample's colour ──────────────────────────────────────────────
 
     @Test fun eachPreviewKeepsItsSampleStateColour() {
+        // The tones each preview shows: the retired List is the same picture as «Sesiones y actividad» (working), the merging Alert shows the
+        // waiting sample, and the retired Today and Mood show the muted retired card (KN-13 L6).
         val sample = mapOf(
-            "solo" to "attention", "list" to "attention", "big" to "working", "pill" to "working", "alert" to "attention",
-            "today" to "done", "mood" to "done", "glance" to "working", "ring" to "usage_calm",
+            "solo" to "attention", "list" to "working", "big" to "working", "pill" to "working", "alert" to "attention",
+            "today" to "muted", "mood" to "muted", "glance" to "working", "ring" to "usage_calm",
         )
         for ((n, tone) in sample) {
             val xml = read("${res}layout/widget_preview_$n.xml")

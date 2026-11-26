@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of the summary widget: a working Kenai on the left, "2 agents are working" and three lines, each with a dot in the state's tone.
-     A still picture for the Widget picker (android:previewLayout): sample text, no ids, nothing from the app, no runtime bitmap.
-     It uses the same card, border, gradient, type scale, buttons and state colours as the real Widget, so the picker shows what you will get. -->
+<!-- Preview of «Sesiones y actividad»: the WORKING sample (Claude Code working, 3 of 8, Codex thinking, Gemini CLI idle), with the line of the tasks finished today, marked approximate.
+     A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
+     It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,144 +16,166 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp">
-
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:importantForAccessibility="no"
-            android:scaleType="fitCenter"
-            android:src="@drawable/preview_char_working" />
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="10dp">
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:importantForAccessibility="no"
+                android:scaleType="fitCenter"
+                android:src="@drawable/preview_char_working" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="@string/widget_sample_two_agents"
                 android:textColor="@color/widget_text"
                 android:textSize="@dimen/widget_text_name"
                 android:textStyle="bold" />
+        </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="@dimen/widget_row_min"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot"
                     android:tint="@color/widget_tone_working" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_claude"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_state"
+                    android:textSize="@dimen/widget_text_name"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_working"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_secondary" />
+                    android:textSize="@dimen/widget_text_state" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:text="@string/widget_sample_progress"
+                android:textColor="@color/widget_text_soft"
+                android:textSize="@dimen/widget_text_secondary" />
             </LinearLayout>
-
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="@dimen/widget_row_min"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot"
                     android:tint="@color/widget_tone_working" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_codex"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_state"
+                    android:textSize="@dimen/widget_text_name"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_thinking"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_secondary" />
+                    android:textSize="@dimen/widget_text_state" />
             </LinearLayout>
-
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="@dimen/widget_row_min"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot"
                     android:tint="@color/widget_tone_muted" />
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_gemini"
                     android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_state"
+                    android:textSize="@dimen/widget_text_name"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="0dp"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_idle"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_secondary" />
+                    android:textSize="@dimen/widget_text_state" />
             </LinearLayout>
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_sample_today"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary" />
     </LinearLayout>
 </FrameLayout>

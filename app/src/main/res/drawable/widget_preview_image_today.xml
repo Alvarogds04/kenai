@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The picture the Widget picker shows on Android 11 (no previewLayout there): the card, its gradient and the character in the state of the sample. -->
+<!-- The picture the Widget picker shows on Android 11 (no previewLayout there): the card, its gradient and the resting character. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="@drawable/widget_card_done" />
+    <item android:drawable="@drawable/widget_card_muted" />
     <item
         android:left="1dp"
         android:top="1dp"
         android:right="1dp"
         android:bottom="1dp"
-        android:drawable="@drawable/widget_tint_done" />
+        android:drawable="@drawable/widget_tint_muted" />
     <item
-        android:width="84dp"
-        android:height="84dp"
+        android:width="64dp"
+        android:height="64dp"
         android:left="0dp"
         android:top="0dp"
         android:gravity="center"
-        android:drawable="@drawable/preview_char_done" />
+        android:drawable="@drawable/preview_char_idle" />
 </layer-list>

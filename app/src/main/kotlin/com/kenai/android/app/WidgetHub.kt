@@ -20,23 +20,27 @@ import com.kenai.android.core.WidgetTone
 import kotlin.math.roundToInt
 
 /**
- * The one place that pushes the Widgets (Solo, List, Kenai Big, Status Pill, Waiting Alert, Usage Ring, Today and Kenai Mood). The app calls [update] on every change of sessions, requests and
- * link (from AppModel.pushGlance); a push whose content is the same as the last one is dropped, so a change that does not
- * show on a widget costs nothing. There is no timer: a widget is drawn when something changes or when it is added, and the Today
- * widget once at local midnight (one inexact alarm, see [scheduleMidnight]).
+ * The one place that pushes the Widgets («Sesiones y actividad», Solo, Kenai Big, Status Pill, Usage Ring, and the retired shells a home
+ * screen may still hold). The app calls [update] on every change of sessions, requests and link (from AppModel.pushGlance); a push whose
+ * content is the same as the last one is dropped, so a change that does not show on a widget costs nothing. There is no timer: a widget is
+ * drawn when something changes or when it is added, and «Sesiones y actividad» once at local midnight (one inexact alarm, see
+ * [scheduleMidnight]).
  */
 object WidgetHub {
     private class Kind(val provider: Class<out AppWidgetProvider>, val views: (Context, WidgetContent) -> RemoteViews)
 
     private val widgets = listOf(
+        Kind(GlanceWidget::class.java) { c, w -> GlanceWidget.views(c, w) },
         Kind(SoloWidget::class.java) { c, w -> SoloWidget.views(c, w) },
+        // Retired in KN-13 (L6) and kept declared so a placed one is not dropped: both show the new card.
         Kind(ListWidget::class.java) { c, w -> ListWidget.views(c, w) },
+        Kind(WaitingAlertWidget::class.java) { c, w -> WaitingAlertWidget.views(c, w) },
         Kind(CharacterBigWidget::class.java) { c, w -> CharacterBigWidget.views(c, w) },
         Kind(StatusPillWidget::class.java) { c, w -> StatusPillWidget.views(c, w) },
-        Kind(WaitingAlertWidget::class.java) { c, w -> WaitingAlertWidget.views(c, w) },
         Kind(UsageRingWidget::class.java) { c, w -> UsageRingWidget.views(c, w) },
-        Kind(TodayWidget::class.java) { c, w -> TodayWidget.views(c, w) },
-        Kind(MoodWidget::class.java) { c, w -> MoodWidget.views(c, w) },
+        // Retired in KN-13 (L6): one small card saying where their function went, which opens the app.
+        Kind(TodayWidget::class.java) { c, _ -> TodayWidget.views(c) },
+        Kind(MoodWidget::class.java) { c, _ -> MoodWidget.views(c) },
     )
 
     private var last: WidgetContent? = null
@@ -147,19 +151,19 @@ object WidgetHub {
         update(context, current(context))
     }
 
-    /** The one alarm of the Widgets: the Today widget's redraw at the next local midnight (see [scheduleMidnight]). */
+    /** The one alarm of the Widgets: the redraw of «Sesiones y actividad» at the next local midnight (see [scheduleMidnight]). */
     const val ACTION_MIDNIGHT = "com.kenai.android.action.WIDGET_MIDNIGHT"
 
     private fun midnightIntent(context: Context): PendingIntent =
         PendingIntent.getBroadcast(
-            context, CODE_MIDNIGHT, Intent(ACTION_MIDNIGHT).setClass(context, TodayWidget::class.java),
+            context, CODE_MIDNIGHT, Intent(ACTION_MIDNIGHT).setClass(context, GlanceWidget::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
     /**
-     * Asks the system to redraw the Today widget once, at the next local midnight, so the count starts again at 0 even if nothing else
-     * redraws it (Android no longer delivers "the date changed" to manifest receivers). One inexact alarm that does not wake the phone
-     * and needs no permission; it replaces itself each time, and is set again when the alarm fires and whenever the Widget is updated.
+     * Asks the system to redraw «Sesiones y actividad» once, at the next local midnight, so its finished-today line starts again at 0 even if
+     * nothing else redraws it (Android no longer delivers "the date changed" to manifest receivers). One inexact alarm that does not wake the
+     * phone and needs no permission; it replaces itself each time, and is set again when the alarm fires and whenever the Widget is updated.
      */
     fun scheduleMidnight(context: Context) {
         runCatching {
@@ -168,7 +172,7 @@ object WidgetHub {
         }
     }
 
-    /** No Today widget is left on the home screen: the alarm is not needed. */
+    /** No «Sesiones y actividad» is left on the home screen: the alarm is not needed. */
     fun cancelMidnight(context: Context) {
         runCatching { context.getSystemService(AlarmManager::class.java)?.cancel(midnightIntent(context)) }
     }
@@ -204,14 +208,16 @@ object WidgetHub {
 
     /** Request codes: one range per widget, one code per row, so no two PendingIntents are the same. */
     const val CODE_SOLO = 0x5100
-    const val CODE_LIST_HEADER = 0x5200
-    const val CODE_LIST_ROW = 0x5300
+
+    /** «Sesiones y actividad»'s rows, then its card, then its button: the rows count up from here. */
+    const val CODE_GLANCE_ROW = 0x5300
     const val CODE_BIG = 0x5400
     const val CODE_PILL = 0x5500
-    const val CODE_ALERT = 0x5600
     const val CODE_RING = 0x5700
-    const val CODE_TODAY = 0x5800
-    const val CODE_MOOD = 0x5900
+
+    /** The two retired cards: one code each, so two PendingIntents never turn into the same one. */
+    const val CODE_RETIRED_TODAY = 0x5800
+    const val CODE_RETIRED_MOOD = 0x5900
 
     /** The buttons: one code each, from these bases (the Status Pill has 4, Kenai Big 6, the summary none). */
     const val CODE_PILL_BUTTON = 0x5A00
@@ -223,6 +229,6 @@ object WidgetHub {
     const val CODE_BIG_USAGE_APP = 0x5E00
     const val CODE_MIDNIGHT = 0x5F00
 
-    /** «Revisar el pedido» on «Aprobaciones pendientes»: Home, whose hero is the first request. */
-    const val CODE_ALERT_BUTTON = 0x6000
+    /** The pending section's button on «Sesiones y actividad» («Revisar el pedido» / «Responder la pregunta»): Home, whose hero is the first request. */
+    const val CODE_GLANCE_BUTTON = 0x6000
 }

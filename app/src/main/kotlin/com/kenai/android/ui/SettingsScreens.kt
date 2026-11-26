@@ -46,6 +46,8 @@ import com.kenai.android.app.Mode
 import com.kenai.android.core.HistoryDays
 import com.kenai.android.core.HomeText
 import com.kenai.android.core.QuietHours
+import com.kenai.android.core.RetiredWidgets
+import com.kenai.android.core.Words
 import com.kenai.android.link.LinkState
 import com.kenai.android.sound.SoundVolume
 import java.time.ZoneId
@@ -208,6 +210,26 @@ fun SettingsScreen(model: AppModel, onHistory: () -> Unit, onGallery: () -> Unit
                     model.updateSettings(s.copy(quiet = s.quiet.copy(toMin = QuietHours.wrap(it))))
                 }
                 Spacer(Modifier.height(8.dp))
+            }
+        }
+
+        // KN-13 S3: a user who had one of the retired Widgets reads where its function lives now, in a section that is always there and
+        // needs no prior state. The words come from core/RetiredWidgets, in the phone's language.
+        item { SectionHeading(stringResource(R.string.settings_section_widgets)) }
+        item {
+            Panel {
+                Column(Modifier.padding(Spacing.INSIDE.dp), verticalArrangement = Arrangement.spacedBy(Spacing.GAP.dp)) {
+                    Text(stringResource(R.string.settings_widgets_intro), style = TypeScale.SECONDARY.style(t.textDim.c()))
+                    for (retired in RetiredWidgets.of(Words.current()).entries) {
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                retired.name, style = TypeScale.BODY.style(t.text.c()), fontWeight = FontWeight.SemiBold,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(retired.where, style = TypeScale.SECONDARY.style(t.textDim.c()))
+                        }
+                    }
+                }
             }
         }
 

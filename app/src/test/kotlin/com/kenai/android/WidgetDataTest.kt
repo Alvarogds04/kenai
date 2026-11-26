@@ -276,4 +276,54 @@ class WidgetDataTest {
         assertEquals(0, WidgetData.build(g, emptyList(), { "x" }, today = -2).today)
         assertFalse(WidgetData.build(g, emptyList(), { "x" }, today = 4) == WidgetData.build(g, emptyList(), { "x" }, today = 5))
     }
+
+    // KN-13 T2: «Sesiones y actividad» data, real engine values only (S2, S4).
+    private fun stepped(id: String, state: BotState, index: Int, count: Int) =
+        SessionInfo(id, "", state, "editing a.kt", index, count, 0L)
+
+    @Test fun aTileCarriesTheEnginesStepsAsNOfM() {
+        val c = build(listOf(stepped("agent_codex", BotState.WORKING, 3, 8)))
+        assertEquals("3/8", c.tiles.single().progress)
+    }
+
+    @Test fun noStepsWhenTheEngineSentNone() {
+        assertNull(build(listOf(stepped("agent_codex", BotState.WORKING, 0, 0))).tiles.single().progress)
+        assertNull(build(listOf(stepped("agent_codex", BotState.WORKING, 2, -1))).tiles.single().progress)
+    }
+
+    @Test fun stepsAreNeverMadeIntoAPercentageOrPastTheTotal() {
+        assertEquals("6/6", build(listOf(stepped("agent_codex", BotState.WORKING, 9, 6))).tiles.single().progress)
+        assertEquals("0/6", build(listOf(stepped("agent_codex", BotState.WORKING, -2, 6))).tiles.single().progress)
+        assertFalse(build(listOf(stepped("agent_codex", BotState.WORKING, 3, 6))).toString().contains("%"))
+    }
+
+    @Test fun theStepTextStillNeverReachesTheTiles() {
+        val c = build(listOf(stepped("agent_codex", BotState.WORKING, 3, 8)))
+        assertFalse(c.toString().contains("editing a.kt"))
+    }
+
+    @Test fun theFinishedTodayCountIsLabelledApproximateAndPhoneOnly() {
+        val g = glance(emptyList())
+        val none = WidgetData.build(g, emptyList(), nameOf = { it }, today = 0)
+        val three = WidgetData.build(g, emptyList(), nameOf = { it }, today = 3)
+        assertNull(none.todayApproxLine(com.kenai.android.core.Words.EN))
+        assertEquals("3 finished today · approx., this phone", three.todayApproxLine(com.kenai.android.core.Words.EN))
+        assertEquals("the same line in the phone's own language", three.todayApprox, three.todayApproxLine(com.kenai.android.core.Words.current()))
+    }
+
+    @Test fun theFinishedTodayLineIsPinnedInSpanishThroughWords() {
+        // The line is the only number this phone counts, so it must say so in Spanish too (KN-13 T2 review, advisory 4).
+        val g = glance(emptyList())
+        val es = WidgetData.build(g, emptyList(), nameOf = { it }, today = 3).todayApproxLine(com.kenai.android.core.Words.ES)
+        assertEquals("3 terminadas hoy · aprox., este teléfono", es)
+        assertTrue(es!!.contains("aprox.") && es.contains("este teléfono"))
+        assertNull(WidgetData.build(g, emptyList(), nameOf = { it }, today = 0).todayApproxLine(com.kenai.android.core.Words.ES))
+    }
+
+    @Test fun theActivityWordsExistInSpanishToo() {
+        assertEquals("Sessions & activity", com.kenai.android.core.ActivityWords.of(com.kenai.android.core.Words.EN).title)
+        assertEquals("Sesiones y actividad", com.kenai.android.core.ActivityWords.of(com.kenai.android.core.Words.ES).title)
+        assertEquals("3 finished today · approx., this phone", com.kenai.android.core.ActivityWords.of(com.kenai.android.core.Words.EN).finishedTodayApprox(3))
+        assertEquals("3 terminadas hoy · aprox., este teléfono", com.kenai.android.core.ActivityWords.of(com.kenai.android.core.Words.ES).finishedTodayApprox(3))
+    }
 }

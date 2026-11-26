@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- RETIRED in KN-13 (L6) and kept declared for one release: a placed instance survives and shows the small card saying Kenai's face is now
+     on «Sesiones y actividad» and «At a glance». Hidden from the picker on Android 12 and later; before that it stays listed, labelled
+     "(retired)". -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:targetApi="31"
@@ -9,7 +12,8 @@
     android:resizeMode="none"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen"
-    android:initialLayout="@layout/widget_mood"
+    android:widgetFeatures="hide_from_picker"
+    android:initialLayout="@layout/widget_retired"
     android:previewImage="@drawable/widget_preview_image_mood"
     android:previewLayout="@layout/widget_preview_mood"
     android:description="@string/widget_mood_description" />

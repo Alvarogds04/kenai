@@ -503,7 +503,7 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     private fun pushGlance() {
         val g = glance()
         notifier.updateOngoing(this, g)
-        GlanceWidget.update(context, g)
+        // One push for every Widget, «Sesiones y actividad» included: the old summary push is gone with its redesign (KN-13 L5).
         WidgetHub.update(context, widgetContent(g))
         GlanceTile.requestUpdate(context)
     }

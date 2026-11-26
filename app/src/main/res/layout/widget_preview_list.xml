@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of List: "Waiting for you" with an orange 1 badge, then Claude Code (waiting), Codex (working) and Gemini CLI (finished).
+<!-- Preview of the RETIRED List widget (KN-13 L6), which now draws exactly the same card as «Sesiones y actividad». The WORKING sample (Claude Code working, 3 of 8, Codex thinking, Gemini CLI idle), with the line of the tasks finished today, marked approximate.
      A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
      It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_card_attention">
+    android:background="@drawable/widget_card_working">
 
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_margin="1dp"
-        android:background="@drawable/widget_tint_attention" />
+        android:background="@drawable/widget_tint_working" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -24,16 +24,16 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="28dp"
+            android:layout_height="32dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="@dimen/widget_dot"
-                android:layout_height="@dimen/widget_dot"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot"
-                android:tint="@color/widget_tone_attention" />
+                android:scaleType="fitCenter"
+                android:src="@drawable/preview_char_working" />
 
             <TextView
                 android:layout_width="0dp"
@@ -42,23 +42,9 @@
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/widget_sample_header"
+                android:text="@string/widget_sample_two_agents"
                 android:textColor="@color/widget_text"
                 android:textSize="@dimen/widget_text_name"
-                android:textStyle="bold" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:background="@drawable/widget_badge_bg"
-                android:gravity="center"
-                android:minWidth="22dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:text="@string/widget_sample_one"
-                android:textColor="@color/widget_on_tone"
-                android:textSize="@dimen/widget_text_secondary"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -66,35 +52,25 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:minHeight="@dimen/widget_row_min"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="3dp"
-                android:layout_height="28dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_stripe"
-                android:tint="@color/widget_tone_attention" />
-
-            <ImageView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:scaleType="fitCenter"
-                android:src="@drawable/preview_face_waiting" />
-
+            android:orientation="vertical">
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_working" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_claude"
@@ -103,57 +79,41 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/widget_sample_approval"
+                    android:text="@string/widget_sample_working"
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="@dimen/widget_text_state" />
-            </LinearLayout>
-
-            <ImageView
-                android:layout_width="@dimen/widget_dot"
-                android:layout_height="@dimen/widget_dot"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot"
-                android:tint="@color/widget_tone_attention" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:minHeight="@dimen/widget_row_min"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="3dp"
-                android:layout_height="28dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_stripe"
-                android:tint="@color/widget_tone_working" />
-
-            <ImageView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:scaleType="fitCenter"
-                android:src="@drawable/preview_face_working" />
-
-            <LinearLayout
-                android:layout_width="0dp"
+            <TextView
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_marginStart="8dp"
+                android:maxLines="1"
+                android:text="@string/widget_sample_progress"
+                android:textColor="@color/widget_text_soft"
+                android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_working" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_codex"
@@ -162,57 +122,33 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/widget_sample_working"
+                    android:text="@string/widget_sample_thinking"
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="@dimen/widget_text_state" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="@dimen/widget_dot"
-                android:layout_height="@dimen/widget_dot"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot"
-                android:tint="@color/widget_tone_working" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:gravity="center_vertical"
-            android:minHeight="@dimen/widget_row_min"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="3dp"
-                android:layout_height="28dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_stripe"
-                android:tint="@color/widget_tone_done" />
-
-            <ImageView
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:scaleType="fitCenter"
-                android:src="@drawable/preview_face_done" />
-
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_muted" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:text="@string/widget_sample_gemini"
@@ -221,22 +157,25 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/widget_sample_finished"
+                    android:text="@string/widget_sample_idle"
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="@dimen/widget_text_state" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="@dimen/widget_dot"
-                android:layout_height="@dimen/widget_dot"
-                android:layout_marginStart="8dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/widget_dot"
-                android:tint="@color/widget_tone_done" />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="@string/widget_sample_today"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary" />
     </LinearLayout>
 </FrameLayout>
