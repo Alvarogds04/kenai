@@ -201,7 +201,7 @@ class WidgetPaletteTest {
         // The tones each preview shows: the retired List is the same picture as «Sesiones y actividad» (working), the merging Alert shows the
         // waiting sample, and the retired Today and Mood show the muted retired card (KN-13 L6).
         val sample = mapOf(
-            "solo" to "attention", "list" to "attention", "big" to "working", "pill" to "working", "alert" to "attention",
+            "solo" to "attention", "list" to "working", "big" to "working", "pill" to "working", "alert" to "attention",
             "today" to "muted", "mood" to "muted", "glance" to "working", "ring" to "usage_calm",
         )
         for ((n, tone) in sample) {

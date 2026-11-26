@@ -16,7 +16,8 @@ class WidgetPreviewTest {
     private val res = "src/main/res/"
     private fun read(path: String) = File(path).readText()
     private val strings: Map<String, String> =
-        Regex("""<string name="(\w+)">(.*?)</string>""").findAll(read(res + "values/strings.xml")).associate { it.groupValues[1] to it.groupValues[2].replace("\\'", "'").replace("&amp;", "&") }
+        Regex("""<string name="(\w+)">(.*?)</string>""").findAll(read(res + "values/strings.xml"))
+            .associate { it.groupValues[1] to it.groupValues[2].replace("\\'", "'").replace("&amp;", "&") }
 
     /** Provider XML name to the name of its preview. */
     private val providers = listOf("solo", "list", "big", "pill", "alert", "ring", "today", "mood", "glance")
@@ -67,6 +68,7 @@ class WidgetPreviewTest {
             val d = strings.getValue(desc)
             assertTrue("$n label is empty", l.isNotBlank())
             assertTrue("$n description is empty", d.isNotBlank())
+            // Short enough for the picker; the four retired ones carry the " (retired)" suffix KN-13 L6 asks for.
             assertTrue("$n label '$l' is long", l.length <= 28)
             assertTrue("$n description '$d' is long", d.length <= 60)
             assertFalse("$n description spans lines", d.contains("\n") || d.contains("\\n"))
@@ -83,7 +85,7 @@ class WidgetPreviewTest {
             "widget_solo_label" to "At a glance", "widget_list_label" to "All your agents (retired)", "widget_big_label" to "Big status",
             "widget_pill_label" to "One-line status", "widget_alert_label" to "Approvals waiting (retired)", "widget_ring_label" to "Plan usage",
             "widget_today_label" to "Finished today (retired)", "widget_mood_label" to "Agents' mood (retired)",
-            "widget_glance_label" to "Agents summary", "widget_activity_label" to "Sessions & activity",
+            "widget_activity_label" to "Sessions & activity",
         )
         for ((k, v) in expected) assertEquals(k, v, strings[k])
     }
@@ -131,73 +133,89 @@ class WidgetPreviewTest {
     @Test fun theSampleDataIsTheOneInTheBrief() {
         fun text(n: String) = Regex("""@string/(\w+)""").findAll(preview(n)).map { strings.getValue(it.groupValues[1]) }.toList()
         assertEquals(listOf("Claude Code", "Waiting for your approval", "1"), text("solo").filter { it in setOf("Claude Code", "Waiting for your approval", "1") })
-        val list = text("list")
-        assertEquals("Waiting for you", list.first())
-        assertEquals(listOf("Waiting for you", "1", "Claude Code", "Waiting for your approval", "Codex", "Working", "Gemini CLI", "Finished"), list)
-        assertEquals(3, Regex("""android:minHeight="@dimen/widget_row_min"""").findAll(preview("list")).count())
+        // «Sesiones y actividad» and the retired List show the same card, so they share one picture: header, rows with the engine's own
+        // counter (`3/8`, real data only) and the approximate finished-today line.
+        fun markup(x: String) = Regex("""<!--.*?-->""", RegexOption.DOT_MATCHES_ALL).replace(x, "").trim()
+        assertEquals("the retired List draws exactly the same card", markup(preview("glance")), markup(preview("list")))
+        assertEquals(
+            listOf("2 agents working", "Claude Code", "Working", "3/8", "Codex", "Thinking", "Gemini CLI", "Idle", "3 finished today · approx., this phone"),
+            text("glance"),
+        )
+        assertEquals(3, Regex("""android:layout_height="@dimen/widget_row_min"""").findAll(preview("glance")).count())
         // Kenai Big: Kenai, the agent and its state on the left; Claude 68% and Codex 41% on the right; the six tiles.
         assertEquals(
             listOf("Claude Code", "Working", "Claude · 5 h", "68%", "Codex · week", "41%", "Home", "Chat", "Settings", "Recent", "Top agent", "Pair again"),
             text("big"),
         )
-        assertEquals(listOf("2 agents working", "Claude Code", "Working", "Codex", "Thinking", "Gemini CLI", "Idle"), text("glance"))
         assertEquals(listOf("Claude", "Working"), text("pill"))
         // The pill shows its four buttons: home, chat, settings and recent, in that order.
         assertEquals(listOf("ic_widget_home", "ic_widget_chat", "ic_widget_settings", "ic_widget_recent"), Regex("""@drawable/(ic_widget_\w+)""").findAll(preview("pill")).map { it.groupValues[1] }.toList())
-        assertEquals(listOf("2 wait for you", "Your PC", "Claude Code", "Waiting for your OK", "Gemini CLI", "Has a question", "Review request"), text("alert"))
         assertEquals(listOf("68%", "Claude · 5 h"), text("ring"))
+        // The retired Today and Mood show the small retired card (KN-13 L6, S3): one line saying where their function went.
         assertEquals(listOf("Retired widget · now in «Sessions & activity»"), text("today"))
-        assertEquals("the two retired cards are the same card", preview("today").replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "").trim(), preview("mood").replace(Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL), "").trim())
-        // The tones of the samples: waiting orange, working blue, finished green.
+        assertEquals("the two retired cards are the same card", markup(preview("today")), markup(preview("mood")))
+        // The tones of the samples: waiting orange, working blue, resting muted.
         assertTrue(preview("solo").contains("widget_tone_attention") && preview("solo").contains("preview_char_waiting"))
         assertTrue(preview("pill").contains("widget_tone_working"))
-        assertTrue(preview("alert").contains("widget_card_attention"))
         assertTrue(preview("big").contains("preview_char_working") && preview("big").contains("widget_tint_working"))
         assertEquals("six tiles", 6, Regex("""@drawable/widget_tile_bg"""").findAll(preview("big")).count())
         assertEquals("two thin bars", 2, Regex("""@drawable/preview_bar_calm"""").findAll(preview("big")).count())
         assertFalse("no speech bubble", preview("big").contains("bubble", ignoreCase = true))
         assertTrue(preview("glance").contains("preview_char_working") && preview("glance").contains("widget_tint_working"))
         assertTrue(preview("today").contains("preview_char_idle") && preview("today").contains("widget_tint_muted"))
-        assertTrue(preview("list").let { it.contains("preview_face_waiting") && it.contains("preview_face_working") && it.contains("preview_face_done") })
         assertTrue(preview("ring").contains("preview_ring_68"))
     }
 
-    @Test fun theAlertPreviewIsTheWaitingSampleOnTheWideCard() {
-        // «Aprobaciones pendientes» (kenai-0.1 S9, screen 5): the picker shows exactly what the WAITING sample draws, in the same order.
-        val c = com.kenai.android.core.WidgetData.sample(com.kenai.android.core.WidgetSample.WAITING)
+    @Test fun theAlertPreviewIsTheWaitingSampleOnTheNewCard() {
+        // The retired Approvals widget (KN-13 L6) shows «Sesiones y actividad»: the picker shows exactly what the WAITING sample plans, in
+        // the same order: the headline, the badge of what the phone holds, the rows, the pending rows, the button and the today line.
+        val plan = com.kenai.android.core.ActivityPlan.of(
+            com.kenai.android.core.WidgetData.sample(com.kenai.android.core.WidgetSample.WAITING),
+            com.kenai.android.core.ActivityPlan.ROWS_LARGE,
+            com.kenai.android.core.Words.EN,
+        )
         val shown = Regex("""@string/(\w+)""").findAll(preview("alert")).map { strings.getValue(it.groupValues[1]) }.toList()
-        assertEquals(listOf(c.alertLine, c.alertSub) + c.alertRows.flatMap { listOf(it.name, it.word) } + c.alertButton, shown)
-        // Two rows for «2 wait for you»: the count and the rows agree (T18), and the card wears the alert's own tone.
-        assertEquals(2, c.alertCount)
-        assertEquals(c.alertCount, c.alertRows.size)
-        assertEquals(WidgetTone.ATTENTION, c.alertLook)
-        assertTrue(preview("alert").contains("widget_card_" + c.alertLook.name.lowercase()))
-        // Koda anxious beside the count, one dot per row, and the primary button in the waiting tone with the badge's dark text.
+        val expected = listOf(plan.headline) + listOfNotNull(plan.badge?.toString()) +
+            plan.rows.flatMap { listOf(it.name, it.stateWord) } +
+            plan.pending.flatMap { listOf(it.name, it.word) } +
+            listOfNotNull(plan.button) + listOfNotNull(plan.today)
+        assertEquals(expected, shown)
+        // Two things wait, so two pending rows and a badge that says two (T18: the count and the rows agree).
+        assertEquals(2, plan.badge)
+        assertEquals(2, plan.pending.size)
+        assertEquals(WidgetTone.ATTENTION, plan.tone)
+        assertTrue(preview("alert").contains("widget_card_attention") && preview("alert").contains("widget_tint_attention"))
+        // One dot per session row and one per pending row, and the button in the waiting tone with the badge's dark text.
         val xml = preview("alert")
-        assertTrue(xml.contains("@drawable/preview_char_waiting"))
-        assertEquals(2, Regex("""@drawable/widget_dot""").findAll(xml).count())
+        assertEquals(plan.rows.size + plan.pending.size, Regex("""@drawable/widget_dot""").findAll(xml).count())
         assertTrue(xml.contains("""android:background="@drawable/widget_badge_bg"""") && xml.contains("""android:textColor="@color/widget_on_tone""""))
         assertTrue(xml.contains("""android:minHeight="@dimen/widget_row_min""""))
-        // The Android 11 picture: the same card, Koda in the corner and the button along the bottom.
-        val image = read(res + "drawable/widget_preview_image_alert.xml")
-        assertTrue(image.contains("@drawable/preview_char_waiting") && image.contains("@drawable/widget_badge_bg"))
+        // Nothing of the old alert's own sentences survives in the picture: the merged card says states and pending words only.
+        for (gone in listOf("2 wait for you", "Your PC")) assertFalse(gone, shown.contains(gone))
     }
 
-    @Test fun theAlertCountFitsBesideKodaOnA3x2() {
-        // A 3x2 about 250dp wide: padding 12 + 12, Koda 44 and 8 beside him; the count is 20sp bold, the computer 13sp.
-        val room = 250 - 24 - 44 - 8
-        for (n in listOf(1, 2, 3)) for (w in listOf(com.kenai.android.core.Words.EN, com.kenai.android.core.Words.ES)) {
-            val count = w.alertCount(n)
-            assertTrue("'$count' needs ${width(count, 20.0, true).toInt()}dp of $room", width(count, 20.0, true) <= room)
+    @Test fun theBadgeFitsTheHeaderAtTheNarrowestTheCardCanBe() {
+        // The header is padding 14 + 14, Kenai 32 and 8 beside him; the badge (12sp bold, 6dp of padding each side) must leave the headline
+        // room at the 180dp the Widget can shrink to.
+        val room = 180 - 28 - 32 - 8 - 8
+        for (c in listOf(1, 2, 9, 12)) {
+            val badge = width(c.toString(), 12.0, true) + 12 + 22
+            assertTrue("a badge of '$c' needs ${badge.toInt()}dp", badge < room)
         }
-        assertTrue(width(sample("widget_sample_pc"), 13.0, false) <= room)
+        // The headline takes what is left and is cut with "…": one line, never two, however long the engine's wording is.
+        val header = read("${res}layout/widget_glance.xml").substringAfter("""@+id/glance_headline""").substringBefore("/>")
+        assertTrue(header, header.contains("""android:ellipsize="end"""") && header.contains("""android:maxLines="1""""))
+        assertTrue(header, header.contains("""android:layout_weight="1""""))
     }
 
     @Test fun theBadgeAndTheAlertAreOrange() {
-        for (n in listOf("solo", "list")) assertTrue(n, preview(n).contains("@drawable/widget_badge_bg"))
+        // The Solo keeps its badge; the merged card shows the same badge in its header.
+        for (n in listOf("solo", "alert")) assertTrue(n, preview(n).contains("@drawable/widget_badge_bg"))
         // The badge is the waiting tone from the shared palette, not a literal of its own.
         assertTrue(File(res + "drawable/widget_badge_bg.xml").readText().contains("@color/widget_tone_attention"))
-        assertTrue(preview("alert").contains("""android:textColor="@color/widget_tone_attention_text""""))
+        // The count is a small badge with the dark text on the waiting tone, not the old 20sp sentence the alert drew.
+        assertTrue(preview("alert").contains("""android:text="@string/widget_sample_two""""))
+        assertFalse(preview("alert").contains("@color/widget_tone_attention_text"))
     }
 
     // ── The vector Koda ────────────────────────────────────────────────────────────────────────────

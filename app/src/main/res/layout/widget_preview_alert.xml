@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Preview of «Aprobaciones pendientes» (kenai-0.1 S9, screen 5), the WAITING sample on the wide card: anxious Koda beside «2 te esperan»
-     and the computer, one row per waiting agent (Claude Code «Espera tu sí», Gemini CLI «Tiene una pregunta») and «Revisar el pedido».
-     A still picture for the Widget picker (android:previewLayout): sample text, no ids, nothing from the app, no runtime bitmap.
-     It uses the same card, border, gradient, type scale and colours as the real Widget (widget_alert.xml, alert_wide), so the picker
-     shows what you will get. The dots stand for the agents' own colours: Claude's near-white and Gemini's blue. -->
+<!-- Preview of the RETIRED Approvals widget (KN-13 L6), which now draws «Sesiones y actividad» with the WAITING sample: the badge of what the phone holds, its rows, the two pending rows and the button to Home.
+     A still picture for the Widget picker (android:previewLayout): sample text and numbers, no ids, nothing from the app, no runtime bitmap.
+     It uses the same card, border, gradient, type scale and state colours as the real Widget, so the picker shows what you will get. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -19,44 +17,157 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="@dimen/widget_pad">
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="10dp">
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="32dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
             <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:importantForAccessibility="no"
                 android:scaleType="fitCenter"
                 android:src="@drawable/preview_char_waiting" />
 
-            <LinearLayout
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:orientation="vertical">
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_sample_header"
+                android:textColor="@color/widget_text"
+                android:textSize="@dimen/widget_text_name"
+                android:textStyle="bold" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_badge_bg"
+                android:gravity="center"
+                android:minWidth="22dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/widget_sample_two"
+                android:textColor="@color/widget_on_tone"
+                android:textSize="@dimen/widget_text_secondary"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_attention" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/widget_sample_two_waiting"
-                    android:textColor="@color/widget_tone_attention_text"
-                    android:textSize="20sp"
+                    android:text="@string/widget_sample_claude"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
                     android:textStyle="bold" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/widget_sample_pc"
+                    android:text="@string/widget_sample_approval"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_attention" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_sample_gemini"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_sample_question"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_working" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_sample_codex"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_sample_working"
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="@dimen/widget_text_state" />
             </LinearLayout>
@@ -64,25 +175,21 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:paddingTop="6dp">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="28dp"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp">
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:background="@drawable/widget_button_bg"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
                     android:importantForAccessibility="no"
-                    android:padding="1dp"
-                    android:src="@drawable/widget_dot" />
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_attention" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -98,30 +205,26 @@
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/state_approval"
+                    android:text="@string/widget_sample_waiting_ok"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_state" />
+                    android:textSize="@dimen/widget_text_secondary" />
             </LinearLayout>
-
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="28dp"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingVertical="2dp">
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="12dp"
-                    android:layout_height="12dp"
-                    android:background="@drawable/widget_button_bg"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
                     android:importantForAccessibility="no"
-                    android:padding="1dp"
                     android:src="@drawable/widget_dot"
-                    android:tint="@color/widget_tone_working" />
+                    android:tint="@color/widget_tone_attention" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -137,28 +240,35 @@
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
-                    android:text="@string/state_question"
+                    android:text="@string/widget_sample_question"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_state" />
+                    android:textSize="@dimen/widget_text_secondary" />
             </LinearLayout>
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minHeight="@dimen/widget_row_min"
+                android:text="@string/action_review"
+                android:textColor="@color/widget_on_tone"
+                android:textSize="@dimen/widget_text_state"
+                android:textStyle="bold" />
         </LinearLayout>
-
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/widget_badge_bg"
+            android:layout_marginTop="4dp"
             android:ellipsize="end"
-            android:gravity="center"
             android:maxLines="1"
-            android:minHeight="@dimen/widget_row_min"
-            android:paddingHorizontal="12dp"
-            android:text="@string/action_review"
-            android:textColor="@color/widget_on_tone"
-            android:textSize="@dimen/widget_text_name"
-            android:textStyle="bold" />
+            android:text="@string/widget_sample_today"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary" />
     </LinearLayout>
 </FrameLayout>
