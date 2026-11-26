@@ -50,4 +50,22 @@ class ChatComposerStateTest {
         assertTrue(ui.contains("ChatRetry.textFor") && ui.contains("model.chatSend(retry)"))
         assertTrue(File("src/main/res/values/strings.xml").readText().contains("name=\"chat_retry\""))
     }
+
+    @Test fun askAgainOnlyForTheLastFinishedAnswerAndEditForUserMessages() {
+        val done = a("ok", ChatStatus.DONE)
+        assertEquals("q", com.kenai.android.core.ChatAgain.textFor(listOf(u("q"), done)))
+        assertNull(com.kenai.android.core.ChatAgain.textFor(listOf(u("q"), a("bad", ChatStatus.FAILED))))
+        assertNull(com.kenai.android.core.ChatAgain.textFor(listOf(u("q"), a("", ChatStatus.STREAMING))))
+        assertNull(com.kenai.android.core.ChatAgain.textFor(listOf(done)))
+        assertTrue(com.kenai.android.core.ChatAgain.editable(u("q")))
+        assertTrue(!com.kenai.android.core.ChatAgain.editable(done) && !com.kenai.android.core.ChatAgain.editable(u(" ")))
+    }
+
+    @Test fun theScreenOffersAskAgainAndEditAsNewTurnsAndNeverANewFrame() {
+        val ui = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
+        assertTrue(ui.contains("ChatAgain.textFor") && ui.contains("ChatAgain.editable"))
+        val strings = File("src/main/res/values/strings.xml").readText()
+        assertTrue(strings.contains("name=\"chat_ask_again\"") && strings.contains("name=\"chat_edit\""))
+        assertTrue(!File("src/main/kotlin/com/kenai/android/link/Protocol.kt").readText().contains("chatRegenerate"))
+    }
 }

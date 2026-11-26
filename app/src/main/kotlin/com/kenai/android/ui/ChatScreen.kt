@@ -71,6 +71,7 @@ import androidx.compose.ui.graphics.Color
 import com.kenai.android.R
 import com.kenai.android.app.AppModel
 import com.kenai.android.core.ChatActions
+import com.kenai.android.core.ChatAgain
 import com.kenai.android.core.ChatDrafts
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatRetry
@@ -243,6 +244,27 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                         Bubble(m)
                         // Retry only on the last turn, only when it failed or was stopped, and only when it could be sent now.
                         val retry = if (m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatRetry.textFor(messages) else null
+                        val again = if (retry == null && m.id == messages.last().id && model.chatAvailable && !model.chatBusy) ChatAgain.textFor(messages) else null
+                        if (again != null) {
+                            // Not a rewrite: the protocol has no frame for that, so this asks the same question as a new turn.
+                            Text(
+                                stringResource(R.string.chat_ask_again),
+                                Modifier.heightIn(min = Spacing.MIN_TOUCH.dp).clickable(role = Role.Button) { refusal = model.chatSend(again) }
+                                    .padding(horizontal = 8.dp, vertical = 14.dp),
+                                style = TypeScale.LABEL.style(tokens().textDim.c()),
+                            )
+                        }
+                        if (ChatAgain.editable(m) && model.chatAvailable && !model.chatBusy) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Text(
+                                    stringResource(R.string.chat_edit),
+                                    Modifier.heightIn(min = Spacing.MIN_TOUCH.dp)
+                                        .clickable(role = Role.Button) { text = m.text; drafts.set(model.chatOpenId, m.text); refusal = null }
+                                        .padding(horizontal = 8.dp, vertical = 14.dp),
+                                    style = TypeScale.LABEL.style(tokens().textDim.c()),
+                                )
+                            }
+                        }
                         if (retry != null) {
                             Text(
                                 stringResource(R.string.chat_retry),

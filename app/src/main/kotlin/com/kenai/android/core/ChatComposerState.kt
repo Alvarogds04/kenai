@@ -32,3 +32,17 @@ object ChatRetry {
         return before.text.takeIf { before.role == ChatRole.USER && it.isNotBlank() }
     }
 }
+
+/** KN-15 T5: regenerate and edit are NOT in the protocol (no frame rewrites a turn), so the client only offers new turns. */
+object ChatAgain {
+    /** "Ask again": the text of the user message before the LAST finished answer, resent as a new turn. Null otherwise. */
+    fun textFor(messages: List<ChatMessage>): String? {
+        val last = messages.lastOrNull() ?: return null
+        if (last.role != ChatRole.ASSISTANT || last.status != ChatStatus.DONE || last.text.isBlank()) return null
+        val before = messages.getOrNull(messages.size - 2) ?: return null
+        return before.text.takeIf { before.role == ChatRole.USER && it.isNotBlank() }
+    }
+
+    /** "Edit": any user message can be loaded into the composer; sending it is a new turn, the old one stays in the history. */
+    fun editable(m: ChatMessage): Boolean = m.role == ChatRole.USER && m.text.isNotBlank()
+}
