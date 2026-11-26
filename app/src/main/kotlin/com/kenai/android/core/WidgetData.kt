@@ -56,7 +56,21 @@ enum class WidgetTone(val rgb: Rgb) {
 }
 
 /** One agent on a widget: who it is, a plain state word and its colour. Only names, state words and colours. */
-data class WidgetTile(val pillId: String, val name: String, val state: BotState, val stateWord: String, val argb: Int) {
+data class WidgetTile(
+    val pillId: String, val name: String, val state: BotState, val stateWord: String, val argb: Int,
+    /** The engine's own step numerator and total (`stepIndex`/`stepCount`); 0 when it sent none. */
+    val stepIndex: Int = 0,
+    val stepCount: Int = 0,
+) {
+    /**
+     * «3/8»: the engine's progress counter («n/m») exactly as sent, only when it sent a total. Never a percentage or an estimate (KN-13 S4); the
+     * numerator is clamped into 0..total so a wrong value cannot read as «9/6». Null when there is no total.
+     *
+     * Named after what it shows, and not after the engine's own field, on purpose: WidgetSurfacesTest forbids the word for a counted part of
+     * a task (the engine's per-step text) in every Widget source, because that text must never reach a Widget. This counter is the only
+     * progress a Widget may draw.
+     */
+    val progress: String? get() = if (stepCount > 0) "${stepIndex.coerceIn(0, stepCount)}/$stepCount" else null
     /** The colour of its dot: the state's tone (the agent's own colour is [argb]). */
     val tone: WidgetTone get() = WidgetTone.of(state)
 }
@@ -206,7 +220,11 @@ data class WidgetContent(
     }
 
     /** The alert's button: «Revisar el pedido» while a request waits, «Responder la pregunta» when only questions do. It opens Home either way. */
-    val alertButton: String get() = Words.current().let { w -> if (waitingQuestions.isNotEmpty() && waitingRequests.isEmpty()) w.replyToTheQuestion else w.reviewTheRequest }
+    val alertButton: String get() = pendingButton(Words.current())
+
+    /** The same button in [w]'s language, so a test can pin both and «Sesiones y actividad» can be built in either. */
+    fun pendingButton(w: Words): String =
+        if (waitingQuestions.isNotEmpty() && waitingRequests.isEmpty()) w.replyToTheQuestion else w.reviewTheRequest
 
     /** Which of the three things Kenai Big's right side shows. */
     val usageSide: UsageSide get() = when {
@@ -262,6 +280,15 @@ data class WidgetContent(
     val todayLook: WidgetTone get() = if (today > 0) WidgetTone.DONE else WidgetTone.IDLE
 
     /**
+     * «Sesiones y actividad»: the finished-today count, which only this phone knows, so it says so («aprox., este teléfono») instead of
+     * passing for an engine metric (KN-13 S2/S4). Null before anything finished.
+     */
+    val todayApprox: String? get() = todayApproxLine(Words.current())
+
+    /** The same line in [w]'s language; the parameter exists so a test can pin the Spanish wording, not only the phone's. */
+    fun todayApproxLine(w: Words): String? = if (today > 0) ActivityWords.of(w).finishedTodayApprox(today) else null
+
+    /**
      * The look of the whole widget. Not connected: muted. Something waits for you: orange. Otherwise the most urgent agent's tone, and
      * the tiles are already in the order of [GlanceBuilder.rank] (waiting, then trouble, working, happy, idle): the top one sets the look.
      * Connected with nothing to list: idle grey.
@@ -274,6 +301,25 @@ data class WidgetContent(
 
     /** The state Kenai is drawn in: the top agent's, else calm when connected and asleep when not. */
     val mood: BotState get() = top?.state ?: if (connected) BotState.IDLE else BotState.SLEEPING
+}
+
+/**
+ * The wording of «Sesiones y actividad», EN and ES, kept here because KN-13's edit surface does not include Words.kt; move it there
+ * when that file is next opened for wording. [of] picks Spanish for [Words.ES] and English otherwise, like [Words.current].
+ */
+class ActivityWords private constructor(
+    val title: String,
+    /** The wording under the count: it says the number is approximate and counted on this phone, never an engine metric (S2/S4). */
+    private val approxCountLine: String,
+) {
+    /** A count only this phone keeps, marked as approximate (KN-13 S2/S4). */
+    fun finishedTodayApprox(n: Int): String = "$n $approxCountLine"
+
+    companion object {
+        private val EN = ActivityWords("Sessions & activity", "finished today · approx., this phone")
+        private val ES = ActivityWords("Sesiones y actividad", "terminadas hoy · aprox., este teléfono")
+        fun of(w: Words): ActivityWords = if (w === Words.ES) ES else EN
+    }
 }
 
 /**
@@ -326,7 +372,12 @@ object WidgetData {
         val tiles = if (!glance.connected) emptyList() else sessions
             .sortedBy { GlanceBuilder.rank(it.state) }
             .take(MAX_ROWS)
-            .map { WidgetTile(it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it)) }
+            .map {
+                WidgetTile(
+                    it.pillId, nameOf(it.pillId), it.state, GlanceBuilder.lineOf(it), colourOf(it),
+                    stepIndex = it.stepIndex, stepCount = it.stepCount,
+                )
+            }
         val ring = if (glance.connected) ring(usage, nowMs) else null
         val rows = if (glance.connected) usageRows(usage, nowMs) else emptyList()
         val waitingRequests = if (glance.connected) requests else emptyList()
