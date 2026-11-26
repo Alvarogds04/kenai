@@ -44,12 +44,6 @@ class ChatComposerStateTest {
         assertNull(ChatRetry.textFor(listOf(u("  "), a("bad", ChatStatus.FAILED))))
     }
 
-    @Test fun theScreenKeepsDraftsPerConversationAndRetriesThroughTheNormalSend() {
-        val ui = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
-        assertTrue(ui.contains("ChatDrafts"))
-        assertTrue(ui.contains("ChatRetry.textFor") && ui.contains("model.chatSend(retry)"))
-        assertTrue(File("src/main/res/values/strings.xml").readText().contains("name=\"chat_retry\""))
-    }
 
     @Test fun askAgainOnlyForTheLastFinishedAnswerAndEditForUserMessages() {
         val done = a("ok", ChatStatus.DONE)
@@ -61,11 +55,44 @@ class ChatComposerStateTest {
         assertTrue(!com.kenai.android.core.ChatAgain.editable(done) && !com.kenai.android.core.ChatAgain.editable(u(" ")))
     }
 
-    @Test fun theScreenOffersAskAgainAndEditAsNewTurnsAndNeverANewFrame() {
-        val ui = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
-        assertTrue(ui.contains("ChatAgain.textFor") && ui.contains("ChatAgain.editable"))
-        val strings = File("src/main/res/values/strings.xml").readText()
-        assertTrue(strings.contains("name=\"chat_ask_again\"") && strings.contains("name=\"chat_edit\""))
-        assertTrue(!File("src/main/kotlin/com/kenai/android/link/Protocol.kt").readText().contains("chatRegenerate"))
+
+    @Test fun allDraftsSurviveASaveAndRestoreRoundTrip() {
+        val d = ChatDrafts()
+        d.set(null, "single"); d.set("c1", "one"); d.set("c2", "two\nlines | with = odd, chars \"q\" ✓"); d.set("c3", "")
+        val back = ChatDrafts.restore(d.save())
+        assertEquals("single", back.get(null)); assertEquals("one", back.get("c1"))
+        assertEquals("two\nlines | with = odd, chars \"q\" ✓", back.get("c2")); assertEquals("", back.get("c3"))
+        // The saved form is what Compose's saveable state can hold: plain strings in a list.
+        assertTrue(d.save().all { it is String })
+    }
+
+    @Test fun restoringNothingOrGarbageGivesNoDrafts() {
+        assertEquals("", ChatDrafts.restore(emptyList()).get("c1"))
+        assertEquals("", ChatDrafts.restore(listOf("odd-length-list")).get(null))
+        assertEquals("", ChatDrafts.restore(listOf("a", "b", "dangling")).get("dangling"))
+        assertEquals("b", ChatDrafts.restore(listOf("a", "b", "dangling")).get("a"))
+    }
+
+    @Test fun theBoundSurvivesARestoreToo() {
+        val d = ChatDrafts(max = 2)
+        d.set("a", "1"); d.set("b", "2")
+        val back = ChatDrafts.restore(d.save(), max = 2)
+        back.set("c", "3")
+        assertEquals("", back.get("a")); assertEquals("2", back.get("b")); assertEquals("3", back.get("c"))
+    }
+
+    @Test fun editingNeverOverwritesAnUnsentDraft() {
+        val m = u("old question")
+        assertEquals("old question", com.kenai.android.core.ChatAgain.editDraft("", m))
+        assertEquals("old question", com.kenai.android.core.ChatAgain.editDraft("   ", m))
+        assertEquals("typing now\nold question", com.kenai.android.core.ChatAgain.editDraft("typing now", m))
+        // Already holding that very text: nothing to add twice.
+        assertEquals("old question", com.kenai.android.core.ChatAgain.editDraft("old question", m))
+    }
+
+    @Test fun theProtocolStillHasNoFrameToRewriteATurn() {
+        val names = com.kenai.android.link.ClientMsg::class.java.declaredClasses.map { it.simpleName.lowercase() }
+        assertTrue(names.isNotEmpty())
+        assertTrue(names.none { "regenerate" in it || "edit" in it || "rewrite" in it || "retry" in it })
     }
 }

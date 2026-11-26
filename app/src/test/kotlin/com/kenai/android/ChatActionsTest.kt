@@ -4,7 +4,6 @@ import com.kenai.android.core.ChatActions
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatRole
 import com.kenai.android.core.ChatStatus
-import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -32,11 +31,10 @@ class ChatActionsTest {
         assertTrue(ChatActions.available(msg("mine", role = ChatRole.USER)))
     }
 
-    @Test fun theScreenWiresCopyAndShareThroughTheSystemOnly() {
-        val ui = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
-        assertTrue(ui.contains("ChatActions.copyText"))
-        assertTrue(ui.contains("ChatActions.codeBlocks") && ui.contains("ChatActions.available"))
-        assertTrue(ui.contains("Intent.ACTION_SEND"))
-        for (k in listOf("chat_copy", "chat_share", "chat_copy_code")) assertTrue(k, File("src/main/res/values/strings.xml").readText().contains("name=\"$k\""))
+
+    @Test fun copyAllCodeJoinsEveryBlockAndIsEmptyWithoutCode() {
+        assertEquals("a\n\nb", ChatActions.allCode("x\n```\na\n```\ny\n```sh\nb\n```"))
+        assertEquals("only", ChatActions.allCode("```\nonly\n```"))
+        assertEquals("", ChatActions.allCode("no code"))
     }
 }

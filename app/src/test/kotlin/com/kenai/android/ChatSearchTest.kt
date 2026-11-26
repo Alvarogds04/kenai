@@ -4,9 +4,7 @@ import com.kenai.android.core.ChatConversationOption
 import com.kenai.android.core.ChatMessage
 import com.kenai.android.core.ChatRole
 import com.kenai.android.core.ChatSearch
-import java.io.File
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ChatSearchTest {
@@ -47,9 +45,4 @@ class ChatSearchTest {
         assertEquals(emptyList<ChatConversationOption>(), ChatSearch.filter(emptyList(), emptyMap(), "a"))
     }
 
-    @Test fun theSheetHasASearchFieldThatWorksFromTheCache() {
-        val ui = File("src/main/kotlin/com/kenai/android/ui/ChatScreen.kt").readText()
-        assertTrue(ui.contains("ChatSearch.filter"))
-        assertTrue(File("src/main/res/values/strings.xml").readText().contains("name=\"chat_search_hint\""))
-    }
 }

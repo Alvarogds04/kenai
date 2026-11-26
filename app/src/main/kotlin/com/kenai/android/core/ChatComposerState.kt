@@ -5,6 +5,17 @@ package com.kenai.android.core
  * failed turn would resend. Pure; nothing is sent from here: a retry goes through the same `chatSend` as any message.
  */
 class ChatDrafts(private val max: Int = 50) {
+    companion object {
+        /** Rebuilds the drafts from [save]'s list; a list that does not make pairs keeps only the whole pairs. */
+        fun restore(saved: List<String>, max: Int = 50): ChatDrafts = ChatDrafts(max).also { d ->
+            for (i in 0 until saved.size / 2) d.set(saved[2 * i], saved[2 * i + 1])
+        }
+    }
+
+    /** Every draft, oldest first, as a flat list of key, text, key, text... — what the saveable state of a rotation or a
+     *  process death can hold. The key of the 0.1 single chat is the empty string. */
+    fun save(): List<String> = drafts.flatMap { (k, v) -> listOf(k, v) }
+
     private val drafts = LinkedHashMap<String, String>()
 
     /** The draft of conversation [id] (null is the 0.1 single chat); empty when there is none. */
@@ -45,4 +56,11 @@ object ChatAgain {
 
     /** "Edit": any user message can be loaded into the composer; sending it is a new turn, the old one stays in the history. */
     fun editable(m: ChatMessage): Boolean = m.role == ChatRole.USER && m.text.isNotBlank()
+
+    /** The composer after "Edit": a blank draft becomes the message; a draft being typed is kept and the message is added below it. */
+    fun editDraft(current: String, m: ChatMessage): String = when {
+        current.isBlank() -> m.text
+        current.trim() == m.text.trim() -> current
+        else -> current.trimEnd() + "\n" + m.text
+    }
 }

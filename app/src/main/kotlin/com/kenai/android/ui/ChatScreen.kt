@@ -158,15 +158,17 @@ private fun ChatEmpty(state: ChatTabState, onHome: () -> Unit, onSettings: () ->
 }
 
 /**
- * Chat with the computer's AI providers, like the PC's chat panel: your messages on the right, the
- * answers as plain light Markdown, three dots while waiting, the model above the box. The computer's
- * API key is used on the computer; this screen only ever has text.
+ * Chat with the computer's AI providers: your messages on the right, the answers as Markdown (headings, lists, tables,
+ * code, http(s) links that ask before opening), three dots while waiting, copy / share / ask again / edit per message,
+ * a draft kept per conversation, a search over the conversations the phone holds, the model above the box. The
+ * computer's API key is used on the computer; this screen only ever has text.
  */
 @Composable
 fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
     // One unsent draft per conversation: switching conversations (or leaving the tab) does not lose what was typed.
-    val drafts = rememberSaveable(saver = androidx.compose.runtime.saveable.Saver<ChatDrafts, String>(
-        save = { it.get(null) }, restore = { ChatDrafts().also { d -> d.set(null, it) } },
+    // All of them survive a rotation or the process dying, not only the one of the single chat.
+    val drafts = rememberSaveable(saver = androidx.compose.runtime.saveable.Saver<ChatDrafts, List<String>>(
+        save = { it.save() }, restore = { ChatDrafts.restore(it) },
     )) { ChatDrafts() }
     var text by remember(model.chatOpenId) { mutableStateOf(drafts.get(model.chatOpenId)) }
     var refusal by remember { mutableStateOf<ChatSession.Refusal?>(null) }
@@ -259,7 +261,11 @@ fun ChatScreen(model: AppModel, onHome: () -> Unit, onSettings: () -> Unit) {
                                 Text(
                                     stringResource(R.string.chat_edit),
                                     Modifier.heightIn(min = Spacing.MIN_TOUCH.dp)
-                                        .clickable(role = Role.Button) { text = m.text; drafts.set(model.chatOpenId, m.text); refusal = null }
+                                        .clickable(role = Role.Button) {
+                                            // Never throws away what is being typed: the message is added below it.
+                                            text = ChatAgain.editDraft(text, m).take(Protocol.CHAT_MAX_TEXT + 200)
+                                            drafts.set(model.chatOpenId, text); refusal = null
+                                        }
                                         .padding(horizontal = 8.dp, vertical = 14.dp),
                                     style = TypeScale.LABEL.style(tokens().textDim.c()),
                                 )
@@ -334,7 +340,9 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
         var query by rememberSaveable { mutableStateOf("") }
         val all = model.chatConversationList
         // Works from what the phone holds (titles and cached message text), so it also works with the engine off.
-        val rows = remember(all, query) { ChatSearch.filter(all, if (query.isBlank()) emptyMap() else model.chatCachedMessages(), query) }
+        // The cached messages are part of the key: a conversation that gains a message while the sheet is open is searched anew.
+        val cached = if (query.isBlank()) emptyMap() else model.chatCachedMessages()
+        val rows = remember(all, query, cached) { ChatSearch.filter(all, cached, query) }
         if (all.size > 3 || query.isNotEmpty()) {
             OutlinedTextField(
                 value = query, onValueChange = { query = it.take(100) }, singleLine = true,
@@ -445,7 +453,7 @@ private fun MessageActions(m: ChatMessage) {
             style = style,
         )
         action(R.string.chat_copy) { clipboard.setText(AnnotatedString(ChatActions.copyText(m))) }
-        if (code.isNotEmpty()) action(R.string.chat_copy_code) { clipboard.setText(AnnotatedString(code.first())) }
+        if (code.isNotEmpty()) action(R.string.chat_copy_code) { clipboard.setText(AnnotatedString(ChatActions.allCode(m.text))) }
         action(R.string.chat_share) {
             val send = android.content.Intent(android.content.Intent.ACTION_SEND)
                 .setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT, ChatActions.copyText(m))

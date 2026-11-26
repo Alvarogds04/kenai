@@ -11,4 +11,7 @@ object ChatActions {
     /** The contents of each fenced code block, without fences or language tag; an unfinished fence runs to the end. */
     fun codeBlocks(text: String): List<String> =
         MarkdownLite.parse(text).filterIsInstance<MdBlock.Code>().map { it.text }
+
+    /** Every code block of the message, separated by a blank line; empty when it has none. */
+    fun allCode(text: String): String = codeBlocks(text).joinToString("\n\n")
 }
