@@ -44,3 +44,28 @@ class PendingPlanTest {
         assertTrue(PendingPlan.build(emptyList(), emptyList(), 0, name).isEmpty())
     }
 }
+
+class PendingOpensTest {
+    private fun a(fp: String) = ApprovalRequest("p1", fp, "Bash", "ls", 0L)
+    private fun item(kind: PendingPlan.Kind, fp: String, pill: String = "p1") = PendingPlan.Item(kind, fp, pill, "n", 0L, 1_000L)
+
+    @Test fun aQuestionRowOpensItsQuestionScreen() {
+        assertEquals(PendingPlan.Opens.Question("p2"), PendingPlan.opens(item(PendingPlan.Kind.QUESTION, "q", "p2"), listOf(a("a")), canAnswer = true))
+    }
+
+    @Test fun aQuestionThePhoneCannotAnswerOpensNothing() {
+        assertEquals(PendingPlan.Opens.Nothing, PendingPlan.opens(item(PendingPlan.Kind.QUESTION, "q"), emptyList(), canAnswer = false))
+    }
+
+    @Test fun theFirstApprovalIsHomesHeroSoItOnlyScrollsToIt() {
+        assertEquals(PendingPlan.Opens.Hero, PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "a"), listOf(a("a"), a("b")), canAnswer = true))
+    }
+
+    @Test fun anyOtherApprovalOpensTheExistingSheet() {
+        assertEquals(PendingPlan.Opens.Sheet("b"), PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "b"), listOf(a("a"), a("b")), canAnswer = true))
+    }
+
+    @Test fun anApprovalThatIsGoneOpensNothing() {
+        assertEquals(PendingPlan.Opens.Nothing, PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "z"), listOf(a("a")), canAnswer = true))
+    }
+}

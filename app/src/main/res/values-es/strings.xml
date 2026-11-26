@@ -321,6 +321,10 @@
     <string name="home_others_title">Otros agentes</string>
     <string name="home_answer">Responder</string>
     <string name="home_waiting_request">esperando el pedido…</string>
+    <string name="pending_title">Pendientes · %1$d</string>
+    <string name="pending_approval">Permiso</string>
+    <string name="pending_question">Pregunta</string>
+    <string name="pending_left">%1$d s</string>
     <string name="home_review">Revisar</string>
     <string name="home_unconfirmed">Sin confirmar</string>
     <string name="home_offline_body">¿El teléfono está en el mismo Wi-Fi? ¿La computadora está despierta, con Koda abierto? Los pedidos te llegan apenas vuelva la conexión.</string>

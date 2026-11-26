@@ -23,5 +23,24 @@ object PendingPlan {
     /** `approvalResolved{fingerprint}`: the item goes, nothing is sent. */
     fun resolved(items: List<Item>, fingerprint: String): List<Item> = items.filter { it.fingerprint != fingerprint }
 
+    /** What a row's tap does. Never a decision: it only reaches the sheet or screen that already decides behind its own gates. */
+    sealed interface Opens {
+        data class Question(val pillId: String) : Opens
+        /** The existing approval sheet, for an approval that is not Home's hero. */
+        data class Sheet(val fingerprint: String) : Opens
+        /** The first approval is Home's hero, already on screen with its buttons: bring the list to it. */
+        data object Hero : Opens
+        data object Nothing : Opens
+    }
+
+    fun opens(item: Item, approvals: List<ApprovalRequest>, canAnswer: Boolean): Opens = when (item.kind) {
+        Kind.QUESTION -> if (canAnswer) Opens.Question(item.pillId) else Opens.Nothing
+        Kind.APPROVAL -> when {
+            approvals.none { it.fingerprint == item.fingerprint } -> Opens.Nothing
+            ApprovalSheetPlan.hero(approvals)?.fingerprint == item.fingerprint -> Opens.Hero
+            else -> Opens.Sheet(item.fingerprint)
+        }
+    }
+
     private fun left(createdAtMs: Long, nowMs: Long) = Protocol.APPROVAL_TTL_MS - (nowMs - createdAtMs)
 }
