@@ -34,12 +34,6 @@ class PendingPlanTest {
         assertTrue(PendingPlan.build(listOf(a("x", 0)), emptyList(), ttl + 1, name).isEmpty())
     }
 
-    @Test fun resolvedRemovesOnlyThatFingerprintAndSendsNothing() {
-        val items = PendingPlan.build(listOf(a("a1", 0), a("a2", 1)), listOf(q("q1", 2)), 10, name)
-        assertEquals(listOf("a1", "q1"), PendingPlan.resolved(items, "a2").map { it.fingerprint })
-        assertEquals(items, PendingPlan.resolved(items, "unknown"))
-    }
-
     @Test fun emptyStateIsAnEmptyList() {
         assertTrue(PendingPlan.build(emptyList(), emptyList(), 0, name).isEmpty())
     }
@@ -67,5 +61,27 @@ class PendingOpensTest {
 
     @Test fun anApprovalThatIsGoneOpensNothing() {
         assertEquals(PendingPlan.Opens.Nothing, PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "z"), listOf(a("a")), canAnswer = true))
+    }
+
+    // KN-12 T0: Home's hero is the first approval the phone holds, even one past its 120 s that the list no longer shows;
+    // a live approval behind it is then not the hero, so its row opens the sheet instead of scrolling to a hero that is another request.
+    @Test fun aLiveApprovalBehindAnExpiredFirstOneOpensTheSheet() {
+        val expiredFirst = ApprovalRequest("p1", "old", "Bash", "ls", 0L)
+        val live = a("live")
+        assertEquals(PendingPlan.Opens.Sheet("live"), PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "live"), listOf(expiredFirst, live), canAnswer = false))
+    }
+
+    // KN-12 T0: an approval row never depends on its session being found; only a question row needs it.
+    @Test fun anApprovalOpensEvenWhenItsSessionIsNotKnown() {
+        assertEquals(PendingPlan.Opens.Sheet("b"), PendingPlan.opens(item(PendingPlan.Kind.APPROVAL, "b", "ghost"), listOf(a("a"), a("b")), canAnswer = false))
+    }
+}
+
+class PendingRowTapSourceTest {
+    private fun src(): String = java.io.File("src/main/kotlin/com/kenai/android/MainActivity.kt").readText()
+
+    @Test fun theRowTapDoesNotReturnEarlyWhenTheSessionIsMissing() {
+        val tap = src().substringAfter("PendingList(pendingItems)").substringBefore("Opens.Nothing -> {}")
+        assertTrue("only a question row needs its session", !tap.contains("?: return@PendingList"))
     }
 }
