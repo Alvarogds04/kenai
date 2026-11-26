@@ -72,6 +72,7 @@ import com.kenai.android.R
 import com.kenai.android.app.AppModel
 import com.kenai.android.core.ChatActions
 import com.kenai.android.core.ChatMessage
+import com.kenai.android.core.ChatSearch
 import com.kenai.android.core.ChatOffline
 import com.kenai.android.core.ChatReasons
 import com.kenai.android.core.ChatTab
@@ -290,7 +291,26 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
     val dim = Color(IslandSurface.TEXT_DIM)
     BottomSheetHost(onDismiss = onDismiss) {
         Text(stringResource(R.string.chat_conversations), style = TypeScale.TITLE.style(white))
-        val rows = model.chatConversationList
+        var query by rememberSaveable { mutableStateOf("") }
+        val all = model.chatConversationList
+        // Works from what the phone holds, so it also works with the engine off. Titles only here: the cached messages
+        // are not exposed by AppModel (outside this task's surfaces), see the feature document.
+        val rows = remember(all, query) { ChatSearch.filter(all, emptyMap(), query) }
+        if (all.size > 3 || query.isNotEmpty()) {
+            OutlinedTextField(
+                value = query, onValueChange = { query = it.take(100) }, singleLine = true,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                placeholder = { Text(stringResource(R.string.chat_search_hint), color = Color(IslandSurface.TEXT_DIM)) },
+                shape = RoundedCornerShape(26.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = white, unfocusedTextColor = white, cursorColor = white,
+                    focusedBorderColor = dim, unfocusedBorderColor = dim.copy(alpha = 0.4f),
+                ),
+            )
+        }
+        if (rows.isEmpty() && query.isNotEmpty()) {
+            Text(stringResource(R.string.chat_search_none), Modifier.padding(top = 12.dp), style = TypeScale.SECONDARY.style(dim))
+        }
         LazyColumn(Modifier.fillMaxWidth().heightIn(max = 380.dp).padding(top = 6.dp)) {
             items(rows, key = { it.id }) { c ->
                 ConversationRow(

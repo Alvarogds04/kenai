@@ -22,3 +22,4 @@ app/src/main/kotlin/com/kenai/android/ui/ChatScreen.kt, app/src/main/kotlin/com/
 ## Log
 - L1 (human, 26 Nov): «dale hasta terminar con todo».
 - L2 (coordinator, 26 Nov): parser lives in core/MarkdownLite.kt, added to the surfaces.
+- L3 (child, 26 Nov): T3 search: pure `ChatSearch.filter` covers titles AND cached message text (tested), but the sheet can only pass titles today: the cached messages live in a private `ChatConversations` inside `app/AppModel.kt`, which is not in the Allowed edit surfaces. Needs a one-line accessor in AppModel (coordinator decision); until then the sheet searches titles (still offline, from the cache).

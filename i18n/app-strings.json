@@ -242,6 +242,8 @@
     "chat_copy": "Copy",
     "chat_copy_code": "Copy code",
     "chat_share": "Share",
+    "chat_search_hint": "Search conversations",
+    "chat_search_none": "No conversation matches.",
     "chat_count": "%1$d / %2$d",
     "chat_ref_too_long": "That message is too long.",
     "chat_ref_no_model": "Pick a model first.",
