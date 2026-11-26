@@ -17,7 +17,8 @@ Release: 0.2 (story version undecided). Story KN-15 (vault `Historias/KN-15.md`)
 - T6 Live check on the phone: NOT for the child, UNVERIFIED on a device until then.
 
 ## Allowed edit surfaces
-app/src/main/kotlin/com/kenai/android/ui/ChatScreen.kt, app/src/main/kotlin/com/kenai/android/core/Chat*.kt, app/src/main/kotlin/com/kenai/android/link/ChatLinkBackend.kt (no wire change), app/src/main/res/values/strings.xml, app/src/main/res/values-es/strings.xml, i18n/, app/src/test/, odd/tasks/kn-15-chat-v2.md
+app/src/main/kotlin/com/kenai/android/ui/ChatScreen.kt, app/src/main/kotlin/com/kenai/android/core/Chat*.kt, app/src/main/kotlin/com/kenai/android/link/ChatLinkBackend.kt (no wire change), app/src/main/res/values/strings.xml, app/src/main/res/values-es/strings.xml, i18n/, app/src/main/kotlin/com/kenai/android/core/MarkdownLite.kt, app/src/test/ (incl. MarkdownLiteTest.kt), odd/tasks/kn-15-chat-v2.md
 
 ## Log
 - L1 (human, 26 Nov): «dale hasta terminar con todo».
+- L2 (coordinator, 26 Nov): parser lives in core/MarkdownLite.kt, added to the surfaces.

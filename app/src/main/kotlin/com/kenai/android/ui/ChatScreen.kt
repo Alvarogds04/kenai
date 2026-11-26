@@ -64,6 +64,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
@@ -389,13 +390,29 @@ private fun MarkdownText(text: String) {
     val t = tokens()
     val code = t.panel2.c()
     val body = TypeScale.BODY.style(t.text.c())
+    val linkColor = t.send.c()
+    // A link is never opened by itself: a tap shows the address first and opens it only on a second, explicit tap.
+    var pending by remember { mutableStateOf<String?>(null) }
+    val uri = androidx.compose.ui.platform.LocalUriHandler.current
+    val onLink: (String) -> Unit = { if (MarkdownLite.isWebAddress(it)) pending = it }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         for (b in blocks) {
             when (b) {
-                is MdBlock.Para -> Text(styled(b.spans, code), style = body)
-                is MdBlock.Bullet -> Row {
-                    Text("•  ", style = body)
-                    Text(styled(b.spans, code), Modifier.weight(1f), style = body)
+                is MdBlock.Para -> Text(styled(b.spans, code, linkColor, onLink), style = body)
+                is MdBlock.Heading -> Text(styled(b.spans, code, linkColor, onLink), style = body.copy(fontWeight = FontWeight.Bold))
+                is MdBlock.Bullet -> Row(Modifier.padding(start = (16 * b.depth).dp)) {
+                    Text(if (b.depth == 0) "•  " else "◦  ", style = body)
+                    Text(styled(b.spans, code, linkColor, onLink), Modifier.weight(1f), style = body)
+                }
+                is MdBlock.Numbered -> Row(Modifier.padding(start = (16 * b.depth).dp)) {
+                    Text("${b.number}.  ", style = body)
+                    Text(styled(b.spans, code, linkColor, onLink), Modifier.weight(1f), style = body)
+                }
+                is MdBlock.Table -> Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).border(1.dp, t.line.c(), RoundedCornerShape(12.dp)),
+                ) {
+                    TableRow(b.header, code, linkColor, onLink, body.copy(fontWeight = FontWeight.Bold), Modifier.background(code))
+                    for (r in b.rows) TableRow(r, code, linkColor, onLink, body, Modifier)
                 }
                 is MdBlock.Code -> Text(
                     b.text,
@@ -406,16 +423,45 @@ private fun MarkdownText(text: String) {
             }
         }
     }
+    pending?.let { target ->
+        AlertDialog(
+            onDismissRequest = { pending = null },
+            title = { Text(stringResource(R.string.chat_link_title)) },
+            text = { Text(target) },
+            confirmButton = { TextButton(onClick = { pending = null; uri.openUri(target) }) { Text(stringResource(R.string.chat_link_open)) } },
+            dismissButton = { TextButton(onClick = { pending = null }) { Text(stringResource(R.string.chat_link_cancel)) } },
+        )
+    }
 }
 
-private fun styled(spans: List<MdSpan>, codeBackground: androidx.compose.ui.graphics.Color): AnnotatedString = buildAnnotatedString {
+@Composable
+private fun TableRow(
+    cells: List<List<MdSpan>>, codeBackground: Color, linkColor: Color, onLink: (String) -> Unit,
+    style: androidx.compose.ui.text.TextStyle, modifier: Modifier,
+) {
+    Row(modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (c in cells) Text(styled(c, codeBackground, linkColor, onLink), Modifier.weight(1f), style = style)
+    }
+}
+
+private fun styled(spans: List<MdSpan>, codeBackground: Color, linkColor: Color, onLink: (String) -> Unit): AnnotatedString = buildAnnotatedString {
     for (s in spans) {
         val style = SpanStyle(
             fontWeight = if (s.bold) FontWeight.Bold else null,
             fontFamily = if (s.code) FontFamily.Monospace else null,
-            background = if (s.code) codeBackground else androidx.compose.ui.graphics.Color.Unspecified,
+            background = if (s.code) codeBackground else Color.Unspecified,
         )
-        withStyle(style) { append(s.text) }
+        val target = s.link
+        if (target != null) {
+            val link = androidx.compose.ui.text.LinkAnnotation.Clickable(
+                tag = target,
+                styles = androidx.compose.ui.text.TextLinkStyles(
+                    SpanStyle(color = linkColor, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline),
+                ),
+                linkInteractionListener = { onLink(target) },
+            )
+            withLink(link) { withStyle(style) { append(s.text) } }
+        } else withStyle(style) { append(s.text) }
     }
 }
 

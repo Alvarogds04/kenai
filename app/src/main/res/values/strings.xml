@@ -236,6 +236,9 @@
     <string name="chat_conversations_delete_title">Delete this conversation?</string>
     <string name="chat_conversations_delete_body">It is removed from your engine for good, with all its history. This cannot be undone: it is irreversible.</string>
     <string name="chat_conversations_close">Close</string>
+    <string name="chat_link_title">Open this link?</string>
+    <string name="chat_link_open">Open</string>
+    <string name="chat_link_cancel">Cancel</string>
     <string name="chat_count">%1$d / %2$d</string>
     <string name="chat_ref_too_long">That message is too long.</string>
     <string name="chat_ref_no_model">Pick a model first.</string>
