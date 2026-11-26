@@ -67,8 +67,14 @@ class TodayCounterTest {
         val manifest = File("src/main/AndroidManifest.xml").readText()
         assertTrue(!manifest.contains("DATE_CHANGED"))
         assertTrue(manifest.contains("android.intent.action.TIME_SET") && manifest.contains("android.intent.action.TIMEZONE_CHANGED"))
-        val widget = File("src/main/kotlin/com/kenai/android/app/TodayWidget.kt").readText()
+        // KN-13 L6: the alarm and the day-changed handling moved from the retired Today widget to «Sesiones y actividad».
+        val widget = File("src/main/kotlin/com/kenai/android/app/GlanceWidget.kt").readText()
         assertTrue(widget.contains("WidgetHub.scheduleMidnight") && widget.contains("onDisabled") && widget.contains("ACTION_MIDNIGHT"))
+        val receiver = manifest.substringAfter("""android:name=".app.GlanceWidget""").substringBefore("</receiver>")
+        assertTrue("the day-changed filter sits on the new widget", receiver.contains("TIME_SET") && receiver.contains("TIMEZONE_CHANGED"))
+        // And the count that starts again at midnight still comes from the phone (TodayStore/TodayCounter), untouched.
+        assertTrue(File("src/main/kotlin/com/kenai/android/app/TodayStore.kt").exists())
+        assertTrue(File("src/main/kotlin/com/kenai/android/core/TodayCounter.kt").exists())
     }
 
     @Test fun itIsKeptOnThePhoneOnly() {

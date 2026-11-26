@@ -96,8 +96,8 @@ class WidgetSampleTest {
         val c = sample(WidgetSample.DONE)
         assertEquals(WidgetTone.DONE, c.look)
         assertEquals(5, c.today)
-        assertEquals(BotState.FINISHED, c.todayMood)
-        assertEquals(WidgetTone.DONE, c.todayLook)
+        // The count rides along as the approximate line of «Sesiones y actividad» (the Today widget is retired, KN-13 L6).
+        assertEquals("5 finished today · approx., this phone", c.todayApprox)
         assertEquals(24, c.ring!!.pct)
     }
 

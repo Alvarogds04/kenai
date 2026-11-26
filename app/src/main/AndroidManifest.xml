@@ -68,21 +68,27 @@
 
         <receiver android:name=".app.ActionReceiver" android:exported="false" />
 
-        <!-- The home-screen widget: a short summary, updated by the app when something changes (no timer). -->
-        <receiver android:name=".app.GlanceWidget" android:exported="true" android:label="@string/widget_glance_label">
+        <!-- «Sesiones y actividad» (KN-13): the agents, their activity and what waits for you, updated by the app when something changes
+             (no timer). It keeps the one inexact alarm of the Widgets, which redraws it at the next local midnight. -->
+        <receiver android:name=".app.GlanceWidget" android:exported="true" android:label="@string/widget_activity_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <!-- The clock or the time zone changed: the day may be another one. (Midnight itself is our own alarm: the system no longer tells manifest receivers that the date changed.) -->
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_widget_info" />
         </receiver>
 
-        <!-- The Solo and List widgets: Kenai and the agents, pushed by the app when something changes (no timer). -->
+        <!-- The Solo widget: Kenai and the top agent, pushed by the app when something changes (no timer). -->
         <receiver android:name=".app.SoloWidget" android:exported="true" android:label="@string/widget_solo_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_solo_widget_info" />
         </receiver>
+        <!-- RETIRED in KN-13 (L6): declared for one release so a placed instance survives; both render «Sesiones y actividad». The
+             provider hides them from the picker on Android 12 and later, and their labels say "(retired)". -->
         <receiver android:name=".app.ListWidget" android:exported="true" android:label="@string/widget_list_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -90,7 +96,7 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_list_widget_info" />
         </receiver>
 
-        <!-- More Widgets: Kenai Big, Status Pill, Waiting Alert, Usage Ring, Today and Kenai Mood. Pushed by the app when something changes (no timer). -->
+        <!-- More Widgets: Kenai Big, Status Pill and Usage Ring. Pushed by the app when something changes (no timer). -->
         <receiver android:name=".app.CharacterBigWidget" android:exported="true" android:label="@string/widget_big_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -103,6 +109,7 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_pill_widget_info" />
         </receiver>
+        <!-- RETIRED in KN-13 (L6): what waits for you is the pending section of «Sesiones y actividad», which this instance now renders. -->
         <receiver android:name=".app.WaitingAlertWidget" android:exported="true" android:label="@string/widget_alert_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -115,15 +122,14 @@
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_ring_widget_info" />
         </receiver>
+        <!-- RETIRED in KN-13 (L6): the card saying the count is now a line of «Sesiones y actividad». -->
         <receiver android:name=".app.TodayWidget" android:exported="true" android:label="@string/widget_today_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <!-- The clock or the time zone changed: the day may be another one. (Midnight itself is our own alarm: the system no longer tells manifest receivers that the date changed.) -->
-                <action android:name="android.intent.action.TIME_SET" />
-                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/kenai_today_widget_info" />
         </receiver>
+        <!-- RETIRED in KN-13 (L6): the card saying Kenai's face is on «Sesiones y actividad» and «At a glance». -->
         <receiver android:name=".app.MoodWidget" android:exported="true" android:label="@string/widget_mood_label">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

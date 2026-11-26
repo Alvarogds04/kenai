@@ -12,17 +12,20 @@ class WidgetSurfacesTest {
     private fun read(path: String) = File(path).readText()
     private val manifest get() = read("src/main/AndroidManifest.xml")
 
-    /** Every widget source: the providers, the hub, the pictures, the pure logic and the day's count. */
+    /** Every widget source: the providers (retired shells included), the hub, the pictures, the pure logic and the day's count. */
     private val widgets = listOf(
         "SoloWidget" to "kenai_solo_widget_info", "ListWidget" to "kenai_list_widget_info", "CharacterBigWidget" to "kenai_big_widget_info",
         "StatusPillWidget" to "kenai_pill_widget_info", "WaitingAlertWidget" to "kenai_alert_widget_info",
         "UsageRingWidget" to "kenai_ring_widget_info", "TodayWidget" to "kenai_today_widget_info", "MoodWidget" to "kenai_mood_widget_info",
-        // The summary widget (3x2): same class, receiver and provider file as ever, in the shared look since Widgets C.
+        // «Sesiones y actividad» (KN-13): the redesign in place of the old summary, same class, receiver and provider file.
         "GlanceWidget" to "kenai_widget_info",
     )
     private val sources = (
         widgets.map { "app/${it.first}.kt" } +
-            listOf("app/WidgetHub.kt", "app/CharacterBitmap.kt", "app/RingBitmap.kt", "app/BarBitmap.kt", "app/TodayStore.kt", "core/WidgetData.kt", "core/TodayCounter.kt", "core/LaunchScreen.kt")
+            listOf(
+                "app/WidgetHub.kt", "app/CharacterBitmap.kt", "app/RingBitmap.kt", "app/BarBitmap.kt", "app/RetiredWidgetCard.kt", "app/TodayStore.kt",
+                "core/WidgetData.kt", "core/ActivityPlan.kt", "core/RetiredWidgets.kt", "core/TodayCounter.kt", "core/LaunchScreen.kt",
+            )
         ).associateWith { read(main + it) }
 
     @Test fun theWidgetsAreRegisteredAndNeverWakeOnATimer() {
@@ -46,7 +49,7 @@ class WidgetSurfacesTest {
         for ((name, src) in sources) {
             for (word in listOf("decide", "allow", "deny", "approve", "answer", "unpair")) assertFalse("$name uses $word", src.contains(word, ignoreCase = true))
         }
-        for (layout in listOf("widget_solo", "widget_list")) assertFalse(read("src/main/res/layout/$layout.xml").contains("Button"))
+        for (layout in listOf("widget_solo", "widget_glance")) assertFalse(read("src/main/res/layout/$layout.xml").contains("Button"))
     }
 
     @Test fun noTimerAndNoLibrary() {
@@ -69,9 +72,9 @@ class WidgetSurfacesTest {
         val hub = sources.getValue("app/WidgetHub.kt")
         // Open the app, open a session, open a screen: three, all immutable, the last two through LaunchActivity.
         assertEquals(3, Regex("PendingIntent.getActivity").findAll(hub).count())
-        // Plus the midnight alarm: one explicit, immutable broadcast to the Today widget.
+        // Plus the midnight alarm: one explicit, immutable broadcast to «Sesiones y actividad».
         assertEquals(1, Regex("PendingIntent.getBroadcast").findAll(hub).count())
-        assertTrue(hub.contains("Intent(ACTION_MIDNIGHT).setClass(context, TodayWidget::class.java)"))
+        assertTrue(hub.contains("Intent(ACTION_MIDNIGHT).setClass(context, GlanceWidget::class.java)"))
         assertEquals(4, Regex("FLAG_IMMUTABLE").findAll(hub).count())
         assertEquals(2, Regex("Intent\\(context, LaunchActivity::class.java\\)").findAll(hub).count())
         assertTrue(hub.contains("Intent(context, MainActivity::class.java)"))
@@ -85,25 +88,37 @@ class WidgetSurfacesTest {
     @Test fun everyRowAndEveryWidgetHasItsOwnRequestCode() {
         val hub = sources.getValue("app/WidgetHub.kt")
         val codes = Regex("""const val CODE_\w+ = (0x[0-9A-Fa-f]+)""").findAll(hub).map { it.groupValues[1] }.toList()
-        assertEquals(16, codes.size)
+        assertEquals(14, codes.size)
         assertEquals(codes.size, codes.toSet().size)
-        // The rows use CODE_LIST_ROW + index: the ranges must not run into the next code.
+        // The rows use CODE_GLANCE_ROW + index: the ranges must not run into the next code.
         val values = codes.map { it.removePrefix("0x").toInt(16) }.sorted()
         assertTrue(values.zipWithNext().all { (a, b) -> b - a >= 16 })
-        assertTrue(sources.getValue("app/ListWidget.kt").contains("WidgetHub.CODE_LIST_ROW + i"))
-        // Every provider uses its own code, and the family uses each code once.
-        val used = widgets.map { (cls, _) -> Regex("""WidgetHub\.(CODE_\w+)""").findAll(sources.getValue("app/$cls.kt")).map { it.groupValues[1] }.toSet() }
+        assertTrue(sources.getValue("app/GlanceWidget.kt").contains("WidgetHub.CODE_GLANCE_ROW + i"))
+        // Every live provider uses its own code, and the family uses each code once. The two shells merged into «Sesiones y actividad»
+        // (KN-13 L6) draw its picture, so they use its codes instead of keeping dead ones of their own.
+        val live = widgets.map { it.first }.filter { it != "ListWidget" && it != "WaitingAlertWidget" }
+        val used = live.map { cls -> Regex("""WidgetHub\.(CODE_\w+)""").findAll(sources.getValue("app/$cls.kt")).map { it.groupValues[1] }.toSet() }
         for (u in used) assertTrue(u.isNotEmpty())
         val flat = used.flatten()
         assertEquals("a code is shared by two Widgets: $flat", flat.size, flat.toSet().size)
+        for (shell in listOf("ListWidget", "WaitingAlertWidget")) {
+            assertTrue("$shell renders the new card", sources.getValue("app/$shell.kt").contains("GlanceWidget.views(context, c)"))
+        }
     }
 
     @Test fun theImageAndTheBadgeAreDescribed() {
         assertTrue(sources.getValue("app/SoloWidget.kt").contains("setContentDescription(R.id.solo_character"))
         assertTrue(sources.getValue("app/SoloWidget.kt").contains("setContentDescription(R.id.solo_badge"))
-        assertTrue(sources.getValue("app/ListWidget.kt").contains("setContentDescription(R.id.list_badge"))
-        // Every Widget with a picture describes it; every layout image that is not decoration has a description or is hidden from it.
-        for ((cls, _) in widgets) assertTrue("$cls has no content description", sources.getValue("app/$cls.kt").contains("setContentDescription("))
+        assertTrue(sources.getValue("app/GlanceWidget.kt").contains("setContentDescription(R.id.glance_badge"))
+        // The retired shells draw through the new card or through the small retired card, so their pictures are described there.
+        assertTrue(sources.getValue("app/RetiredWidgetCard.kt").contains("setContentDescription(R.id.retired_face"))
+        for ((cls, _) in widgets) {
+            val src = sources.getValue("app/$cls.kt")
+            assertTrue(
+                "$cls has no content description, here or in the card it draws",
+                src.contains("setContentDescription(") || src.contains("GlanceWidget.views(context, c)") || src.contains("RetiredWidgetCard.views("),
+            )
+        }
         for (layout in File("src/main/res/layout").listFiles()!!.filter { it.name.startsWith("widget_") }) {
             for (img in Regex("""<ImageView[^>]*>""").findAll(layout.readText())) {
                 val tag = img.value
@@ -117,43 +132,57 @@ class WidgetSurfacesTest {
         val model = read(main + "app/AppModel.kt")
         val push = model.substringAfter("private fun pushGlance()").substringBefore("private fun refreshIsland()")
         assertTrue(push.contains("WidgetHub.update"))
-        assertTrue("the first widget stays", push.contains("GlanceWidget.update"))
+        // One push for every Widget: «Sesiones y actividad» goes through the hub like the rest, with no push of its own (KN-13 L5).
+        assertFalse("the old summary push is gone", push.contains("GlanceWidget.update"))
         assertTrue(sources.getValue("app/WidgetHub.kt").contains("if (content == last) return"))
+        // And the hub reaches every kind, the retired shells included.
+        val hub = sources.getValue("app/WidgetHub.kt")
+        for ((cls, _) in widgets) assertTrue("the hub never draws $cls", hub.contains("Kind($cls::class.java)"))
     }
 
-    @Test fun theSummaryWidgetKeepsItsNamesAndItsRefreshPath() {
-        // GlanceSurfacesTest guards its registration; this guards that the restyle kept the names, the size and the refresh path.
+    @Test fun theActivityWidgetKeepsItsReceiverAndItsProviderAndNowDrawsTheSessions() {
+        // The redesign in place (KN-13 L5): same names, same provider file, so the instances already placed survive.
         assertTrue(manifest.contains("""android:name=".app.GlanceWidget""""))
         assertTrue(manifest.contains("@xml/kenai_widget_info"))
+        assertTrue(manifest.contains("""android:label="@string/widget_activity_label""""))
         assertTrue(File("src/main/res/layout/widget_glance.xml").exists())
         val info = read("src/main/res/xml/kenai_widget_info.xml")
-        assertTrue(info.contains("""android:targetCellWidth="3""""))
-        assertTrue(info.contains("""android:targetCellHeight="2""""))
+        assertTrue(info.contains("""android:targetCellWidth="4""""))
+        assertTrue(info.contains("""android:targetCellHeight="3""""))
         assertTrue(info.contains("""android:initialLayout="@layout/widget_glance""""))
         val src = read(main + "app/GlanceWidget.kt")
-        assertTrue(src.contains("fun update(context: Context, glance: Glance)"))
-        assertTrue(src.contains("model.glance()"))
-        // Its data is the Glance's, and a tap anywhere opens the app: no button, no session, no screen.
-        for (word in listOf("g.headline", "g.detail", "g.lines", "g.waiting")) assertTrue(word, src.contains(word))
-        assertTrue(src.contains("WidgetHub.openApp("))
-        for (word in listOf("openScreen", "openSession", "LaunchScreen")) assertFalse(word, src.contains(word))
+        // Its data is the Widgets' content, and a row opens its agent; a tap anywhere else opens the app.
+        assertTrue(src.contains("fun views(context: Context, c: WidgetContent)"))
+        assertTrue(src.contains("ActivityPlan.of("))
+        assertTrue(src.contains("WidgetHub.openApp(") && src.contains("WidgetHub.CODE_GLANCE"))
+        assertTrue(src.contains("WidgetHub.openSession(context, WidgetHub.CODE_GLANCE_ROW + i, row.pillId)"))
+        // The pending button opens Home and nothing else, through the closed list of screens.
+        assertTrue(src.contains("WidgetHub.openScreen(context, WidgetHub.CODE_GLANCE_BUTTON, LaunchScreen.HOME)"))
+        // The old summary push is gone: the hub is the one way in.
+        assertFalse(src.contains("fun update(context: Context, glance: Glance)"))
         val layout = read("src/main/res/layout/widget_glance.xml")
         assertFalse(layout.contains("<Button"))
-        assertFalse("no icon button in the summary", Regex("ic_widget_(home|chat|settings|recent|session|pair)").containsMatchIn(layout))
+        assertFalse("no icon button in the activity card", Regex("ic_widget_(home|chat|settings|recent|session|pair)").containsMatchIn(layout))
         assertTrue("it shows the not-connected icon", layout.contains("@drawable/ic_widget_offline"))
     }
 
-    @Test fun theListRowsAreAtLeastFortyEightDpAndTheEmptyStateFillsTheCard() {
-        val list = read("src/main/res/layout/widget_list.xml")
-        assertEquals(5, Regex("""android:layout_height="@dimen/widget_row_min"""").findAll(list).count())
-        for (id in listOf("list_empty", "list_empty_face", "list_empty_title", "list_empty_line", "list_tint", "list_root")) assertTrue(id, list.contains("@+id/$id"))
-        val code = read(main + "app/ListWidget.kt")
-        assertTrue(code.contains("c.tiles.isEmpty()"))
-        assertTrue(code.contains("R.id.list_empty"))
+    @Test fun theRowsAreAtLeastFortyEightDpAndTheEmptyStateFillsTheCard() {
+        val glance = read("src/main/res/layout/widget_glance.xml")
+        // Five session rows, the same 48dp minimum every Widget row has.
+        assertEquals(5, Regex("""android:layout_height="@dimen/widget_row_min"""").findAll(glance).count())
+        for (id in listOf("glance_empty", "glance_empty_face", "glance_empty_title", "glance_empty_line", "glance_tint", "widget_root")) assertTrue(id, glance.contains("@+id/$id"))
+        // One row per agent: the dot of its tone, its name, its state word and room for the engine's counter.
+        for (i in 0 until 5) for (part in listOf("row", "dot", "name", "state", "progress")) assertTrue("glance_${part}$i", glance.contains("@+id/glance_${part}$i"))
+        // The pending section holds three rows and its button.
+        for (i in 0 until 3) for (part in listOf("row", "dot", "name", "word")) assertTrue("glance_pending_${part}$i", glance.contains("@+id/glance_pending_${part}$i"))
+        for (id in listOf("glance_pending", "glance_review", "glance_today", "glance_badge")) assertTrue(id, glance.contains("@+id/$id"))
+        val code = read(main + "app/GlanceWidget.kt")
+        assertTrue(code.contains("plan.rows.isEmpty()"))
+        assertTrue(code.contains("R.id.glance_empty"))
     }
 
     @Test fun theCardsUseTheSharedLook() {
-        for (layout in listOf("widget_solo", "widget_list", "widget_glance", "widget_pill", "widget_big")) {
+        for (layout in listOf("widget_solo", "widget_glance", "widget_pill", "widget_big")) {
             val xml = read("src/main/res/layout/$layout.xml")
             assertTrue(layout, xml.contains("@drawable/widget_card"))
             assertTrue(layout, xml.contains("@drawable/widget_tint_muted"))
@@ -162,7 +191,7 @@ class WidgetSurfacesTest {
         }
         val solo = read(main + "app/SoloWidget.kt")
         assertTrue(solo.contains("WidgetHub.paint("))
-        assertTrue(read(main + "app/ListWidget.kt").contains("WidgetHub.paint("))
+        assertTrue(read(main + "app/GlanceWidget.kt").contains("WidgetHub.paint("))
     }
 
     @Test fun characterHasAtLeastHalfOfTheSoloCard() {
@@ -223,7 +252,7 @@ class WidgetSurfacesTest {
         val expected = mapOf(
             "kenai_solo_widget_info" to (2 to 2), "kenai_list_widget_info" to (4 to 3), "kenai_big_widget_info" to (4 to 4),
             "kenai_pill_widget_info" to (4 to 1), "kenai_alert_widget_info" to (3 to 2), "kenai_ring_widget_info" to (2 to 2),
-            "kenai_today_widget_info" to (2 to 2), "kenai_mood_widget_info" to (1 to 1), "kenai_widget_info" to (3 to 2),
+            "kenai_today_widget_info" to (2 to 2), "kenai_mood_widget_info" to (1 to 1), "kenai_widget_info" to (4 to 3),
         )
         assertEquals(widgets.map { it.second }.toSet(), expected.keys)
         for ((info, cells) in expected) {
@@ -233,8 +262,10 @@ class WidgetSurfacesTest {
             // A cell is about 70dp less 30dp of margin: the minimum size is that of its cells.
             assertEquals(info, cells.first * 70 - 30, dp(attr(xml, "minWidth")))
             val high = dp(attr(xml, "minHeight"))
-            // The List is a little taller than its three cells so that three rows fit; the others are exactly their cells.
-            if (info.contains("list")) assertTrue(info, high >= cells.second * 70 - 30) else assertEquals(info, cells.second * 70 - 30, high)
+            // «Sesiones y actividad» and the retired List it replaces are taller than their three cells so that their rows fit; the rest
+            // are exactly their cells.
+            if (info == "kenai_widget_info" || info.contains("list")) assertTrue("$info: ${high}dp", high >= cells.second * 70 - 30)
+            else assertEquals(info, cells.second * 70 - 30, high)
             val desc = attr(xml, "description")!!.removePrefix("@string/")
             assertTrue("$info: $desc is not a string", strings.contains("""name="$desc""""))
             assertTrue(xml.contains("""android:initialLayout="@layout/widget_"""))
@@ -249,44 +280,54 @@ class WidgetSurfacesTest {
 
     // ── «Aprobaciones pendientes» (kenai-0.1 S9, screen 5) ───────────────────────────────────────
 
-    @Test fun theAlertIsWideWithRowsAndStillFitsTwoByTwo() {
+    // ── The pending section of «Sesiones y actividad» (the merged «Aprobaciones pendientes») ──────
+
+    @Test fun thePendingSectionStillFitsWhereTheAlertWasPlacedAndKeepsItsRows() {
         val info = read("src/main/res/xml/kenai_alert_widget_info.xml")
-        // Placed 3x2 by default (as wide as the row allows), and never smaller than 2x2.
+        // The retired shell keeps the size it was placed at (3x2, never under 2x2) and is hidden from the picker (L6).
         assertEquals("110", attr(info, "minResizeWidth")!!.removeSuffix("dp"))
         assertEquals("110", attr(info, "minResizeHeight")!!.removeSuffix("dp"))
         assertEquals("horizontal|vertical", attr(info, "resizeMode"))
-        val src = read(main + "app/WaitingAlertWidget.kt")
-        assertTrue(src.contains("WidgetHub.responsive(MEDIUM_AT, LARGE_AT)"))
-        val layout = read("src/main/res/layout/widget_alert.xml")
-        for (id in listOf("alert_column", "alert_wide", "alert_wide_face", "alert_wide_count", "alert_wide_sub", "alert_rows", "alert_review")) assertTrue(id, layout.contains("@+id/$id"))
-        for (i in 0 until 3) for (part in listOf("row", "dot", "name", "state")) assertTrue("alert_${part}$i", layout.contains("@+id/alert_${part}$i"))
-        // The rows: the agent's own colour on the dot, its name and the short word; never more than the data's three.
-        assertTrue(src.contains("c.alertRows"))
-        assertTrue(src.contains("setColorFilter\", row.argb"))
+        assertTrue("hidden from the picker on Android 12 and later", info.contains("""android:widgetFeatures="hide_from_picker""""))
+        // Its picture is the new card, so a placed instance loses nothing.
+        assertTrue(info.contains("""android:initialLayout="@layout/widget_glance""""))
+        val src = read(main + "app/GlanceWidget.kt")
+        // The rows are the phone's: one per request or question, in its agent's own colour, with the short word.
+        assertTrue(src.contains("plan.pending"))
+        assertTrue(src.contains("""setColorFilter", row.argb"""))
         assertTrue(src.contains("row.name") && src.contains("row.word"))
-        // The calm card is the one of before: Koda resting and the calm words, centred.
-        assertTrue(src.contains("val wide = waiting && size != WidgetHub.Size.SMALL"))
+        // The count is the phone's too (alertCount), not the questions inferred from the agents' states.
+        assertTrue(read(main + "core/ActivityPlan.kt").contains("content.alertCount"))
     }
 
-    @Test fun theAlertOpensTheAppAndItsButtonOpensHome() {
-        val src = read(main + "app/WaitingAlertWidget.kt")
-        // A tap anywhere opens the app; «Revisar el pedido» opens Home, whose hero is the first request.
-        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_root, WidgetHub.openApp(context, WidgetHub.CODE_ALERT))"))
-        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.alert_review, WidgetHub.openScreen(context, WidgetHub.CODE_ALERT_BUTTON, LaunchScreen.HOME))"))
-        assertTrue(src.contains("setContentDescription(R.id.alert_review"))
-        // The button says what waits (T18): «Revisar el pedido», or «Responder la pregunta» when only questions wait; its description says the same.
-        assertTrue(src.contains("v.setTextViewText(R.id.alert_review, c.alertButton)"))
-        assertTrue(src.contains("v.setContentDescription(R.id.alert_review, c.alertButton)"))
+    @Test fun thePendingButtonOpensHomeAndSaysWhatWaits() {
+        val src = read(main + "app/GlanceWidget.kt")
+        // A tap anywhere opens the app; «Revisar el pedido» («Responder la pregunta» when only questions wait) opens Home, whose hero is the
+        // first request.
+        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.widget_root, WidgetHub.openApp(context, WidgetHub.CODE_GLANCE))"))
+        assertTrue(src.contains("v.setOnClickPendingIntent(R.id.glance_review, WidgetHub.openScreen(context, WidgetHub.CODE_GLANCE_BUTTON, LaunchScreen.HOME))"))
+        assertTrue(src.contains("setContentDescription(R.id.glance_review"))
+        assertTrue(src.contains("v.setTextViewText(R.id.glance_review, button)"))
+        // The button says what waits, in the phone's language, from the one rule: the request first, a question when only questions wait.
+        val data = read(main + "core/WidgetData.kt")
+        assertTrue(data.contains("fun pendingButton(w: Words)"))
+        assertTrue(data.contains("w.replyToTheQuestion else w.reviewTheRequest"))
     }
 
-    @Test fun theAlertWearsItsOwnToneNotTheTopAgents() {
-        // An agent in error with nothing waiting must not paint a calm line on a red card (L27, T18): the alert has its own look and mood.
-        val src = read(main + "app/WaitingAlertWidget.kt")
-        assertTrue(src.contains("c.alertLook") && src.contains("c.alertMood"))
-        for (shared in listOf("c.look", "c.mood")) assertFalse("WaitingAlertWidget uses $shared", Regex(Regex.escape(shared) + "\\b").containsMatchIn(src))
-        // The count is the phone's: what it holds for you, so the count and the rows agree.
-        assertTrue(src.contains("c.alertCount"))
-        assertFalse(src.contains("c.waiting"))
+    @Test fun theAlertToneAndItsCountSurviveTheMergeIntoOneCard() {
+        // Merging two Widgets into one card means one tone for the whole card (the look of the content, which is ATTENTION while anything
+        // waits). What must not degrade: the count and the rows are the phone's own, each row keeps its agent's colour, and a calm card
+        // when nothing waits.
+        val plan = read(main + "core/ActivityPlan.kt")
+        assertTrue("the card's paint is the content's look", plan.contains("tone = content.look"))
+        assertTrue("the badge is what the phone holds", plan.contains("badge = content.alertCount.takeIf { waiting }"))
+        assertTrue("nothing waits: no pending rows at all", plan.contains("pending = if (waiting) content.alertRows.take(pendingRows(limit)) else emptyList()"))
+        val src = read(main + "app/GlanceWidget.kt")
+        assertTrue(src.contains("WidgetHub.paint(v, R.id.widget_root, R.id.glance_tint, plan.tone)"))
+        // The old alert's own tone and mood are gone with it: nothing reads them any more.
+        val data = read(main + "core/WidgetData.kt")
+        for (dead in listOf("c.alertLook", "c.alertMood")) assertFalse(dead, src.contains(dead))
+        assertTrue("the alert's words are still the ones used", data.contains("val alertRows: List<AlertRow>"))
     }
 
     @Test fun theListNeverGoesBelowTwoRowsAndTheBigOneKeepsItsBubble() {

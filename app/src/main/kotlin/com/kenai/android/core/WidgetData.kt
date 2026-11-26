@@ -273,12 +273,6 @@ data class WidgetContent(
             }
     }
 
-    /** Kenai's face on the Today widget: pleased once something finished today, calm before. */
-    val todayMood: BotState get() = if (today > 0) BotState.FINISHED else BotState.IDLE
-
-    /** The Today widget glows green once something finished today, soft grey before. */
-    val todayLook: WidgetTone get() = if (today > 0) WidgetTone.DONE else WidgetTone.IDLE
-
     /**
      * «Sesiones y actividad»: the finished-today count, which only this phone knows, so it says so («aprox., este teléfono») instead of
      * passing for an engine metric (KN-13 S2/S4). Null before anything finished.
@@ -410,7 +404,8 @@ object WidgetData {
         val sessions = when (which) {
             WidgetSample.DISCONNECTED, WidgetSample.EMPTY -> emptyList()
             WidgetSample.WORKING -> listOf(
-                SessionInfo("integration_claude", "Claude Code", BotState.WORKING, "", 0, 0, 0L),
+                // Claude Code carries the engine's own counter (3 of 8), so the preview shows a row exactly as a real one looks.
+                SessionInfo("integration_claude", "Claude Code", BotState.WORKING, "", 3, 8, 0L),
                 SessionInfo("agent_codex", "Codex", BotState.THINKING, "", 0, 0, 0L),
                 SessionInfo("agent_gemini", "Gemini CLI", BotState.IDLE, "", 0, 0, 0L),
             )

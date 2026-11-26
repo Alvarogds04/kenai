@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The summary widget (3x2) on the shared card: a small Kenai in the state of the most urgent agent on the left; on the right a clear
-     headline (with a badge for what waits for you), one detail line when there is room, and up to three short lines with a dot in the
-     state's tone. Until the first update it shows a calm Kenai and a short line. A tap anywhere opens the app. Plain RemoteViews. -->
+<!-- «Sesiones y actividad» (KN-13 S1-S4) on the shared card, placed at 4x3 and shrunk to whatever the launcher gives it: a header with
+     Kenai, the headline and the badge of what waits for you; one row per agent (a dot in the state's tone, its name, its state word and,
+     only when the engine sent a total, its «3/8» progress); the pending section the phone holds, with its button to Home; the count of
+     tasks finished today, said to be approximate and counted on this phone; and one calm line when there is no agent to list. Until the
+     first update it shows a calm Kenai and a short line. A tap opens the app; a tap on a row opens that agent. Plain RemoteViews. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
@@ -18,138 +20,335 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="12dp">
-
-        <ImageView
-            android:id="@+id/glance_character"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:contentDescription="@string/widget_glance_label"
-            android:scaleType="fitCenter"
-            android:src="@drawable/preview_char_idle" />
+        android:orientation="vertical"
+        android:paddingStart="14dp"
+        android:paddingTop="10dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="10dp">
 
         <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:id="@+id/glance_header"
+            android:layout_width="match_parent"
+            android:layout_height="32dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+            <ImageView
+                android:id="@+id/glance_character"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:contentDescription="@string/widget_activity_label"
+                android:scaleType="fitCenter"
+                android:src="@drawable/preview_char_idle" />
 
-                <ImageView
-                    android:id="@+id/glance_offline"
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:layout_marginEnd="6dp"
-                    android:importantForAccessibility="no"
-                    android:src="@drawable/ic_widget_offline"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/glance_headline"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="@string/widget_initial_title"
-                    android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_name"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/glance_badge"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:background="@drawable/widget_badge_bg"
-                    android:gravity="center"
-                    android:minWidth="22dp"
-                    android:paddingStart="6dp"
-                    android:paddingEnd="6dp"
-                    android:textColor="@color/widget_on_tone"
-                    android:textSize="@dimen/widget_text_secondary"
-                    android:textStyle="bold"
-                    android:visibility="gone" />
-            </LinearLayout>
+            <ImageView
+                android:id="@+id/glance_offline"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="6dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_offline"
+                android:visibility="gone" />
 
             <TextView
-                android:id="@+id/glance_detail"
-                android:layout_width="match_parent"
+                android:id="@+id/glance_headline"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
-                android:text="@string/widget_initial_line"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="@dimen/widget_text_secondary" />
+                android:textColor="@color/widget_text"
+                android:textSize="@dimen/widget_text_name"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/glance_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/widget_badge_bg"
+                android:gravity="center"
+                android:minWidth="22dp"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:textColor="@color/widget_on_tone"
+                android:textSize="@dimen/widget_text_secondary"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/glance_rows"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <LinearLayout
                 android:id="@+id/glance_row0"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="@dimen/widget_row_min"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                android:orientation="horizontal">
 
                 <ImageView
                     android:id="@+id/glance_dot0"
-                    android:layout_width="8dp"
-                    android:layout_height="8dp"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot" />
 
                 <TextView
                     android:id="@+id/glance_name0"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:textColor="@color/widget_text"
-                    android:textSize="@dimen/widget_text_state"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:id="@+id/glance_text0"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="10dp"
                     android:layout_weight="1"
                     android:ellipsize="end"
                     android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_state0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
                     android:textColor="@color/widget_text_secondary"
-                    android:textSize="@dimen/widget_text_secondary" />
+                    android:textSize="@dimen/widget_text_state" />
+
+                <TextView
+                    android:id="@+id/glance_progress0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/glance_row1"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="@dimen/widget_row_min"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                android:orientation="horizontal">
 
                 <ImageView
                     android:id="@+id/glance_dot1"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot" />
+
+                <TextView
+                    android:id="@+id/glance_name1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_state1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+
+                <TextView
+                    android:id="@+id/glance_progress1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/glance_row2"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_dot2"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot" />
+
+                <TextView
+                    android:id="@+id/glance_name2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_state2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+
+                <TextView
+                    android:id="@+id/glance_progress2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/glance_row3"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_dot3"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot" />
+
+                <TextView
+                    android:id="@+id/glance_name3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_state3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+
+                <TextView
+                    android:id="@+id/glance_progress3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/glance_row4"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/widget_row_min"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_dot4"
+                    android:layout_width="@dimen/widget_dot"
+                    android:layout_height="@dimen/widget_dot"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot" />
+
+                <TextView
+                    android:id="@+id/glance_name4"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_name"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_state4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_state" />
+
+                <TextView
+                    android:id="@+id/glance_progress4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_secondary"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/glance_pending"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:id="@+id/glance_pending_row0"
+                android:layout_width="match_parent"
+                android:layout_height="28dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_pending_dot0"
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot" />
 
                 <TextView
-                    android:id="@+id/glance_name1"
+                    android:id="@+id/glance_pending_name0"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/widget_text"
@@ -157,7 +356,7 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/glance_text1"
+                    android:id="@+id/glance_pending_word0"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
@@ -169,26 +368,24 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/glance_row2"
+                android:id="@+id/glance_pending_row1"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="3dp"
+                android:layout_height="28dp"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:id="@+id/glance_dot2"
+                    android:id="@+id/glance_pending_dot1"
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:importantForAccessibility="no"
                     android:src="@drawable/widget_dot" />
 
                 <TextView
-                    android:id="@+id/glance_name2"
+                    android:id="@+id/glance_pending_name1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
+                    android:layout_marginStart="8dp"
                     android:ellipsize="end"
                     android:maxLines="1"
                     android:textColor="@color/widget_text"
@@ -196,7 +393,7 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/glance_text2"
+                    android:id="@+id/glance_pending_word1"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
@@ -206,6 +403,125 @@
                     android:textColor="@color/widget_text_secondary"
                     android:textSize="@dimen/widget_text_secondary" />
             </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/glance_pending_row2"
+                android:layout_width="match_parent"
+                android:layout_height="28dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_pending_dot2"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot" />
+
+                <TextView
+                    android:id="@+id/glance_pending_name2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text"
+                    android:textSize="@dimen/widget_text_state"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/glance_pending_word2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="@dimen/widget_text_secondary" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/glance_review"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@drawable/widget_badge_bg"
+                android:gravity="center"
+                android:maxLines="1"
+                android:minHeight="@dimen/widget_row_min"
+                android:text="@string/action_review"
+                android:textColor="@color/widget_on_tone"
+                android:textSize="@dimen/widget_text_state"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/glance_today"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/widget_text_soft"
+            android:textSize="@dimen/widget_text_secondary"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/glance_empty"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:id="@+id/glance_empty_face"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/widget_activity_label"
+                android:scaleType="fitCenter"
+                android:src="@drawable/preview_char_idle" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:id="@+id/glance_empty_icon"
+                    android:layout_width="@dimen/widget_icon"
+                    android:layout_height="@dimen/widget_icon"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/widget_dot"
+                    android:tint="@color/widget_tone_muted" />
+
+                <TextView
+                    android:id="@+id/glance_empty_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/widget_initial_title"
+                    android:textColor="@color/widget_text_soft"
+                    android:textSize="@dimen/widget_text_note"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/glance_empty_line"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:text="@string/widget_initial_line"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="@dimen/widget_text_state" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

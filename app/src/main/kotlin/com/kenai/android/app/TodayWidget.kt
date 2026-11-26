@@ -3,44 +3,24 @@ package com.kenai.android.app
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
-import android.content.Intent
 import android.widget.RemoteViews
-import com.kenai.android.R
-import com.kenai.android.core.WidgetContent
 
 /**
- * The Today widget: how many agent tasks finished today. The count is kept on this phone only ([TodayStore]) and starts
- * again at local midnight: one inexact alarm ([WidgetHub.scheduleMidnight]) redraws it, and so does a change of time or time zone. A tap opens the app.
+ * RETIRED in KN-13 (L5, L6): a count kept on this phone only, presented as a day's metric, was an estimate shown as if it were the
+ * engine's (S2, S4). The count is not lost: «Sesiones y actividad» shows it as one line that says it is approximate and counted on this
+ * phone, and the alarm that starts the day again at local midnight now belongs to that Widget ([GlanceWidget]).
+ *
+ * The receiver and its provider stay declared for one release so an instance already on a home screen is not dropped without a word: a
+ * placed one shows the small retired card, which says where the count went and opens the app. It can be deleted, with its provider file and
+ * that card, in the next release.
  */
 class TodayWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
-        WidgetHub.refresh(context, manager, ids) { c, w -> views(c, w) }
-        WidgetHub.scheduleMidnight(context)
-    }
-
-    override fun onDisabled(context: Context) = WidgetHub.cancelMidnight(context)
-
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action in DAY_CHANGED) {
-            WidgetHub.refreshAll(context)
-            WidgetHub.scheduleMidnight(context)
-        }
+        // One small card for every placed instance, whatever the app knows; nothing here throws out of a broadcast.
+        runCatching { WidgetHub.refresh(context, manager, ids) { c, w -> views(c) } }
     }
 
     companion object {
-        // Midnight (our alarm), and the clock or the time zone being changed: the day may be another one.
-        private val DAY_CHANGED = setOf(WidgetHub.ACTION_MIDNIGHT, Intent.ACTION_TIME_CHANGED, Intent.ACTION_TIMEZONE_CHANGED)
-
-        fun views(context: Context, c: WidgetContent): RemoteViews {
-            val v = RemoteViews(context.packageName, R.layout.widget_today)
-            WidgetHub.paint(v, R.id.today_root, R.id.today_tint, c.todayLook)
-            v.setImageViewBitmap(R.id.today_face, CharacterBitmap.of(context, c.todayMood, WidgetHub.px(context, 72), glow = true, tone = c.todayLook))
-            v.setContentDescription(R.id.today_face, context.getString(R.string.widget_character_description, c.todayMood.key))
-            v.setTextViewText(R.id.today_count, c.today.toString())
-            v.setContentDescription(R.id.today_root, context.getString(R.string.widget_today_cd, c.today))
-            v.setOnClickPendingIntent(R.id.today_root, WidgetHub.openApp(context, WidgetHub.CODE_TODAY))
-            return v
-        }
+        fun views(context: Context): RemoteViews = RetiredWidgetCard.views(context, WidgetHub.CODE_RETIRED_TODAY)
     }
 }
