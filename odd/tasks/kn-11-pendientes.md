@@ -8,7 +8,7 @@ Release: 0.2 (version of the story still undecided by the human). Story KN-11 (v
 - S4: Human decision 23 Nov: the list lives inside Inicio, not in its own tab.
 
 ## Tasks
-- T1 (S1, S2) Pure plan: from the current approvals and pending questions build one ordered list (kind, agent name, session, time left) in `core/` with unit tests: ordering, expiry, removal on `approvalResolved`, empty state. Test-first, no UI. Risk: none.
+- [x] T1 (S1, S2) Pure plan: from the current approvals and pending questions build one ordered list (kind, agent name, session, time left) in `core/` with unit tests: ordering, expiry, removal on `approvalResolved`, empty state. Test-first, no UI. Risk: none. Done in ce2939c.
 - T2 (S1, S3, S4) Home UI: a «Pendientes» segment at the top of Inicio using T1; each row opens the existing approval sheet or question screen (reuse `ApprovalSheet`, `QuestionScreen`, `BiometricGate`; no new decision path). English and Spanish strings through `i18n/` + `node scripts/gen-strings.mjs`. Update docs only if a described behavior changes. Risk: item 2 only if a decision path is touched (it must not be); otherwise none.
 - T3 (S1) Live check on the real phone with two sessions waiting. NOT for the child; stays pending, UNVERIFIED on a device until then.
 
