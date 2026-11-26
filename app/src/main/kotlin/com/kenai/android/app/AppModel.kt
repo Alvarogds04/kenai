@@ -290,6 +290,8 @@ class AppModel(private val context: Context) : LinkListener, ChatBackend.Listene
     var chatHasConversations by mutableStateOf(conversations.known); private set
     /** The conversation on screen, as the engine has it open; null when there is none. */
     var chatOpenId by mutableStateOf(conversations.open); private set
+    /** What the phone holds of each conversation, by id: read-only, for the local search (KN-15 T3). */
+    fun chatCachedMessages(): Map<String, List<com.kenai.android.core.ChatMessage>> = conversations.snapshot().held
 
     /** The computer offers session details (steps, last message, project folder, colour) to this phone. */
     var detailsOffered by mutableStateOf(false); private set

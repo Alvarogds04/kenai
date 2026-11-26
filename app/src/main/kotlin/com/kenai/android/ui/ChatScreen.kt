@@ -333,9 +333,8 @@ private fun ConversationsSheet(model: AppModel, onDismiss: () -> Unit, onDelete:
         Text(stringResource(R.string.chat_conversations), style = TypeScale.TITLE.style(white))
         var query by rememberSaveable { mutableStateOf("") }
         val all = model.chatConversationList
-        // Works from what the phone holds, so it also works with the engine off. Titles only here: the cached messages
-        // are not exposed by AppModel (outside this task's surfaces), see the feature document.
-        val rows = remember(all, query) { ChatSearch.filter(all, emptyMap(), query) }
+        // Works from what the phone holds (titles and cached message text), so it also works with the engine off.
+        val rows = remember(all, query) { ChatSearch.filter(all, if (query.isBlank()) emptyMap() else model.chatCachedMessages(), query) }
         if (all.size > 3 || query.isNotEmpty()) {
             OutlinedTextField(
                 value = query, onValueChange = { query = it.take(100) }, singleLine = true,
