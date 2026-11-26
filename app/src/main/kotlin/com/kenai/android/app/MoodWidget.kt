@@ -14,7 +14,7 @@ import android.widget.RemoteViews
 class MoodWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         // One small card for every placed instance, whatever the app knows; nothing here throws out of a broadcast.
-        runCatching { WidgetHub.refresh(context, manager, ids) { c, w -> views(c) } }
+        runCatching { WidgetHub.refresh(context, manager, ids) { c, _ -> views(c) } }
     }
 
     companion object {

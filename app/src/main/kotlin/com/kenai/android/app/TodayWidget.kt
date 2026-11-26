@@ -3,6 +3,7 @@ package com.kenai.android.app
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
+import android.content.Intent
 import android.widget.RemoteViews
 
 /**
@@ -17,7 +18,18 @@ import android.widget.RemoteViews
 class TodayWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         // One small card for every placed instance, whatever the app knows; nothing here throws out of a broadcast.
-        runCatching { WidgetHub.refresh(context, manager, ids) { c, w -> views(c) } }
+        runCatching { WidgetHub.refresh(context, manager, ids) { c, _ -> views(c) } }
+    }
+
+    /**
+     * An alarm armed by the previous version still targets this receiver. Its midnight is handed on to «Sesiones y actividad», which redraws
+     * and arms its own alarm from then on (KN-13 review). An explicit component, never an implicit broadcast; nothing throws out of here.
+     */
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == WidgetHub.ACTION_MIDNIGHT) {
+            runCatching { context.sendBroadcast(Intent(WidgetHub.ACTION_MIDNIGHT).setClass(context, GlanceWidget::class.java)) }
+        }
     }
 
     companion object {
